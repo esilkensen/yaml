@@ -4,14 +4,7 @@
 
 (provide (all-defined-out))
 
-(define (token? token)
-  (and (list? token)
-       (not (null? token))
-       (eq? 'token (car token))))
-
-(define (token-start token) (third token))
-(define (token-end token) (fourth token))
-(define (token-id token) (last token))
+(struct token (type id start end attrs))
 
 (define-syntax (define-token stx)
   (define (build-name id . parts)
@@ -32,19 +25,19 @@
        #`(begin
            (define (#,t start end field ...)
              (let ([attrs (make-hash `((field . ,field) ...))])
-               (list 'token 'name start end attrs id)))
+               (token 'name id start end attrs)))
            (define (#,t? token)
              (and (token? token)
-                  (eq? 'name (second token))))
+                  (eq? 'name (token-id token))))
            (define-values (#,@fs)
              (values
               (λ (token)
-                (hash-ref (fifth token) 'field)) ...))))]))
+                (hash-ref (token-attrs token) 'field)) ...))))]))
 
 (define-token directive name value "<directive>")
 (define-token document-start "<document start>")
 (define-token document-end "<document end>")
-(define-token stream-start encoding "<stream start>")
+(define-token stream-start "<stream start>")
 (define-token stream-end "<stream end>")
 (define-token block-sequence-start "<block sequence start>")
 (define-token block-mapping-start "<block mapping start>")
