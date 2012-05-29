@@ -13,17 +13,55 @@
 
 (struct simple-key (token-number required? index line column mark))
 
-(define (make-scanner)
-  ;; TODO
+(define (make-scanner [in (current-input-port)] #:name [name "<input>"])
+  (define line 1)
   (define column 0)
-  (define line 0)
   (define index 0)
-  (define (peek [k 0]) #f)
-  (define (forward [k 0]) #f)
-  (define (prefix [k 0]) #f)
-  (define (get-mark) #f)
-  (define (add-token! token) #f)
+  (define buffer-length 0)
+  (define buffer (make-vector 1024 #\nul))
+  (define position
+    (make-hash (list (cons index (cons line column)))))
+
+  ;; peek the next i-th character
+  (define (peek [i 0])
+    (when (>= (+ i index) (vector-length buffer))
+      (let ([new-buffer (make-vector (* (vector-length buffer 2)) #\nul)])
+        (vector-copy! new-buffer 0 buffer)
+        (set! buffer new-buffer)))
+    (when (>= (+ index i) buffer-length)
+      (for ([j (in-range buffer-length (+ index i 1))])
+        (let-values ([(ln col pos) (port-next-location in)])
+          (hash-set! position j (cons ln col)))
+        (vector-set! buffer j (read-char in))
+        (set! buffer-length (add1 buffer-length))))
+    (vector-ref buffer (+ i index)))
+
+  ;; peek the next l characters
+  (define (prefix [l 1])
+    (list->string
+     (for/list ([i (in-range l)]
+                #:when (char? (peek i)))
+       (peek i))))
   
+  ;; read the next l characters and move the index
+  (define (forward [l 1])
+    (set! index
+          (+ index
+             (for/sum ([i (in-range l)])
+               (if (char? (peek i)) 1 0))))
+    (match (hash-ref position (sub1 index))
+      [(cons ln col)
+       (set! line ln)
+       (set! column col)]))
+
+  (define (get-mark)
+    ;; TODO
+    #f)
+
+  (define (add-token! token)
+    ;; TODO
+    #f)
+
   ;; Had we reached the end of the stream?
   (define done? #f)
   
@@ -736,7 +774,7 @@
           (set! chunks (append chunks (string->list line-break))))
         (when (eq? #t chomping)
           (set! chunks (append chunks breaks)))
-        (scalar-token start-mark end-mark (apply string chunks) #f style))))
+        (scalar-token start-mark end-mark (list->string chunks) #f style))))
 
   (define (scan-block-scalar-indicators start-mark)
     ;; See the specification for details.
@@ -844,7 +882,7 @@
                         (scan-flow-scalar-non-spaces double start-mark))))
         (forward)
         (let ([end-mark (get-mark)])
-          (scalar-token start-mark end-mark (apply string chunks) #f style)))))
+          (scalar-token start-mark end-mark (list->string chunks) #f style)))))
 
   (define (scan-flow-scalar-non-spaces double start-mark)
     ;; See the specification for details.
@@ -1013,7 +1051,7 @@
             (when (or (null? spaces) (equal? #\# (peek))
                       (and (zero? flow-level) (< column indent)))
               (break)))))
-      (scalar-token start-mark end-mark (apply string chunks) #t)))
+      (scalar-token start-mark end-mark (list->string chunks) #t)))
 
   (define (scan-plain-spaces indent start-mark)
     ;; See the specification for details.
@@ -1123,7 +1161,7 @@
          (format "while parsing a ~a" name)
          (format "expected URI, but found ~a" (peek))
          (get-mark)))
-      (apply string chunks)))
+      (list->string chunks)))
 
   (define (scan-uri-escapes name start-mark)
     ;; See the specification for details.
@@ -1141,7 +1179,7 @@
         (let ([c (string->number (prefix 2) 16)])
           (set! bytes (append bytes (list (integer->char c))))
           (forward 2)))
-      (apply string bytes)))
+      (list->string bytes)))
 
   (define (scan-line-break)
     ;; Transforms:
@@ -1166,5 +1204,7 @@
         (string ch)]
        [else ""])))
 
+  (port-count-lines! in)
+  
   ;; Add the STREAM-START token.
   (fetch-stream-start))
