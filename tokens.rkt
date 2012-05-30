@@ -20,7 +20,7 @@
      (let ([t (build-name #'name #'name "-token")]
            [t? (build-name #'name #'name "-token?")]
            [fs (map (λ (f)
-                      (build-name #'name #'name "-" f))
+                      (build-name #'name #'name "-token-" f))
                     (syntax->list #'(field ...)))])
        #`(begin
            (define (#,t start end field ...)
