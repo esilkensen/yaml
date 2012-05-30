@@ -11,6 +11,8 @@
 (define (scanner-error context problem problem-mark)
   (error 'scanner "~a\n~a\n~a" context problem problem-mark))
 
+(struct mark (name index line column buffer))
+
 (struct simple-key (token-number required? index line column mark))
 
 (define (make-scanner [in (current-input-port)] #:name [name "<input>"])
@@ -55,12 +57,11 @@
        (set! column col)]))
 
   (define (get-mark)
-    ;; TODO
-    #f)
+    (mark name index line column buffer))
 
   (define (add-token! token)
-    ;; TODO
-    #f)
+    (printf "-- add-token! ~a\n" (token-id token))
+    (set! tokens (append tokens (list token))))
 
   ;; Had we reached the end of the stream?
   (define done? #f)
@@ -117,7 +118,7 @@
     ;; Check if the next token is one of the given types.
     (while (need-more-tokens?)
       (fetch-more-tokens))
-    (and (list? tokens)
+    (and (not (null? tokens))
          (let ([t (token-type (car tokens))])
            (or (not choices)
                (and (list? choices)
@@ -133,7 +134,7 @@
     ;; Return the next token.
     (while (need-more-tokens?)
       (fetch-more-tokens))
-    (and (list? tokens)
+    (and (not (null? tokens))
          (begin0 (car tokens)
            (set! tokens (cdr tokens))
            (set! tokens-taken (add1 tokens-taken)))))
@@ -142,12 +143,12 @@
 
   (define (need-more-tokens?)
     (and (not done?)
-         (or (list? tokens)
+         (or (null? tokens)
              ;; The current token may be a potential simple key, so we
              ;; need to look further.
              (begin
                (stale-possible-simple-keys!)
-               (= (next-possible-simple-key) tokens-taken)))))
+               (equal? (next-possible-simple-key) tokens-taken)))))
   
   (define (fetch-more-tokens)
     (define ctable
@@ -197,6 +198,7 @@
   (define (next-possible-simple-key)
     ;; Return the number of the nearest possible simple key.
     (and (hash? possible-simple-keys)
+         (not (null? (hash-keys possible-simple-keys)))
          (simple-key-token-number
           (hash-ref possible-simple-keys
                     (apply min (hash-keys possible-simple-keys))))))
@@ -210,7 +212,7 @@
     ;; height (may cause problems if indentation is broken though).
     (for ([(level key) possible-simple-keys])
       (when (or (not (= (simple-key-line key) line))
-                (> (simple-key-index (- index key)) 1024))
+                (> (- index (simple-key-index key)) 1024))
         (when (simple-key-required? key)
           (scanner-error
            "while scanning a simple key"
@@ -223,7 +225,7 @@
     ;; and save its position. This function is called for
     ;;   ALIAS, ANCHOR, TAG, SCALAR(flow), '[', and '{'.
     (define required? (and (zero? flow-level) (= indent column)))
-    (when (or allow-simple-key (not required?))
+    (unless (or allow-simple-key (not required?))
       (error 'scanner "required simple key not allowed"))
     (when allow-simple-key
       (remove-possible-simple-key!)
@@ -1023,15 +1025,16 @@
           (when (equal? #\# (peek))
             (break))
           (while #t
-            (when (and (char? (peek))
-                       (or (string-index "\0 \t\r\n\x85\u2028\u2029" (peek))
-                           (and (zero? flow-level) (equal? #\: (peek))
-                                (string-index "\0 \t\r\n\x85\u2028\u2029"
-                                              (peek (add1 len))))
-                           (and (> 0 flow-level)
-                                (string-index ",:?[]{}" (peek)))))
-              (break))
-            (set! len (add1 len)))
+            (let ([ch (peek len)])
+              (when (or (eof-object? ch)
+                        (and (or (string-index "\0 \t\r\n\x85\u2028\u2029" ch)
+                                 (and (zero? flow-level) (equal? #\: ch)
+                                      (string-index "\0 \t\r\n\x85\u2028\u2029"
+                                                    (peek (add1 len))))
+                                 (and (> 0 flow-level)
+                                      (string-index ",:?[]{}" (peek))))))
+                (break))
+              (set! len (add1 len))))
           (when (and (> 0 flow-level) (equal? #\: (peek))
                      (or (eof-object? (peek (add1 len)))
                          (not (string-index "\0 \t\r\n\x85\u2028\u2029,[]{}"
@@ -1051,7 +1054,7 @@
             (when (or (null? spaces) (equal? #\# (peek))
                       (and (zero? flow-level) (< column indent)))
               (break)))))
-      (scalar-token start-mark end-mark (list->string chunks) #t)))
+      (scalar-token start-mark end-mark (list->string chunks) #t #f)))
 
   (define (scan-plain-spaces indent start-mark)
     ;; See the specification for details.
@@ -1204,7 +1207,14 @@
         (string ch)]
        [else ""])))
 
+  ;; Turn on line counting.
   (port-count-lines! in)
   
   ;; Add the STREAM-START token.
-  (fetch-stream-start))
+  (fetch-stream-start)
+
+  (values check-token? peek-token get-token))
+
+(define in (open-input-file "test0"))
+(define-values (check-token? peek-token get-token)
+  (make-scanner in #:name "test0"))
