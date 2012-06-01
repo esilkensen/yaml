@@ -9,20 +9,24 @@
 (provide (all-defined-out))
 
 (define (scanner-error context problem problem-mark)
-  (error 'scanner "~a\n~a\n~a" context problem problem-mark))
-
-(struct mark (name index line column buffer))
+  (error 'scanner "~a\n; ~a\n~a:~a:~a: ~a"
+         context
+         problem
+         (mark-name problem-mark)
+         (mark-line problem-mark)
+         (mark-column problem-mark)
+         (vector-ref
+          (mark-buffer problem-mark)
+          (mark-index problem-mark))))
 
 (struct simple-key (token-number required? index line column mark))
 
 (define (make-scanner [in (current-input-port)] #:name [name "<input>"])
-  (define line 1)
+  (define line 0)
   (define column 0)
   (define index 0)
   (define buffer-length 0)
   (define buffer (make-vector 1024 #\nul))
-  (define position
-    (make-hash (list (cons index (cons line column)))))
 
   ;; peek the next i-th character
   (define (peek [i 0])
@@ -32,8 +36,6 @@
         (set! buffer new-buffer)))
     (when (>= (+ index i) buffer-length)
       (for ([j (in-range buffer-length (+ index i 1))])
-        (let-values ([(ln col pos) (port-next-location in)])
-          (hash-set! position j (cons ln col)))
         (vector-set! buffer j (read-char in))
         (set! buffer-length (add1 buffer-length))))
     (vector-ref buffer (+ i index)))
@@ -47,21 +49,28 @@
   
   ;; read the next l characters and move the index
   (define (forward [l 1])
-    (set! index
-          (+ index
-             (for/sum ([i (in-range l)])
-               (if (char? (peek i)) 1 0))))
-    (match (hash-ref position (sub1 index))
-      [(cons ln col)
-       (set! line ln)
-       (set! column col)]))
+    (let ([tmp-index index])
+      (for ([i (in-range l)])
+        (when (char? (peek i))
+          (set! tmp-index (add1 tmp-index))
+          (cond
+           [(or (string-index "\n\x85\u2028\u2029" (peek i))
+                (and (equal? #\return (peek i))
+                     (not (equal? #\newline (peek (add1 i))))))
+            (set! line (add1 line))
+            (set! column 0)]
+           [(not (equal? #\uFEFF (peek i)))
+            (set! column (add1 column))])))
+      (set! index tmp-index)))
 
   (define (get-mark)
     (mark name index line column buffer))
 
-  (define (add-token! token)
-    (printf "-- add-token! ~a\n" (token-id token))
-    (set! tokens (append tokens (list token))))
+  (define (add-token! token [i #f])
+    (if (number? i)
+        (let-values ([(left right) (split-at tokens i)])
+          (set! tokens (append left (cons token right))))
+        (set! tokens (append tokens (list token)))))
 
   ;; Had we reached the end of the stream?
   (define done? #f)
@@ -128,7 +137,8 @@
     ;; Return the next token, but do not delete if from the queue.
     (while (need-more-tokens?)
       (fetch-more-tokens))
-    (and (list? tokens) (car tokens)))
+    (and (not (null? tokens))
+         (car tokens)))
   
   (define (get-token)
     ;; Return the next token.
@@ -162,13 +172,15 @@
          (#\] . ,fetch-flow-sequence-end)
          (#\} . ,fetch-flow-mapping-end)
          (#\, . ,fetch-flow-entry)
+         (#\? . (,check-key? . ,fetch-key))
+         (#\: . (,check-value? . ,fetch-value))
          (#\* . ,fetch-alias)
          (#\& . ,fetch-anchor)
          (#\! . ,fetch-tag)
+         (#\| . (,(λ () (zero? flow-level)) . ,fetch-literal))
+         (#\> . (,(λ () (zero? flow-level)) . ,fetch-folded))
          (#\' . ,fetch-single)
-         (#\" . ,fetch-double)
-         (#\? . (,check-key? . ,fetch-key))
-         (#\| . (,(λ () (zero? flow-level)) . ,fetch-literal)))))
+         (#\" . ,fetch-double))))
     (define (check-ch? ch)
       (match (hash-ref ctable ch #f)
         [(? procedure? fetch) fetch]
@@ -210,15 +222,17 @@
     ;; - should be no longer than 1024 characters.
     ;; Disabling this procedure will allow simple keys of any length and
     ;; height (may cause problems if indentation is broken though).
-    (for ([(level key) possible-simple-keys])
-      (when (or (not (= (simple-key-line key) line))
-                (> (- index (simple-key-index key)) 1024))
-        (when (simple-key-required? key)
-          (scanner-error
-           "while scanning a simple key"
-           "could not find expected ':'"
-           (get-mark)))
-        (hash-remove! possible-simple-keys level))))
+    (hash-for-each
+     possible-simple-keys
+     (λ (level key)
+       (when (or (not (= (simple-key-line key) line))
+                 (> (- index (simple-key-index key)) 1024))
+         (when (simple-key-required? key)
+           (scanner-error
+            "while scanning a simple key"
+            "could not find expected ':'"
+            (get-mark)))
+         (hash-remove! possible-simple-keys level)))))
 
   (define (save-possible-simple-key!)
     ;; The next token may start a simple key. We check if it's possible
@@ -251,7 +265,7 @@
   (define (unwind-indent! column)
     ;; In the flow context, indentation is ignored. We make the scanner
     ;; less restrictive than specification requires.
-    (unless (zero? flow-level)
+    (when (zero? flow-level)
       ;; In block context, we may need to issue the BLOCK-END tokens.
       (while (> indent column)
         (let ([mark (get-mark)])
@@ -262,9 +276,9 @@
   (define (add-indent! column)
     ;; Check if we need to increase indentation.
     (and (< indent column)
-         (begin0 #t
-           (set! indent column)
-           (set! indents (cons indent indents)))))
+         (set! indents (cons indent indents))
+         (set! indent column)
+         #t))
 
   ;;; Fetchers.
 
@@ -365,7 +379,7 @@
       (when (add-indent! column)
         (let ([mark (get-mark)])
           (add-token! (block-mapping-start-token mark mark)))))
-    (set! allow-simple-key (not flow-level))
+    (set! allow-simple-key (zero? flow-level))
     (remove-possible-simple-key!)
     (let ([start-mark (get-mark)])
       (forward)
@@ -521,7 +535,7 @@
           (while (and (not (eof-object? (peek)))
                       (not (string-index "\0\r\n\x85\u2028\u2029" (peek))))
             (forward)))
-        (if (> 0 (string-length (scan-line-break)))
+        (if (> (string-length (scan-line-break)) 0)
             (when (zero? flow-level)
               (set! allow-simple-key #t))
             (set! found #t)))))
@@ -728,22 +742,23 @@
           [start-mark (get-mark)] [end-mark #f])
       (forward)
       (match-let ([(cons chomping increment)
-                   (scan-block-scalar-indicators start-mark)])
+                   (scan-block-scalar-indicators start-mark)]
+                  [tmp-indent -1])
         (scan-block-scalar-ignored-line start-mark)
         (let ([min-indent (+ indent 1)])
           (when (< min-indent 1)
             (set! min-indent 1))
           (if increment
               (begin
-                (set! indent (+ min-indent increment -1))
-                (let ([be (scan-block-scalar-breaks indent)])
+                (set! tmp-indent (+ min-indent increment -1))
+                (let ([be (scan-block-scalar-breaks tmp-indent)])
                   (set! breaks (car be))
                   (set! end-mark (cdr be))))
               (match-let ([(list b i e) (scan-block-scalar-indentation)])
                 (set! breaks b)
                 (set! end-mark e)
-                (set! indent (max min-indent i)))))
-        (while (and (= column indent)
+                (set! tmp-indent (max min-indent i)))))
+        (while (and (= column tmp-indent)
                     (char? (peek))
                     (not (char=? #\nul (peek))))
           (set! chunks (append chunks breaks))
@@ -757,10 +772,10 @@
             (set! chunks (append chunks (string->list (prefix len))))
             (forward len)
             (set! line-break (scan-line-break))
-            (let ([be (scan-block-scalar-breaks indent)])
+            (let ([be (scan-block-scalar-breaks tmp-indent)])
               (set! breaks (car be))
               (set! end-mark (cdr be))
-              (if (and (= column indent)
+              (if (and (= column tmp-indent)
                        (char? (peek))
                        (not (char=? #\nul (peek))))
                   (begin ;; Unfortunately, folding rules are ambiguous.
@@ -1018,8 +1033,8 @@
     ;; We also keep track of the `allow-simple-key' flag here.
     (let ([chunks '()]
           [start-mark (get-mark)]
-          [end-mark (get-mark)])
-      (set! indent (add1 indent))
+          [end-mark (get-mark)]
+          [tmp-indent (add1 indent)])
       (while #t
         (let ([len 0])
           (when (equal? #\# (peek))
@@ -1050,9 +1065,9 @@
           (set! chunks (append chunks (string->list (prefix len))))
           (forward len)
           (set! end-mark (get-mark))
-          (let ([spaces (scan-plain-spaces indent start-mark)])
+          (let ([spaces (scan-plain-spaces tmp-indent start-mark)])
             (when (or (null? spaces) (equal? #\# (peek))
-                      (and (zero? flow-level) (< column indent)))
+                      (and (zero? flow-level) (< column tmp-indent)))
               (break)))))
       (scalar-token start-mark end-mark (list->string chunks) #t #f)))
 
@@ -1218,3 +1233,7 @@
 (define in (open-input-file "test0"))
 (define-values (check-token? peek-token get-token)
   (make-scanner in #:name "test0"))
+
+(define (get-tokens)
+  (while (token? (peek-token))
+    (print-token (get-token))))

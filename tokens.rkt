@@ -6,6 +6,23 @@
 
 (struct token (type id start end attrs))
 
+(struct mark (name index line column buffer))
+
+(define (print-token token)
+  (cond
+   [(token? token)
+    (let ([start (token-start token)]
+          [end (token-end token)])
+      (printf "~a-token(~a)\n"
+              (token-type token)
+              (string-join
+               (hash-map
+                (token-attrs token)
+                (λ (attr value)
+                  (format "~a=~s" attr value)))
+               ", ")))]
+   [else (printf "no token!\n")]))
+
 (define-syntax (define-token stx)
   (define (build-name id . parts)
     (let ([str (apply string-append
