@@ -12,14 +12,18 @@
   (cond
    [(token? token)
     (let ([start (token-start token)]
-          [end (token-end token)])
+          [end (token-end token)]
+          [attrs (token-attrs token)])
       (printf "~a-token(~a)\n"
               (token-type token)
               (string-join
-               (hash-map
-                (token-attrs token)
-                (λ (attr value)
-                  (format "~a=~s" attr value)))
+               (map
+                (λ (attr)
+                  (format "~a=~s" attr (hash-ref attrs attr)))
+                (sort (hash-keys attrs)
+                      (λ (x y)
+                        (string<=? (symbol->string x)
+                                   (symbol->string y)))))
                ", ")))]
    [else (printf "no token!\n")]))
 

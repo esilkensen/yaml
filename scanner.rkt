@@ -6,7 +6,23 @@
 (require (planet dyoo/while-loop))
 (require "tokens.rkt")
 
-(provide (all-defined-out))
+(provide scan scan-file scan-string)
+
+(define (scan-file filename)
+  (with-input-from-file filename
+    (λ () (scan #:name filename))))
+
+(define (scan-string string)
+  (with-input-from-string string
+    (λ () (scan #:name "<string>"))))
+
+(define (scan [in (current-input-port)] #:name [name "<input>"])
+  (define-values (check-token? peek-token get-token)
+    (make-scanner in #:name name))
+  (let loop ([ts '()])
+    (if (token? (peek-token))
+        (loop (cons (get-token) ts))
+        (reverse ts))))
 
 (define (scanner-error context problem problem-mark)
   (error 'scanner "~a\n; ~a\n~a:~a:~a: ~a"
@@ -1032,25 +1048,26 @@
     ;;   plain scalars in the flow context cannot contain ',' ':' '?'.
     ;; We also keep track of the `allow-simple-key' flag here.
     (let ([chunks '()]
+          [spaces '()]
           [start-mark (get-mark)]
           [end-mark (get-mark)]
           [tmp-indent (add1 indent)])
       (while #t
-        (let ([len 0])
+        (let ([len 0] [ch #f])
           (when (equal? #\# (peek))
             (break))
           (while #t
-            (let ([ch (peek len)])
-              (when (or (eof-object? ch)
-                        (and (or (string-index "\0 \t\r\n\x85\u2028\u2029" ch)
-                                 (and (zero? flow-level) (equal? #\: ch)
-                                      (string-index "\0 \t\r\n\x85\u2028\u2029"
-                                                    (peek (add1 len))))
-                                 (and (> 0 flow-level)
-                                      (string-index ",:?[]{}" (peek))))))
-                (break))
-              (set! len (add1 len))))
-          (when (and (> 0 flow-level) (equal? #\: (peek))
+            (set! ch (peek len))
+            (when (or (eof-object? ch)
+                      (and (or (string-index "\0 \t\r\n\x85\u2028\u2029" ch)
+                               (and (zero? flow-level) (equal? #\: ch)
+                                    (string-index "\0 \t\r\n\x85\u2028\u2029"
+                                                  (peek (add1 len))))
+                               (and (> flow-level 0)
+                                    (string-index ",:?[]{}" ch)))))
+              (break))
+            (set! len (add1 len)))
+          (when (and (> flow-level 0) (equal? #\: ch)
                      (or (eof-object? (peek (add1 len)))
                          (not (string-index "\0 \t\r\n\x85\u2028\u2029,[]{}"
                                             (peek (add1 len))))))
@@ -1062,13 +1079,14 @@
           (when (zero? len)
             (break))
           (set! allow-simple-key #f)
+          (set! chunks (append chunks spaces))
           (set! chunks (append chunks (string->list (prefix len))))
           (forward len)
           (set! end-mark (get-mark))
-          (let ([spaces (scan-plain-spaces tmp-indent start-mark)])
-            (when (or (null? spaces) (equal? #\# (peek))
-                      (and (zero? flow-level) (< column tmp-indent)))
-              (break)))))
+          (set! spaces (scan-plain-spaces tmp-indent start-mark))
+          (when (or (null? spaces) (equal? #\# (peek))
+                    (and (zero? flow-level) (< column tmp-indent)))
+            (break))))
       (scalar-token start-mark end-mark (list->string chunks) #t #f)))
 
   (define (scan-plain-spaces indent start-mark)
@@ -1170,7 +1188,7 @@
                 (append chunks
                         (string->list (scan-uri-escapes name start-mark))))]
          [else (set! len (add1 len))]))
-      (when (> 0 len)
+      (when (> len 0)
         (set! chunks (append chunks (string->list (prefix len))))
         (forward len)
         (set! len 0))
@@ -1229,11 +1247,3 @@
   (fetch-stream-start)
 
   (values check-token? peek-token get-token))
-
-(define in (open-input-file "test0"))
-(define-values (check-token? peek-token get-token)
-  (make-scanner in #:name "test0"))
-
-(define (get-tokens)
-  (while (token? (peek-token))
-    (print-token (get-token))))
