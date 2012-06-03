@@ -1175,19 +1175,20 @@
   (define (scan-tag-uri name start-mark)
     ;; See the specification for details.
     ;; Note: we do not check if URI is well-formed.
-    (let ([chunks '()] [len 0])
-      (while (and (char? (peek len))
-                  (regexp-match? #rx"[0-9A-Za-z/;?:@&=+$,_.!~*'()[]%-]"
-                                 (peek len)))
+    (let ([chunks '()] [len 0] [ch (peek)])
+      (while (and (char? ch)
+                  (or (regexp-match? #rx"[0-9A-Za-z]" (string ch))
+                      (string-index "-/;?:@&=+$,_.!~*'()[]%" ch)))
         (cond
-         [(equal? #\% (peek len))
+         [(equal? #\% ch)
           (set! chunks (append chunks (string->list (prefix len))))
           (forward len)
           (set! len 0)
           (set! chunks
                 (append chunks
                         (string->list (scan-uri-escapes name start-mark))))]
-         [else (set! len (add1 len))]))
+         [else (set! len (add1 len))])
+        (set! ch (peek len)))
       (when (> len 0)
         (set! chunks (append chunks (string->list (prefix len))))
         (forward len)
