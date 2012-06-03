@@ -764,7 +764,7 @@
         (let ([min-indent (+ indent 1)])
           (when (< min-indent 1)
             (set! min-indent 1))
-          (if increment
+          (if (number? increment)
               (begin
                 (set! tmp-indent (+ min-indent increment -1))
                 (let ([be (scan-block-scalar-breaks tmp-indent)])
@@ -798,7 +798,7 @@
                     (if (and folded leading-non-space
                              (equal? "\n" line-break)
                              (not (string-index " \t" (peek))))
-                        (unless breaks
+                        (when (null? breaks)
                           (set! chunks (append chunks '(#\space))))
                         (set! chunks
                               (append chunks (string->list line-break)))))
@@ -877,7 +877,7 @@
             (set! max-indent column))]))
       (list chunks max-indent end-mark)))
 
-  (define (scan-block-scalar-breaks)
+  (define (scan-block-scalar-breaks indent)
     ;; See the specification for details.
     (let ([chunks '()]
           [max-indent 0]
@@ -1114,7 +1114,7 @@
                   (let ([breaks '()] [ret #f])
                     (while (and (char? (peek))
                                 (string-index
-                                 "\r\n\x85\u2028\u2029"
+                                 " \r\n\x85\u2028\u2029"
                                  (peek)))
                       (cond
                        [(equal? #\space (peek))
@@ -1142,7 +1142,7 @@
                       (set! chunks
                             (append chunks (list #\space)))])
                     (set! chunks (append chunks breaks))))))]
-         [else
+         [(> (string-length whitespaces) 0)
           (set! chunks (append chunks (string->list whitespaces)))])
         chunks)))
 
