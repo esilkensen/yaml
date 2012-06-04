@@ -49,7 +49,7 @@
                (token 'name id start end attrs)))
            (define (#,t? token)
              (and (token? token)
-                  (eq? 'name (token-id token))))
+                  (eq? 'name (token-type token))))
            (define-values (#,@fs)
              (values
               (λ (token)
