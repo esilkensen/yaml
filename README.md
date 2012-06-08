@@ -1,4 +1,4 @@
 racket-yaml
 ===========
 
-A YAML parser for Racket ported from PyYAML (http://pyyaml.org).
+A YAML parser and emitter for Racket ported from PyYAML (http://pyyaml.org).
