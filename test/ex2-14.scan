@@ -1,0 +1,4 @@
+stream-start-token()
+document-start-token()
+scalar-token(plain=#f, style=#\>, value="Mark McGwire's year was crippled by a knee injury.\n")
+stream-end-token()

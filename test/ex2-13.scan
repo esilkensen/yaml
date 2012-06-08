@@ -1,0 +1,4 @@
+stream-start-token()
+document-start-token()
+scalar-token(plain=#f, style=#\|, value="\\//||\\/||\n// ||  ||__\n")
+stream-end-token()
