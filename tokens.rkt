@@ -4,7 +4,7 @@
 
 (provide (all-defined-out))
 
-(struct token (type id start end attrs))
+(struct token (type id start end attrs) #:transparent)
 
 (struct mark (name index line column buffer))
 
