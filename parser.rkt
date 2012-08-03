@@ -125,3 +125,28 @@ flow_mapping_entry:
     ;; Reset the state attributes (to clear self-references).
     (set! states '())
     (set! state #f))
+
+  (define (check-event . choices)
+    ;; Check the type of the next event.
+    (unless (event? current-event)
+      (when (procedure? state)
+        (set! current-event (state))))
+    (and (event? current-event)
+         (or (null? choices)
+             (let ([type (event-type current-event)])
+               (ormap (λ (t) (eq? type t)) choices)))))
+
+  (define (peek-event)
+    ;; Get the next event.
+    (unless (event? current-event)
+      (when (procedure? state)
+        (set! current-event (state))))
+    current-event)
+
+  (define (get-event)
+    ;; Get the next event and proceed further.
+    (unless (event? current-event)
+      (when (procedure? state)
+        (set! current-event (state))))
+    (begin0 current-event
+      (set! current-event #f)))
