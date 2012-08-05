@@ -60,9 +60,9 @@
 (define-event stream-end)
 (define-event document-start explicit version tags)
 (define-event document-end explicit)
-(define-event alias) ; node
+(define-event alias anchor) ; node
 (define-event scalar anchor tag implicit value style) ; node
-(define-event sequence-start) ; collection-start
+(define-event sequence-start anchor tag implicit flow-style) ; collection-start
 (define-event sequence-end) ; collection-end
-(define-event mapping-start) ; collection-start
+(define-event mapping-start anchor tag implicit flow-style) ; collection-start
 (define-event mapping-end) ; collection-end
