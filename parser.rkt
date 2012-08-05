@@ -89,7 +89,7 @@ flow_mapping_entry:
   (define tag-handles (make-hash))
   (define states '())
   (define marks '())
-  (define state parse-stream-start)
+  (define (state) (parse-stream-start))
 
   (define (dispose)
     ;; Reset the state attributes (to clear self-references).
@@ -119,6 +119,8 @@ flow_mapping_entry:
       (when (procedure? state)
         (set! current-event (state))))
     (begin0 current-event
+      (printf "-- next state will be ")
+      (pretty-print state)
       (set! current-event #f)))
 
   ;; stream ::= STREAM-START implicit_document? explicit_document* STREAM-END
@@ -179,7 +181,7 @@ flow_mapping_entry:
 
   (define (parse-document-content)
     (if (check-token? 'directive 'document-start 'document-end 'stream-end)
-        (begin0 (proces-empty-scalar (token-start (peek-token)))
+        (begin0 (process-empty-scalar (token-start (peek-token)))
           (set! state (pop! states)))
         (parse-block-node)))
 
@@ -234,9 +236,9 @@ flow_mapping_entry:
      [(check-token? 'alias)
       (let ([token (get-token)])
         (begin0 (alias-event
-                 (alias-token-value token)
                  (token-start token)
-                 (token-end token))
+                 (token-end token)
+                 (alias-token-value token))
           (set! state (pop! states))))]
      [else
       (let ([anchor #f] [tag #f] [start #f] [end #f] [tag-mark #f])
@@ -277,12 +279,14 @@ flow_mapping_entry:
           (set! end (token-start (peek-token))))
         (let ([implicit (or (not tag) (equal? #\! tag))])
           (if (and indentless-sequence (check-token? 'block-entry))
-              (begin0 (sequence-start-event anchor tag implicit start end)
+              (begin0 (sequence-start-event start end anchor tag implicit #f)
                 (set! state parse-indentless-sequence-entry))
               (cond
                [(check-token? 'scalar)
                 (let ([token (get-token)])
                   (begin0 (scalar-event
+                           start
+                           (token-end token)
                            anchor
                            tag
                            (cond [(or (and (scalar-token-plain token)
@@ -292,29 +296,27 @@ flow_mapping_entry:
                                  [(not tag) (cons #f #t)]
                                  [else (cons #f #f)])
                            (scalar-token-value token)
-                           (scalar-token-style token)
-                           start
-                           (token-end token))
+                           (scalar-token-style token))
                     (set! state (pop! states))))]
                [(check-token? 'flow-sequence-start)
                 (begin0 (sequence-start-event
-                         anchor tag implicit #t start (token-end (peek-token)))
+                         start (token-end (peek-token)) anchor tag implicit #t)
                   (set! state parse-flow-sequence-first-entry))]
                [(check-token? 'flow-mapping-start)
                 (begin0 (mapping-start-event
-                         anchor tag implicit #t start (token-end (peek-token)))
+                         start (token-end (peek-token)) anchor tag implicit #t)
                   (set! state parse-flow-mapping-first-key))]
                [(and block (check-token? 'block-sequence-start))
                 (begin0 (sequence-start-event
-                         anchor tag implicit #f start (token-end (peek-token)))
+                         start (token-end (peek-token)) anchor tag implicit #f)
                   (set! state parse-block-sequence-first-entry))]
                [(and block (check-token? 'block-mapping-start))
                 (begin0 (mapping-start-event
-                         anchor tag implicit #f start (token-end (peek-token)))
+                         start (token-end (peek-token)) anchor tag implicit #f)
                   (set! state parse-block-mapping-first-key))]
                [(or anchor tag)
                 (begin0 (scalar-event
-                         anchor tag (cons implicit #f) "" #f start end)
+                         start end anchor tag (cons implicit #f) "" #f)
                   (set! state (pop! states)))]
                [else
                 (let ([token (peek-token)])
@@ -407,7 +409,7 @@ flow_mapping_entry:
      [(check-token? 'value)
       (let ([token (get-token)])
         (cond
-         [(check-token 'key 'value 'block-end)
+         [(check-token? 'key 'value 'block-end)
           (set! state parse-block-mapping-key)
           (process-empty-scalar (token-end token))]
          [else
@@ -422,7 +424,7 @@ flow_mapping_entry:
   ;;   flow_sequence_entry? FLOW-SEQUENCE-END
   ;; flow_sequence_entry ::= flow_node | KEY flow_node? (VALUE flow_node?)?
 
-  (define (parse-flow-sequence-entry)
+  (define (parse-flow-sequence-first-entry)
     (append! marks (list (token-start (get-token))))
     (parse-flow-sequence-entry #t))
 
@@ -439,7 +441,7 @@ flow_mapping_entry:
        [(and (not flow-seq-end?) (check-token? 'key))
         (let ([start (token-start (peek-token))]
               [end (token-end (peek-token))])
-          (begin0 (mapping-start-event #f #f #t #t start end)
+          (begin0 (mapping-start-event start end #f #f #t #t)
             (set! state parse-flow-sequence-entry-mapping-key)))]
        [(and (not flow-seq-end?) (not (check-token? 'flow-sequence-end)))
         (append! states (list parse-flow-sequence-entry))
@@ -537,6 +539,6 @@ flow_mapping_entry:
     (process-empty-scalar (token-start (peek-token))))
 
   (define (process-empty-scalar mark)
-    (scalar-event #f #f (cons #t #f) "" #f mark mark))
+    (scalar-event mark mark #f #f (cons #t #f) "" #f))
 
   (values check-event? peek-event get-event))
