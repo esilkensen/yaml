@@ -2,9 +2,9 @@
 
 #lang racket
 
-(require "tokens.rkt" "scanner.rkt" "events.rkt")
+(require (planet dyoo/while-loop) "tokens.rkt" "scanner.rkt" "events.rkt")
 
-(provide (all-defined-out))
+(provide parse-file parse-string parse make-parser)
 
 #|
 FIRST sets:
@@ -56,6 +56,15 @@ flow_mapping_entry:
 (define-syntax-rule (pop! lst)
   (begin0 (last lst)
     (set! lst (drop-right lst 1))))
+
+(define (parse-file filename)
+  (error "TODO"))
+
+(define (parse-string string)
+  (error "TODO"))
+
+(define (parse [in (current-input-port)] #:name [name "<input>"])
+  (error "TODO"))
 
 (define (parser-error context problem problem-mark)
   (error 'parser "~a~a\n~a:~a:~a: ~a"
@@ -530,4 +539,4 @@ flow_mapping_entry:
   (define (process-empty-scalar mark)
     (scalar-event #f #f (cons #t #f) "" #f mark mark))
 
-  
+  (values check-event? peek-event get-event))
