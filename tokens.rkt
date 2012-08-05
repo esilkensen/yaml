@@ -8,13 +8,13 @@
 
 (struct mark (name index line column buffer))
 
-(define (print-token token)
+(define (token->string token)
   (cond
    [(token? token)
     (let ([start (token-start token)]
           [end (token-end token)]
           [attrs (token-attrs token)])
-      (printf "~a-token(~a)\n"
+      (format "~a-token(~a)"
               (token-type token)
               (string-join
                (map
@@ -25,7 +25,10 @@
                         (string<=? (symbol->string x)
                                    (symbol->string y)))))
                ", ")))]
-   [else (printf "no token!\n")]))
+   [else "no token!"]))
+
+(define (print-token token)
+  (displayln (token->string token)))
 
 (define-syntax (define-token stx)
   (define (build-name id . parts)
