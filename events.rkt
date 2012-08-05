@@ -6,13 +6,13 @@
 
 (struct event (type start end attrs))
 
-(define (print-event event)
+(define (event->string event)
   (cond
    [(event? event)
     (let ([start (event-start event)]
           [end (event-end event)]
           [attrs (event-attrs event)])
-      (printf "~a-event(~a)\n"
+      (format "~a-event(~a)"
               (event-type event)
               (string-join
                (map
@@ -23,7 +23,10 @@
                         (string<=? (symbol->string x)
                                    (symbol->string y)))))
                ", ")))]
-   [else (printf "no event!\n")]))
+   [else "no event!"]))
+
+(define (print-event event)
+  (displayln (event->string event)))
 
 (define-syntax (define-event stx)
   (define (build-name id . parts)
