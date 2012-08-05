@@ -6,50 +6,6 @@
 
 (provide parse-file parse-string parse make-parser)
 
-#|
-FIRST sets:
-
-stream: 
-  { STREAM-START }
-explicit_document:
-  { DIRECTIVE DOCUMENT-START }
-implicit_document:
-  FIRST(block_node)
-block_node:
-  { ALIAS TAG ANCHOR SCALAR BLOCK-SEQUENCE-START BLOCK-MAPPING-START
-    FLOW-SEQUENCE-START FLOW-MAPPING-START }
-flow_node:
-  { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-START }
-block_content:
-  { BLOCK-SEQUENCE-START BLOCK-MAPPING-START FLOW-SEQUENCE-START
-    FLOW-MAPPING-START SCALAR }
-flow_content:
-  { FLOW-SEQUENCE-START FLOW-MAPPING-START SCALAR }
-block_collection:
-  { BLOCK-SEQUENCE-START BLOCK-MAPPING-START }
-flow_collection:
-  { FLOW-SEQUENCE-START FLOW-MAPPING-START }
-block_sequence:
-  { BLOCK-SEQUENCE-START }
-block_mapping:
-  { BLOCK-MAPPING-START }
-block_node_or_indentless_sequence:
-  { ALIAS ANCHOR TAG SCALAR BLOCK-SEQUENCE-START BLOCK-MAPPING-START
-    FLOW-SEQUENCE-START FLOW-MAPPING-START BLOCK-ENTRY }
-indentless_sequence:
-  { ENTRY }
-flow_collection:
-  { FLOW-SEQUENCE-START FLOW-MAPPING-START }
-flow_sequence:
-  { FLOW-SEQUENCE-START }
-flow_mapping:
-  { FLOW-MAPPING-START }
-flow_sequence_entry:
-  { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-START KEY }
-flow_mapping_entry:
-  { ALIAS ANCHOR TAG SCALAR FLOW-SEQUENCE-START FLOW-MAPPING-START KEY }
-|#
-
 (define-syntax-rule (append! dst lst ...)
   (set! dst (append dst lst ...)))
 
@@ -58,13 +14,20 @@ flow_mapping_entry:
     (set! lst (drop-right lst 1))))
 
 (define (parse-file filename)
-  (error "TODO"))
+  (with-input-from-file filename
+    (λ () (parse #:name filename))))
 
 (define (parse-string string)
-  (error "TODO"))
+  (with-input-from-string string
+    (λ () (parse #:name "<string>"))))
 
 (define (parse [in (current-input-port)] #:name [name "<input>"])
-  (error "TODO"))
+  (define-values (check-event? peek-event get-event)
+    (make-parser in #:name name))
+  (let loop ([es '()])
+    (if (event? (peek-event))
+        (loop (cons (get-event) es))
+        (reverse es))))
 
 (define (parser-error context problem problem-mark)
   (error 'parser "~a~a\n~a:~a:~a: ~a"
@@ -119,8 +82,6 @@ flow_mapping_entry:
       (when (procedure? state)
         (set! current-event (state))))
     (begin0 current-event
-      (printf "-- next state will be ")
-      (pretty-print state)
       (set! current-event #f)))
 
   ;; stream ::= STREAM-START implicit_document? explicit_document* STREAM-END
@@ -151,7 +112,7 @@ flow_mapping_entry:
      [(check-token? 'stream-end)
       (let ([token (get-token)])
         (begin0 (stream-end-event (token-start token) (token-end token))
-          (when (or (null? states) (null? marks))
+          (unless (and (null? states) (null? marks))
             (error 'parser "assertion error (non-null ~a)"
                    (if (null? states) 'states 'marks)))
           (set! state #f)))]
