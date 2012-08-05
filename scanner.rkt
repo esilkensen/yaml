@@ -137,7 +137,7 @@
   
   ;;; Public methods.
 
-  (define (check-token? choices)
+  (define (check-token? . choices)
     ;; Check if the next token is one of the given types.
     (while (need-more-tokens?)
       (fetch-more-tokens))
