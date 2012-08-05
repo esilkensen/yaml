@@ -340,7 +340,7 @@
   ;;     (VALUE block_node_or_indentless_sequence?)?)* BLOCK-END
 
   (define (parse-block-mapping-first-key)
-    (append! marks (token-start (get-token)))
+    (append! marks (list (token-start (get-token))))
     (parse-block-mapping-key))
 
   (define (parse-block-mapping-key)
