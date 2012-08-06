@@ -1,0 +1,5 @@
+stream-start-event()
+document-start-event(explicit=#t, tags=#f, version=#f)
+scalar-event(anchor=#f, implicit=(#f . #t), style=#\>, tag=#f, value="Mark McGwire's year was crippled by a knee injury.\n")
+document-end-event(explicit=#f)
+stream-end-event()
