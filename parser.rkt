@@ -32,7 +32,7 @@
 (define (parser-error context problem problem-mark)
   (error 'parser "~a~a\n~a:~a:~a: ~a"
          (if (string? context)
-             (format "~a\n; " context) "")
+             (format "~a;\n " context) "")
          problem
          (mark-name problem-mark)
          (mark-line problem-mark)
@@ -119,7 +119,7 @@
      [else
       (let* ([token (peek-token)]
              [start (token-start token)])
-        (let-values ([(version tags) (process-directives)])
+        (match-let ([(cons version tags) (process-directives)])
           (unless (check-token? 'document-start)
             (parser-error
              (format "expected '<document start>', but found ~a"
@@ -163,6 +163,8 @@
                 (set! yaml-version (directive-token-value token))))]
            [(string=? "TAG" (directive-token-name token))
             (match-let ([(cons handle prefix) (directive-token-value token)])
+              (when (char? handle)
+                (set! handle (string handle)))
               (when (hash-has-key? tag-handles handle)
                 (let ([msg (format "duplicate tag handle ~a" handle)])
                   (parser-error #f msg (token-start token))))
@@ -170,7 +172,7 @@
       (if (null? (hash-keys tag-handles))
           (set! value (cons yaml-version #f))
           (set! value (cons yaml-version (hash-copy tag-handles))))
-      (for ([(key tag) (hash-keys DEFAULT-TAGS)])
+      (for ([(key tag) DEFAULT-TAGS])
         (unless (hash-has-key? tag-handles key)
           (hash-set! tag-handles key tag)))
       value))
@@ -225,13 +227,16 @@
                 (set! anchor (anchor-token-value token)))))])
         (match tag
           [(cons handle suffix)
+           (when (char? handle)
+             (set! handle (string handle)))
            (if handle
                (if (hash-has-key? tag-handles handle)
                    (let ([h (hash-ref tag-handles handle)])
                      (set! tag (format "~a~a" h suffix)))
                    (parser-error
                     "while parsing a node"
-                    (format "found undefined tag handle ~a" handle)
+                    (format "found undefined tag handle ~a"
+                            (pretty-format handle))
                     tag-mark))
                (set! tag suffix))]
           [else #f])
