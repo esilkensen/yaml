@@ -2,16 +2,10 @@
 
 #lang racket
 
-(require (planet dyoo/while-loop) "tokens.rkt" "scanner.rkt" "events.rkt")
+(require (planet dyoo/while-loop)
+         "tokens.rkt" "scanner.rkt" "events.rkt" "utils.rkt")
 
 (provide parse-file parse-string parse make-parser)
-
-(define-syntax-rule (append! dst lst ...)
-  (set! dst (append dst lst ...)))
-
-(define-syntax-rule (pop! lst)
-  (begin0 (last lst)
-    (set! lst (drop-right lst 1))))
 
 (define (parse-file filename)
   (with-input-from-file filename
