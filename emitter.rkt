@@ -2,7 +2,7 @@
 
 #lang racket
 
-(require (planet dyoo/while-loop) "events.rkt" "utils.rkt")
+(require (planet dyoo/while-loop) srfi/13 "events.rkt" "utils.rkt")
 
 (define (emitter-error message)
   (error 'emitter message))
@@ -113,7 +113,7 @@
 
   ;; Document handlers.
 
-  (define (expect-first-document)
+  (define (expect-first-document-start)
     (expect-document-start #t))
 
   (define (expect-document-start [first #f])
@@ -161,7 +161,7 @@
     (cond
      [(document-end-event? event)
       (write-indent)
-      (when (document-end-explicit event)
+      (when (document-end-event-explicit event)
         (write-indicator "..." #t)
         (write-indent))
       (flush-stream)
@@ -417,7 +417,7 @@
       (when (scalar-event? event)
         (unless analysis
           (set! analysis (analyze-scalar (scalar-event-value event))))
-        (set! len (+ len (string-length analysis-scalar))))
+        (set! len (+ len (string-length (scalar-analysis-scalar analysis)))))
       (or (and (< len 128)
                (alias-event? event))
           (and (scalar-event? event)
@@ -519,11 +519,141 @@
 
   ;; Analyzers.
 
-  
+  (define (prepare-version version)
+    (match-let ([(cons major minor) version])
+      (unless (= 1 major)
+        (emitter-error
+         (format "unsupported YAML version: ~a.~a" major minor)))
+      (format "~a.~a" major minor)))
 
+  (define (prepare-tag-handle handle)
+    (unless (> (string-length handle) 0)
+      (emitter-error "tag handle must not be empty"))
+    (let ([cs (string->list handle)])
+      (unless (and (char=? #\! (car cs))
+                   (char=? #\! (last cs)))
+        (emitter-error
+         (format "tag handle must start and end with '!': ~a" handle)))
+      (for ([ch (substring handle 1 (- (string-length handle) 1))])
+        (unless (or (char<=? #\0 ch #\9)
+                    (char<=? #\A ch #\Z)
+                    (char<=? #\a ch #\z)
+                    (char=? #\- ch)
+                    (char=? #\_ ch))
+          (emitter-error
+           (format "invalid character ~a in the tag handle: ~a" ch handle))))
+      handle))
+
+  (define (prepare-tag-prefix prefix)
+    (unless (> (string-length prefix) 0)
+      (emitter-error "tag prefix must not be empty"))
+    (let ([chunks '()]
+          [start 0]
+          [end 0])
+      (when (char=? #\! (string-ref prefix 0))
+        (set! end 1))
+      (while (< end (string-length prefix))
+        (let ([ch (string-ref prefix end)])
+          (cond
+           [(or (char<=? #\0 ch #\9)
+                (char<=? #\A ch #\Z)
+                (char<=? #\a ch #\z)
+                (string-index "-;/?!:@&=+$,_.~*'()[]" ch))
+            (set! end (add1 end))]
+           [else
+            (when (< start end)
+              (append! chunks (list (substring prefix start end))))
+            (set! start (add1 end))
+            (set! end (add1 end))
+            (append! chunks (list (format "~a" ch)))])))
+      (when (< start end)
+        (append! chunks (substring prefix start end)))
+      (apply string-append chunks)))
+
+  (define (prepare-tag tag)
+    (unless (> (string-length tag) 0)
+      (emitter-error "tag must not be empty"))
+    (if (string=? "!" tag)
+        tag
+        (let ([handle #f]
+              [suffix tag])
+          (for ([prefix (sort (hash-keys tag-prefixes) string<?)])
+            (when (and (string-prefix? prefix tag)
+                       (or (string=? "!" prefix)
+                           (< (string-length prefix)
+                              (string-length tag))))
+              (set! handle (hash-ref tag-prefixes prefix))
+              (set! suffix (substring prefix (string-length prefix)))))
+          (let ([chunks '()]
+                [start 0]
+                [end 0])
+            (while (< end (string-length suffix))
+              (let ([ch (string-ref suffix end)])
+                (cond
+                 [(or (char<=? #\0 ch #\9)
+                      (char<=? #\A ch #\Z)
+                      (char<=? #\a ch #\z)
+                      (string-index "-;/?!:@&=+$,_.~*'()[]" ch))
+                  (set! end (add1 end))]
+                 [else
+                  (when (< start end)
+                    (append! chunks (list (substring suffix start end))))
+                  (set! start (add1 end))
+                  (set! end (add1 end))
+                  (append! chunks (list (format "~a" ch)))])))
+            (when (< start end)
+              (append! chunks (substring suffix start end)))
+            (if (> (string-length handle) 0)
+                (format "~a~a" handle (apply string-append chunks))
+                (format "!<~a>" (apply string-append chunks)))))))
+
+  (define (prepare-anchor anchor)
+    (unless (> (string-length anchor) 0)
+      (emitter-error "anchor must not be empty"))
+    (for ([ch anchor])
+      (unless (or (char<=? #\0 ch #\9)
+                  (char<=? #\A ch #\Z)
+                  (char<=? #\a ch #\z)
+                  (char=? #\- ch)
+                  (char=? #\_ ch))
+        (emitter-error
+         (format "invalid character ~a in the anchor: ~a" ch anchor))))
+    anchor)
+
+  (define (analyze-scalar scalar) #f) ;; TODO
+              
   ;; Writers.
 
-  ;;(define (write-indicator indicator need-whitespace
-  ;;                         [whitespace #f] [indention #f])
+  (define (flush-stream) #f) ;; TODO
+
+  (define (write-stream-start) #f) ;; TODO
+
+  (define (write-stream-end) #f) ;; TODO
+
+  (define (write-indicator indicator need-whitespace
+                           [whitespace #f] [indention #f]) #f) ;; TODO
+
+  (define (write-indent) #f) ;; TODO
+
+  (define (write-line-break [data #f]) #f) ;; TODO
+
+  (define (write-version-directive version-text) #f) ;; TODO
+
+  (define (write-tag-directive handle-text prefix-text) #f) ;; TODO
 
   ;; Scalar streams.
+
+  (define (write-single-quoted text [split #t]) #f) ;; TODO
+
+  (define (write-double-quoted text [split #t]) #f) ;; TODO
+
+  (define (determine-block-hints text) #f) ;; TODO
+
+  (define (write-folded text) #f) ;; TODO
+
+  (define (write-literal text) #f) ;; TODO
+
+  (define (write-plain text [split #t]) #f) ;; TODO
+
+  ;; TODO
+  (values #f))
