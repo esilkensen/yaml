@@ -7,6 +7,10 @@
 (define (emitter-error message)
   (error 'emitter message))
 
+(struct scalar-analysis
+  (scalar empty multiline allow-flow-plain allow-block-plain
+          allow-single-quoted allow-double-quoted allow-block))
+
 (define (make-emitter [out (current-output-port)]
                       #:canonical [canonical #f]
                       #:indent [indent #f]
@@ -94,7 +98,7 @@
 
   (define (expect-stream-start)
     (cond
-     [(eq? 'stream-start (event-type event))
+     [(stream-start-event? event)
       (write-stream-start)
       (set! state expect-first-document-start)]
      [else
@@ -136,7 +140,7 @@
                     (not canonical) (not (document-start-event-version event))
                     (or (not (hash? (document-start-event-tags event)))
                         (null? (hash-keys (document-start-event-tags event))))
-                    (not (check-empty-document)))
+                    (not (check-empty-document?)))
          (write-indent)
          (write-indicator "---" #t)
          (when canonical
@@ -155,7 +159,7 @@
 
   (define (expect-document-end)
     (cond
-     [(eq? 'document-end (event-type event))
+     [(document-end-event? event)
       (write-indent)
       (when (document-end-explicit event)
         (write-indicator "..." #t)
@@ -191,14 +195,14 @@
           (if (or (> flow-level 0)
                   canonical
                   (sequence-start-event-flow-style event)
-                  (check-empty-sequence))
+                  (check-empty-sequence?))
               (expect-flow-sequence)
               (expect-block-sequence))]
          [(mapping-start)
           (if (or (> flow-level 0)
                   canonical
                   (mapping-start-event-flow-style event)
-                  (check-empty-mapping))
+                  (check-empty-mapping?))
               (expect-flow-mapping)
               (expect-block-mapping))])]
       [else
@@ -228,7 +232,7 @@
 
   (define (expect-first-flow-sequence-item)
     (cond
-     [(eq? 'sequence-end (event-type event))
+     [(sequence-end-event? event)
       (set! indent (pop! indents))
       (set! flow-level (sub1 flow-level))
       (write-indicator "]" #f)
@@ -241,7 +245,7 @@
 
   (define (expect-flow-sequence-item)
     (cond
-     [(eq? 'sequence-end (event-type event))
+     [(sequence-end-event? event)
       (set! indent (pop! indents))
       (set! flow-level (sub1 flow-level))
       (when canonical
@@ -266,7 +270,7 @@
 
   (define (expect-first-flow-mapping-key)
     (cond
-     [(eq? 'mapping-end (event-type event))
+     [(mapping-end-event? event)
       (set! indent (pop! indents))
       (set! flow-level (sub1 flow-level))
       (write-indicator "}" #f)
@@ -275,7 +279,7 @@
        (when (or canonical (> column best-width))
          (write-indent))
        (cond
-        [(and (not canonical) (check-simple-key))
+        [(and (not canonical) (check-simple-key?))
          (append! states (list expect-flow-mapping-simple-value))
          (expect-node #f #f #t #t)]
         [else
@@ -285,7 +289,7 @@
 
   (define (expect-flow-mapping-key)
     (cond
-     [(eq? 'mapping-end (event-type event))
+     [(mapping-end-event? event)
       (set! indent (pop! indents))
       (set! flow-level (sub1 flow-level))
       (when canonical
@@ -298,7 +302,7 @@
       (when (or canonical (> column best-width))
         (write-indent))
       (cond
-       [(and (not canonical) (check-simple-key))
+       [(and (not canonical) (check-simple-key?))
         (append! states (list expect-flow-mapping-simple-value))
         (expect-node #f #f #t #t)]
        [else
@@ -329,7 +333,7 @@
 
   (define (expect-block-sequence-item [first #f])
     (cond
-     [(and (not first) (eq? 'sequence-end (event-type event)))
+     [(and (not first) (sequence-end-event? event))
       (set! indent (pop! indents))
       (set! state (pop! states))]
      [else
@@ -340,15 +344,178 @@
 
   ;; Block mapping handlers.
 
-  
+  (define (expect-block-mapping)
+    (increase-indent #f)
+    (set! state expect-first-block-mapping-key))
+
+  (define (expect-first-block-mapping-key)
+    (expect-block-mapping-key #t))
+
+  (define (expect-block-mapping-key [first #f])
+    (cond
+     [(and (not first) (mapping-end-event? event))
+      (set! indent (pop! indents))
+      (set! state (pop! states))]
+     [else
+      (write-indent)
+      (cond
+       [(check-simple-key?)
+        (append! states (list expect-block-mapping-simple-value))
+        (expect-node #f #f #t #t)]
+       [else
+        (write-indicator "?" #t #f #t)
+        (expect-node #f #f #t #f)])]))
+
+  (define (expect-block-mapping-simple-value)
+    (write-indicator ":" #f)
+    (append! states (list expect-block-mapping-key))
+    (expect-node #f #f #t #f))
+
+  (define (expect-block-mapping-value)
+    (write-indent)
+    (write-indicator ":" #t #f #t)
+    (append! states (list expect-block-mapping-key))
+    (expect-node #f #f #t #f))
   
   ;; Checkers.
+  ;;  (expect-node [root #f] [sequence #f] [mapping #f] [simple-key #f])
 
-  
+  (define (check-empty-sequence?)
+    (and (sequence-start-event? event)
+         (not (null? events))
+         (sequence-end-event? (car events))))
+
+  (define (check-empty-mapping?)
+    (and (mapping-start-event? event)
+         (not (null? events))
+         (mapping-end-event? (car events))))
+
+  (define (check-empty-document?)
+    (and (document-start-event? event)
+         (not (null? events))
+         (let ([e (car events)])
+           (scalar-event? e)
+           (not (scalar-event-anchor e))
+           (not (scalar-event-tag e))
+           (scalar-event-implicit e)
+           (equal? "" (scalar-event-value e)))))
+
+  (define (check-simple-key?)
+    (let ([len 0])
+      (when (and (any-node-event? event)
+                 (any-event-attr 'anchor event))
+        (unless prepared-anchor
+          (set! prepared-anchor
+                (prepare-anchor (any-event-attr 'anchor event))))
+        (set! len (+ len (string-length prepared-anchor))))
+      (when (and (or (scalar-event? event)
+                     (any-collection-start-event? event))
+                 (any-event-attr 'tag event))
+        (unless prepared-tag
+          (set! prepared-tag (prepare-tag (any-event-attr 'tag event))))
+        (set! len (+ len (string-length prepared-tag))))
+      (when (scalar-event? event)
+        (unless analysis
+          (set! analysis (analyze-scalar (scalar-event-value event))))
+        (set! len (+ len (string-length analysis-scalar))))
+      (or (and (< len 128)
+               (alias-event? event))
+          (and (scalar-event? event)
+               (not (scalar-analysis-empty analysis))
+               (not (scalar-analysis-multiline analysis)))
+          (check-empty-sequence?)
+          (check-empty-mapping?))))
 
   ;; Anchor, Tag, and Scalar processors.
 
-  
+  (define (process-anchor indicator)
+    (cond
+     [(not (any-event-attr 'anchor event))
+      (set! prepared-anchor #f)]
+     [else
+      (unless prepared-anchor
+        (set! prepared-anchor
+              (prepare-anchor (any-event-attr 'anchor event))))
+      (when prepared-anchor
+        (write-indicator (format "~a~a" indicator prepared-anchor) #t))
+      (set! prepared-anchor #f)]))
+
+  (define (process-tag)
+    (let ([tag (any-event-attr 'tag event)])
+      (when (and (scalar-event? event)
+                 (not style))
+        (set! style (choose-scalar-style)))
+      (cond
+       [(and (scalar-event? event)
+             (or (not canonical) (not tag))
+             (or (and (equal? "" style)
+                      (car (scalar-event-implicit event)))
+                 (and (not (equal? "" style))
+                      (cdr (scalar-event-implicit event)))))
+        (set! prepared-tag #f)]
+       [(and (not (scalar-event? event))
+             (or (not canonical)
+                 (not tag))
+             (any-event-attr 'implicit event))
+        (set! prepared-tag #f)]
+       [else
+        (when (and (scalar-event? event)
+                   (car (scalar-event-implicit event))
+                   (not tag))
+          (set! tag "!")
+          (set! prepared-tag #f))
+        (unless tag
+          (emitter-error "tag is not specified"))
+        (unless prepared-tag
+          (set! prepared-tag (prepare-tag tag)))
+        (when prepared-tag
+          (write-indicator prepared-tag #t))
+        (set! prepared-tag #f)])))
+
+  (define (choose-scalar-style)
+    (unless analysis
+      (set! analysis (analyze-scalar (scalar-event-value event))))
+    (cond
+     [(or (equal? "\"" style) canonical)
+      "\""]
+     [(and (not (scalar-event-style event))
+           (car (scalar-event-implicit event))
+           (not (and simple-key-context
+                     (or (scalar-analysis-empty analysis)
+                         (scalar-analysis-multiline analysis))))
+           (or (and (> flow-level 0)
+                    (scalar-analysis-allow-flow-plain analysis))
+               (and (= flow-level 0)
+                    (scalar-analysis-allow-block-plain analysis))))
+      ""]
+     [(and (scalar-event-style event)
+           (member (scalar-event-style event) '("|" ">"))
+           (scalar-analysis-allow-single-quoted analysis)
+           (not (and simple-key-context
+                     (scalar-analysis-multiline analysis))))
+      "\'"]
+     [else
+      "\""]))
+
+  (define (process-scalar)
+    (unless analysis
+      (set! analysis (analyze-scalar (scalar-event-value event))))
+    (unless style
+      (set! style (not simple-key-context)))
+    (let ([split (not simple-key-context)])
+      (cond
+       [(equal? "\"" style)
+        (write-double-quoted (scalar-analysis-scalar analysis) split)]
+       [(equal? "\'" style)
+        (write-single-quoted (scalar-analysis-scalar analysis) split)]
+       [(equal? ">" style)
+        (write-folded (scalar-analysis-scalar analysis))]
+       [(equal? "|" style)
+        (write-literal (scalar-analysis-scalar analysis))]
+       [else
+        (write-plain (scalar-analysis-scalar analysis) split)])
+      (set! analysis #f)
+      (set! style #f)))
 
   ;; Analyzers.
 
