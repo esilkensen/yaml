@@ -69,3 +69,26 @@
 (define-event sequence-end) ; collection-end
 (define-event mapping-start anchor tag implicit flow-style) ; collection-start
 (define-event mapping-end) ; collection-end
+
+(define (any-event-attr attr e)
+  (define (report-error)
+    (raise-argument-error
+     'any-event-attr
+     (format "'~a" (format (hash-keys (event-attrs e))))
+     attr))
+  (hash-ref (event-attrs e) attr report-error))
+
+(define (any-node-event? e)
+  (or (node-event? e)
+      (alias-event? e)
+      (scalar-event? e)))
+
+(define (any-collection-start-event? e)
+  (or (collection-start-event? e)
+      (sequence-start-event? e)
+      (mapping-start-event? e)))
+
+(define (any-collection-end-event? e)
+  (or (collection-end-event? e)
+      (sequence-end-event? e)
+      (mapping-end-event? e)))
