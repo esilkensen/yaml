@@ -502,3 +502,13 @@
     (scalar-event mark mark #f #f (cons #t #f) "" #f))
 
   (values check-event? peek-event get-event))
+
+(module+ test
+  (require rackunit)
+  (define-simple-check (check-parser test-file check-file)
+    (for ([event (parse-file test-file)]
+          [line (read-file check-file)])
+      (check-equal? (event->string event) line)))
+  (test-begin
+   (for ([(test-file check-file) (test-files #"parse")])
+     (check-parser test-file check-file))))

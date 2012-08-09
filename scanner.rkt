@@ -1246,3 +1246,13 @@
   (fetch-stream-start)
 
   (values check-token? peek-token get-token))
+
+(module+ test
+  (require rackunit "utils.rkt")
+  (define-simple-check (check-scanner test-file check-file)
+    (for ([token (scan-file test-file)]
+          [line (read-file check-file)])
+      (check-equal? (token->string token) line)))
+  (test-begin
+   (for ([(test-file check-file) (test-files #"scan")])
+     (check-scanner test-file check-file))))
