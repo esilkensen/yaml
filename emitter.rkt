@@ -35,7 +35,7 @@
   (define line 0)
   (define column 0)
   (define whitespace #t)
-  (define indentation #t)
+  (define indention #t)
   (define open-ended #f)
   (define best-indent
     (if (and indent (< 1 indent 10)) indent 2))
@@ -325,7 +325,7 @@
   ;; Block sequence handlers.
 
   (define (expect-block-sequence)
-    (increase-indent #f (and mapping-context (not indentation)))
+    (increase-indent #f (and mapping-context (not indention)))
     (set! state expect-first-block-sequence-item))
 
   (define (expect-first-block-sequence-item)
@@ -620,34 +620,249 @@
          (format "invalid character ~a in the anchor: ~a" ch anchor))))
     anchor)
 
-  (define (analyze-scalar scalar) #f) ;; TODO
-              
+  (define (analyze-scalar scalar)
+    (cond
+     [(string=? "" scalar)
+      (scalar-analysis scalar #t #f #f #t #t #t #f)]
+     [else
+      (let ([block-indicators #f]
+            [flow-indicators #f]
+            [line-breaks #f]
+            [special-characters #f]
+            [leading-space #f]
+            [leading-break #f]
+            [trailing-space #f]
+            [trailing-break #f]
+            [break-space #f]
+            [space-break #f]
+            [preceeded-by-whitespace #t]
+            [followed-by-whitespace
+             (or (= 1 (string-length scalar))
+                 (string-index "\0 \t\r\n\x85\u2028\u2029"
+                               (string-ref scalar 1)))]
+            [previous-space #f]
+            [previous-break #f]
+            [index 0]
+            [allow-flow-plain #t]
+            [allow-block-plain #t]
+            [allow-single-quoted #t]
+            [allow-double-quoted #t]
+            [allow-block #t])
+        (when (or (string-prefix? "---" scalar)
+                  (string-prefix? "..." scalar))
+          (set! block-indicators #t)
+          (set! flow-indicators #t))
+        (while (< index (string-length scalar))
+          (let ([ch (string-ref scalar index)])
+            (cond
+             [(zero? index)
+              (when (string-index "#,[]{}&*!|>'\"%@`" ch)
+                (set! flow-indicators #t)
+                (set! block-indicators #t))
+              (when (string-index "?:" ch)
+                (set! flow-indicators #t)
+                (when followed-by-whitespace
+                  (set! block-indicators #t)))
+              (when (and (char=? #\- ch) followed-by-whitespace)
+                (set! flow-indicators #t)
+                (set! block-indicators #t))]
+             [else
+              (when (string-index ",?[]{}" ch)
+                (set! flow-indicators #t))
+              (when (char=? #\: ch)
+                (set! flow-indicators #t)
+                (when followed-by-whitespace
+                  (set! block-indicators #t)))
+              (when (and (char=? #\# ch) preceeded-by-whitespace)
+                (set! flow-indicators #t)
+                (set! block-indicators #t))])
+            (when (string-index "\n\x85\u2028\u2029" ch)
+              (set! line-breaks #t))
+            (unless (or (char=? #\newline ch)
+                        (char<=? #\space ch #\~))
+              (cond
+               [(and (or (char=? #\u0085 ch)
+                         (char<=? #\u00A0 ch #\uD7FF)
+                         (char<=? #\uE000 ch #\uFFFD))
+                     (not (char=? #\uFEFF ch)))
+                (unless allow-unicode
+                  (set! special-characters #t))]
+               [else (set! special-characters #t)]))
+            (cond
+             [(char=? #\space ch)
+              (when (zero? index)
+                (set! leading-space #t))
+              (when (= index (- (string-length scalar) 1))
+                (set! trailing-space #t))
+              (when previous-break
+                (set! break-space #t))
+              (set! previous-space #t)
+              (set! previous-break #t)]
+             [(string-index "\n\x85\u2028\u2029" ch)
+              (when (zero? index)
+                (set! leading-break #t))
+              (when (= index (- (string-length scalar) 1))
+                (set! trailing-break #t))
+              (when previous-space
+                (set! space-break #t))
+              (set! previous-space #f)
+              (set! previous-break #t)]
+             [else
+              (set! previous-space #f)
+              (set! previous-break #f)])
+            (set! index (add1 index))
+            (set! preceeded-by-whitespace
+                  (string-index "\0 \t\r\n\x85\u2028\u2029" ch))
+            (set! followed-by-whitespace
+                  (or (>= (+ 1 index) (string-length scalar))
+                      (string-index "\0 \t\r\n\x85\u2028\u2029"
+                                    (string-ref scalar (+ index 1)))))))
+        (when (or leading-space leading-break
+                  trailing-space trailing-break)
+          (set! allow-flow-plain #f)
+          (set! allow-block-plain #f))
+        (when trailing-space
+          (set! allow-block #f))
+        (when break-space
+          (set! allow-flow-plain #f)
+          (set! allow-block-plain #f)
+          (set! allow-single-quoted #f))
+        (when (or space-break special-characters)
+          (set! allow-flow-plain #f)
+          (set! allow-block-plain #f)
+          (set! allow-single-quoted #f)
+          (set! allow-block #f))
+        (when line-breaks
+          (set! allow-flow-plain #f)
+          (set! allow-block-plain #f))
+        (when flow-indicators
+          (set! allow-flow-plain #f))
+        (when block-indicators
+          (set! allow-block-plain #f))
+        (scalar-analysis
+         scalar #f line-breaks allow-flow-plain allow-block-plain
+         allow-single-quoted allow-double-quoted allow-block))]))
+        
   ;; Writers.
 
-  (define (flush-stream) #f) ;; TODO
+  (define (flush-stream)
+    (flush-output out))
 
-  (define (write-stream-start) #f) ;; TODO
+  (define (write-stream-start)
+    ;; no encoding here
+    #f)
 
-  (define (write-stream-end) #f) ;; TODO
+  (define (write-stream-end)
+    (flush-stream))
 
   (define (write-indicator indicator need-whitespace
-                           [whitespace #f] [indention #f]) #f) ;; TODO
+                           [write-whitespace #f] [write-indention #f])
+    (let ([data (if (or write-whitespace (not need-whitespace))
+                    indicator
+                    (format " ~a" indicator))])
+      (set! whitespace write-whitespace)
+      (set! indention (and indention write-indention))
+      (set! column (+ column (string-length data)))
+      (set! open-ended #f)
+      (fprintf out data)))
 
-  (define (write-indent) #f) ;; TODO
+  (define (write-indent)
+    (let ([indent (or indent 0)])
+      (when (or (not indention) (> column indent)
+                (and (= column indent) (not whitespace)))
+        (write-line-break))
+      (when (< column indent)
+        (let ([n (- indent column)])
+          (set! whitespace #t)
+          (set! column indent)
+          (fprintf out (string (for/list ([i (in-range n)]) #\space)))))))
 
-  (define (write-line-break [data #f]) #f) ;; TODO
+  (define (write-line-break [data #f])
+    (unless data
+      (set! data best-line-break))
+    (set! whitespace #t)
+    (set! indention #t)
+    (set! line (add1 line))
+    (set! column 0)
+    (fprintf out data))
 
-  (define (write-version-directive version-text) #f) ;; TODO
+  (define (write-version-directive version-text)
+    (fprintf out (format "%YAML ~a" version-text))
+    (write-line-break))
 
-  (define (write-tag-directive handle-text prefix-text) #f) ;; TODO
+  (define (write-tag-directive handle-text prefix-text)
+    (fprintf out (format "%TAG ~a ~a" handle-text prefix-text))
+    (write-line-break))
 
   ;; Scalar streams.
 
-  (define (write-single-quoted text [split #t]) #f) ;; TODO
+  (define (write-single-quoted text [split #t])
+    (write-indicator "'" #t)
+    (let ([spaces #f]
+          [breaks #f]
+          [start 0]
+          [end 0])
+      (while (<= end (string-length text))
+        (let ([ch #f])
+          (when (< end (string-length text))
+            (set! ch (string-ref text end)))
+          (cond
+           [spaces
+            (unless (char=? #\space)
+              (if (and (= (+ 1 start) end)
+                       (> column best-width)
+                       split
+                       (not (zero? start))
+                       (not (= end (string-length text))))
+                  (write-indent)
+                  (let ([data (substring text start end)])
+                    (set! column (+ column (string-length data)))
+                    (fprintf out data)))
+              (set! start end))]
+           [breaks
+            (unless (and (char? ch) (string-index "\n\x85\u2028\u2029" ch))
+              (when (char=? (string-ref text start) #\newline)
+                (write-line-break))
+              (for ([br (substring text start end)])
+                (if (char=? br #\newline)
+                    (write-line-break)
+                    (write-line-break br)))
+              (write-indent)
+              (set! start end))]
+           [else
+            (unless (and (char? ch) (string-index "' \n\x85\u2028\u2029" ch))
+              (when (< start end)
+                (let ([data (substring text start end)])
+                  (set! column (+ column (string-length data)))
+                  (fprintf out data)
+                  (set! start end))))])
+          (when (equal? #\' ch)
+            (set! column (+ column 2))
+            (fprintf out "''")
+            (set! start (add1 end)))
+          (when (char? ch)
+            (set! spaces (char=? #\space ch))
+            (set! breaks (string-index "\n\x85\u2028\u2029" ch)))
+          (set! end (add1 end))))
+      (write-indicator "'" #f)))
 
   (define (write-double-quoted text [split #t]) #f) ;; TODO
 
-  (define (determine-block-hints text) #f) ;; TODO
+  (define (determine-block-hints text)
+    (let ([hints ""])
+      (when (and (string? text) (> (string-length text) 0))
+        (when (string-index " \n\x85\u2028\u2029" (string-ref text 0))
+          (set! hints (format "~a~a" hints best-indent)))
+        (cond
+         [(string-index "\n\x85\u2028\u2029"
+                        (string-ref text (- (string-length text) 1)))
+          (set! hints (string-append hints "-"))]
+         [(or (= 1 (string-length text))
+              (string-index "\n\x85\u2028\u2029"
+                            (string-ref text (- (string-length text) 2))))
+          (set! hints (string-append hints "+"))]))
+      hints))
+        
 
   (define (write-folded text) #f) ;; TODO
 
@@ -657,3 +872,5 @@
 
   ;; TODO
   (values #f))
+
+      
