@@ -846,7 +846,76 @@
           (set! end (add1 end))))
       (write-indicator "'" #f)))
 
-  (define (write-double-quoted text [split #t]) #f) ;; TODO
+  (define (write-double-quoted text [split #t])
+    (define ESCAPE-REPLACEMENTS
+      #hash((#\nul . #\0)
+            (#\u0007 . #\a)
+            (#\backspace . #\b)
+            (#\tab . #\t)
+            (#\newline . #\n)
+            (#\vtab . #\v)
+            (#\page . #\f)
+            (#\return . #\r)
+            (#\u001B . #\e)
+            (#\" . #\")
+            (#\\ . #\\)
+            (#\u0085 . #\N)
+            (#\u00A0 . #\_)
+            (#\u2028 . #\L)
+            (#\u2029 . #\P)))
+    (let ([start 0] [end 0])
+      (write-indicator "\"" #t)
+      (while (<= end (string-length text))
+        (let ([ch #f])
+          (when (< end (string-length text))
+            (set! ch (string-ref text end)))
+          (when (or (not (char? ch))
+                    (string-index "\"\\\x85\u2028\u2029\uFEFF" ch)
+                    (not (char<=? #\space ch #\~))
+                    (and allow-unicode
+                         (or (char<=? #\u00A0 ch #\uD7FF)
+                             (char<=? #\uE000 ch #\uFFFD))))
+            (when (< start end)
+              (let ([data (substring text start end)])
+                (set! column (+ column (string-length data)))
+                (fprintf out data)
+                (set! start end)))
+            (when (char? ch)
+              (let ([data ""])
+                (cond
+                 [(hash-has-key? ESCAPE-REPLACEMENTS ch)
+                  (let ([esc (hash-ref ESCAPE-REPLACEMENTS ch)])
+                    (set! data (format "\\~a" esc)))]
+                 [(char<=? ch #\u00FF)
+                  (let ([hex (number->string (char->integer ch) 16)])
+                    (set! data (format "\\x~a" hex)))]
+                 [(char<=? ch #\uFFFF)
+                  (let ([hex (number->string (char->integer ch) 16)])
+                    (set! data (format "\\u00~a" hex)))]
+                 [else
+                  (let ([hex (number->string (char->integer ch) 16)])
+                    (set! data (format "\\U000000~a" hex)))])
+                (set! column (+ column (string-length data)))
+                (fprintf out data)
+                (set! start (add1 end)))))
+          (when (and (< 0 end (sub1 (string-length text)))
+                     (or (equal? #\space ch) (>= start end))
+                     (> (+ column (- end start)) best-width)
+                     split)
+            (let ([data (string-append (substring text start end) "\\")])
+              (when (< start end)
+                (set! start end))
+              (set! column (+ column (string-length data)))
+              (fprintf out data)
+              (write-indent)
+              (set! whitespace #f)
+              (set! indention #f)
+              (when (char=? #\space (string-ref text start))
+                (let ([data "\\"])
+                  (set! column (+ column (string-length data)))
+                  (fprintf out data)))))
+          (set! end (add1 end))))
+      (write-indicator "\"" #f)))
 
   (define (determine-block-hints text)
     (let ([hints ""])
@@ -866,11 +935,42 @@
 
   (define (write-folded text) #f) ;; TODO
 
-  (define (write-literal text) #f) ;; TODO
+  (define (write-literal text)
+    (let ([hints (determine-block-hints text)]
+          [breaks #t]
+          [start 0]
+          [end 0])
+      (write-indicator (string-append "|" hints) #t)
+      (when (char=? #\+ (string-ref hints (sub1 (string-length hints))))
+        (set! open-ended #t))
+      (write-line-break)
+      (while (<= end (string-length text))
+        (let ([ch #f])
+          (when (< end (string-length text))
+            (set! ch (string-ref text end)))
+          (when breaks
+             (when (or (not (char? ch))
+                       (not (string-index "\n\x85\u2028\u2029" ch)))
+               (for ([br (substring text start end)])
+                 (if (char=? #\newline br)
+                     (write-line-break)
+                     (write-line-break br)))
+               (when (char? ch)
+                 (write-indent))
+               (set! start end)))
+          (unless breaks
+            (when (or (not (char? ch))
+                      (string-index "\n\x85\u2028\u2029" ch))
+              (fprintf out (substring text start end))
+              (unless (char? ch)
+                (write-line-break))
+              (set! start end)))
+          (unless (char? ch)
+            (set! breaks (string-index "\n\x85\u2028\u2029" ch)))
+          (set! end (add1 end))))))
 
   (define (write-plain text [split #t]) #f) ;; TODO
 
   ;; TODO
-  (values #f))
-
+  (values emit))
       
