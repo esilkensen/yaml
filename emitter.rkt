@@ -4,6 +4,8 @@
 
 (require (planet dyoo/while-loop) srfi/13 "events.rkt" "utils.rkt")
 
+(provide make-emitter)
+
 (define (emitter-error message)
   (error 'emitter message))
 
@@ -54,9 +56,9 @@
     (set! states '())
     (set! state #f))
 
-  (define (emit event)
-    (append! events (list event))
-    (while (not (need-more-events))
+  (define (emit evt)
+    (append! events (list evt))
+    (while (not (need-more-events?))
       (set! event (car events))
       (set! events (cdr events))
       (state)
@@ -64,26 +66,33 @@
 
   ;; In some cases, we wait for a few next events before emitting.
 
-  (define (need-more-events)
-    (or (null? events)
-        (case (event-type (car events))
-          [(document-start) (need-events 1)]
-          [(sequence-start) (need-events 2)]
-          [(mapping-start) (need-events 3)]
-          [else #f])))
+  (define (need-more-events?)
+    (cond
+     [(null? events) #t]
+     [(document-start-event? (car events))
+      (need-events? 1)]
+     [(sequence-start-event? (car events))
+      (need-events? 2)]
+     [(mapping-start-event? (car events))
+      (need-events? 3)]
+     [else #f]))
 
-  (define (need-events count)
+  (define (need-events? count)
     (let loop ([level 0] [es (cdr events)])
       (if (null? es)
-          (< (length events) (+ count 1))
-          (case (event-type (car es))
-            [(document-start collection-start sequence-start mapping-start)
-             (loop (+ level 1) (cdr es))]
-            [(document-end collection-end sequence-end mapping-end)
-             (loop (- level 1) (cdr es))]
-            [(stream-end)
-             (loop (- level 1) (cdr es))]
-            [else #f]))))
+          (< (length events) (add1 count))
+          (let ([e (car es)])
+            (cond
+             [(or (document-start-event? e)
+                  (any-collection-start-event? e))
+              (set! level (add1 level))]
+             [(or (document-end-event? e)
+                  (any-collection-end-event? e))
+              (set! level (sub1 level))]
+             [(stream-end-event? e)
+              (set! level -1)])
+            (and (>= level 0)
+                 (loop level (cdr es)))))))
 
   (define (increase-indent [flow #f] [indentless #f])
     (append! indents (list indent))
@@ -263,7 +272,7 @@
   ;; Flow mapping handlers.
 
   (define (expect-flow-mapping)
-    (write-indicator "{" #t #f)
+    (write-indicator "{" #t #t)
     (set! flow-level (add1 flow-level))
     (increase-indent #t)
     (set! state expect-first-flow-mapping-key))
@@ -364,6 +373,7 @@
         (expect-node #f #f #t #t)]
        [else
         (write-indicator "?" #t #f #t)
+        (append! states (list expect-block-mapping-value))
         (expect-node #f #f #t #f)])]))
 
   (define (expect-block-mapping-simple-value)
@@ -394,11 +404,11 @@
     (and (document-start-event? event)
          (not (null? events))
          (let ([e (car events)])
-           (scalar-event? e)
-           (not (scalar-event-anchor e))
-           (not (scalar-event-tag e))
-           (scalar-event-implicit e)
-           (equal? "" (scalar-event-value e)))))
+           (and (scalar-event? e)
+                (not (scalar-event-anchor e))
+                (not (scalar-event-tag e))
+                (scalar-event-implicit e)
+                (equal? "" (scalar-event-value e))))))
 
   (define (check-simple-key?)
     (let ([len 0])
@@ -476,8 +486,8 @@
     (unless analysis
       (set! analysis (analyze-scalar (scalar-event-value event))))
     (cond
-     [(or (equal? "\"" style) canonical)
-      "\""]
+     [(or (equal? #\" (scalar-event-style event)) canonical)
+      #\"]
      [(and (not (scalar-event-style event))
            (car (scalar-event-implicit event))
            (not (and simple-key-context
@@ -489,13 +499,19 @@
                     (scalar-analysis-allow-block-plain analysis))))
       ""]
      [(and (scalar-event-style event)
-           (member (scalar-event-style event) '("|" ">"))
+           (member (scalar-event-style event) '(#\| #\>))
+           (zero? flow-level)
+           (not simple-key-context)
+           (scalar-analysis-allow-block analysis))
+      (scalar-event-style event)]
+     [(and (or (not (scalar-event-style event))
+               (char=? #\' (scalar-event-style event)))
            (scalar-analysis-allow-single-quoted analysis)
            (not (and simple-key-context
                      (scalar-analysis-multiline analysis))))
-      "\'"]
+      #\']
      [else
-      "\""]))
+      #\"]))
 
   (define (process-scalar)
     (unless analysis
@@ -504,13 +520,13 @@
       (set! style (not simple-key-context)))
     (let ([split (not simple-key-context)])
       (cond
-       [(equal? "\"" style)
+       [(equal? #\" style)
         (write-double-quoted (scalar-analysis-scalar analysis) split)]
-       [(equal? "\'" style)
+       [(equal? #\' style)
         (write-single-quoted (scalar-analysis-scalar analysis) split)]
-       [(equal? ">" style)
+       [(equal? #\> style)
         (write-folded (scalar-analysis-scalar analysis))]
-       [(equal? "|" style)
+       [(equal? #\| style)
         (write-literal (scalar-analysis-scalar analysis))]
        [else
         (write-plain (scalar-analysis-scalar analysis) split)])
@@ -534,14 +550,16 @@
                    (char=? #\! (last cs)))
         (emitter-error
          (format "tag handle must start and end with '!': ~a" handle)))
-      (for ([ch (substring handle 1 (- (string-length handle) 1))])
-        (unless (or (char<=? #\0 ch #\9)
-                    (char<=? #\A ch #\Z)
-                    (char<=? #\a ch #\z)
-                    (char=? #\- ch)
-                    (char=? #\_ ch))
-          (emitter-error
-           (format "invalid character ~a in the tag handle: ~a" ch handle))))
+      (when (> (string-length handle) 1)
+        (for ([ch (substring handle 1 (sub1 (string-length handle)))])
+          (unless (or (char<=? #\0 ch #\9)
+                      (char<=? #\A ch #\Z)
+                      (char<=? #\a ch #\z)
+                      (char=? #\- ch)
+                      (char=? #\_ ch))
+            (emitter-error
+             (format
+              "invalid character ~a in the tag handle: ~a" ch handle)))))
       handle))
 
   (define (prepare-tag-prefix prefix)
@@ -567,11 +585,11 @@
             (set! end (add1 end))
             (append! chunks (list (format "~a" ch)))])))
       (when (< start end)
-        (append! chunks (substring prefix start end)))
+        (append! chunks (list (substring prefix start end))))
       (apply string-append chunks)))
 
   (define (prepare-tag tag)
-    (unless (> (string-length tag) 0)
+    (unless (and (string? tag) (> (string-length tag) 0))
       (emitter-error "tag must not be empty"))
     (if (string=? "!" tag)
         tag
@@ -583,7 +601,7 @@
                            (< (string-length prefix)
                               (string-length tag))))
               (set! handle (hash-ref tag-prefixes prefix))
-              (set! suffix (substring prefix (string-length prefix)))))
+              (set! suffix (substring tag (string-length prefix)))))
           (let ([chunks '()]
                 [start 0]
                 [end 0])
@@ -602,8 +620,8 @@
                   (set! end (add1 end))
                   (append! chunks (list (format "~a" ch)))])))
             (when (< start end)
-              (append! chunks (substring suffix start end)))
-            (if (> (string-length handle) 0)
+              (append! chunks (list (substring suffix start end))))
+            (if (and (string? handle) (> (string-length handle) 0))
                 (format "~a~a" handle (apply string-append chunks))
                 (format "!<~a>" (apply string-append chunks)))))))
 
@@ -757,7 +775,7 @@
 
   (define (write-indicator indicator need-whitespace
                            [write-whitespace #f] [write-indention #f])
-    (let ([data (if (or write-whitespace (not need-whitespace))
+    (let ([data (if (or whitespace (not need-whitespace))
                     indicator
                     (format " ~a" indicator))])
       (set! whitespace write-whitespace)
@@ -775,9 +793,11 @@
         (let ([n (- indent column)])
           (set! whitespace #t)
           (set! column indent)
-          (fprintf out (string (for/list ([i (in-range n)]) #\space)))))))
+          (fprintf out (list->string (build-list n (λ _ #\space))))))))
 
   (define (write-line-break [data #f])
+    (when (char? data)
+      (set! data (string data)))
     (unless data
       (set! data best-line-break))
     (set! whitespace #t)
@@ -808,7 +828,7 @@
             (set! ch (string-ref text end)))
           (cond
            [spaces
-            (unless (char=? #\space)
+            (unless (char=? #\space ch)
               (if (and (= (+ 1 start) end)
                        (> column best-width)
                        split
@@ -830,7 +850,9 @@
               (write-indent)
               (set! start end))]
            [else
-            (unless (and (char? ch) (string-index "' \n\x85\u2028\u2029" ch))
+            (when (or (not (char? ch))
+                      (string-index " \n\x85\u2028\u2029" ch)
+                      (char=? #\' ch))
               (when (< start end)
                 (let ([data (substring text start end)])
                   (set! column (+ column (string-length data)))
@@ -888,13 +910,17 @@
                     (set! data (format "\\~a" esc)))]
                  [(char<=? ch #\u00FF)
                   (let ([hex (number->string (char->integer ch) 16)])
-                    (set! data (format "\\x~a" hex)))]
+                    (set! data (format "\\x~a" (string-upcase hex))))]
                  [(char<=? ch #\uFFFF)
                   (let ([hex (number->string (char->integer ch) 16)])
-                    (set! data (format "\\u00~a" hex)))]
+                    (if (= 2 (string-length hex))
+                        (set! data (format "\\u00~a" (string-upcase hex)))
+                        (set! data (format "\\u~a" (string-upcase hex)))))]
                  [else
                   (let ([hex (number->string (char->integer ch) 16)])
-                    (set! data (format "\\U000000~a" hex)))])
+                    (if (= 2 (string-length hex))
+                        (set! data (format "\\U000000~a" (string-upcase hex)))
+                        (set! data (format "\\U0000~a" (string-upcase hex)))))])
                 (set! column (+ column (string-length data)))
                 (fprintf out data)
                 (set! start (add1 end)))))
@@ -923,17 +949,71 @@
         (when (string-index " \n\x85\u2028\u2029" (string-ref text 0))
           (set! hints (format "~a~a" hints best-indent)))
         (cond
-         [(string-index "\n\x85\u2028\u2029"
-                        (string-ref text (- (string-length text) 1)))
+         [(not (string-index "\n\x85\u2028\u2029"
+                             (string-ref text (- (string-length text) 1))))
           (set! hints (string-append hints "-"))]
          [(or (= 1 (string-length text))
               (string-index "\n\x85\u2028\u2029"
                             (string-ref text (- (string-length text) 2))))
           (set! hints (string-append hints "+"))]))
       hints))
-        
 
-  (define (write-folded text) #f) ;; TODO
+  (define (write-folded text)
+    (let ([hints (determine-block-hints text)]
+          [leading-space #t]
+          [spaces #f]
+          [breaks #t]
+          [start 0]
+          [end 0])
+      (write-indicator (string-append ">" hints) #t)
+      (when (and (> (string-length hints) 0)
+                 (char=? #\+ (string-ref hints
+                                         (sub1 (string-length hints)))))
+        (set! open-ended #t))
+      (write-line-break)
+      (while (<= end (string-length text))
+        (let ([ch #f])
+          (when (< end (string-length text))
+            (set! ch (string-ref text end)))
+          (cond
+           [breaks
+            (unless (and (char? ch)
+                         (string-index "\n\x85\u2028\u2029" ch))
+              (when (and (not leading-space)
+                         (char? ch)
+                         (not (char=? #\space ch))
+                         (char=? #\newline (string-ref text start)))
+                (write-line-break))
+              (set! leading-space (equal? #\space ch))
+              (for ([br (substring text start end)])
+                (if (char=? #\newline br)
+                    (write-line-break)
+                    (write-line-break br)))
+              (when (char? ch)
+                (write-indent))
+              (set! start end))]
+           [spaces
+            (unless (and (char? ch)
+                         (char=? #\space ch))
+              (if (and (= (add1 start) end) (> column best-width))
+                  (write-indent)
+                  (let ([data (substring text start end)])
+                    (set! column (+ column (string-length data)))
+                    (fprintf out data)))
+              (set! start end))]
+           [else
+            (when (or (not (char? ch))
+                      (string-index "\n\x85\u2028\u2029" ch))
+              (let ([data (substring text start end)])
+                (set! column (+ column (string-length data)))
+                (fprintf out data)
+                (unless (char? ch)
+                  (write-line-break))
+                (set! start end)))])
+          (when (char? ch)
+            (set! breaks (string-index "\n\x85\u2028\u2029" ch))
+            (set! spaces (char=? #\space ch)))
+          (set! end (add1 end))))))
 
   (define (write-literal text)
     (let ([hints (determine-block-hints text)]
@@ -941,7 +1021,9 @@
           [start 0]
           [end 0])
       (write-indicator (string-append "|" hints) #t)
-      (when (char=? #\+ (string-ref hints (sub1 (string-length hints))))
+      (when (and (> (string-length hints) 0)
+                 (char=? #\+ (string-ref hints
+                                         (sub1 (string-length hints)))))
         (set! open-ended #t))
       (write-line-break)
       (while (<= end (string-length text))
@@ -965,12 +1047,81 @@
               (unless (char? ch)
                 (write-line-break))
               (set! start end)))
-          (unless (char? ch)
+          (when (char? ch)
             (set! breaks (string-index "\n\x85\u2028\u2029" ch)))
           (set! end (add1 end))))))
 
-  (define (write-plain text [split #t]) #f) ;; TODO
+  (define (write-plain text [split #t])
+    (when root-context
+      (set! open-ended #t))
+    (when (> (string-length text) 0)
+      (let ([spaces #f]
+            [breaks #f]
+            [start 0]
+            [end 0])
+        (unless whitespace
+          (let ([data " "])
+            (set! column (+ column (string-length data)))
+            (fprintf out data)))
+        (set! whitespace #f)
+        (set! indention #f)
+        (while (<= end (string-length text))
+          (let ([ch #f])
+            (when (< end (string-length text))
+              (set! ch (string-ref text end)))
+            (cond
+             [spaces
+              (unless (equal? #\space ch)
+                (cond
+                 [(and (= (add1 start) end)
+                       (> column best-width)
+                       split)
+                  (write-indent)
+                  (set! whitespace #f)
+                  (set! indention #f)]
+                 [else
+                  (let ([data (substring text start end)])
+                    (set! column (+ column (string-length data)))
+                    (fprintf out data))])
+                (set! start end))]
+             [breaks
+              (unless (and (char? ch)
+                           (string-index "\n\x85\u2028\u2029" ch))
+                (when (char=? #\newline (string-ref text start))
+                  (write-line-break))
+                (for ([br (substring text start end)])
+                  (if (char=? #\newline br)
+                      (write-line-break)
+                      (write-line-break br)))
+                (write-indent)
+                (set! whitespace #f)
+                (set! indention #f)
+                (set! start end))]
+             [else
+              (unless (and (char? ch)
+                           (string-index "\n\x85\u2028\u2029" ch))
+                (let ([data (substring text start end)])
+                  (set! column (+ column (string-length data)))
+                  (fprintf out data)
+                  (set! start end)))])
+            (when (char? ch)
+              (set! spaces (char=? #\space ch))
+              (set! breaks (string-index "\n\x85\u2028\u2029" ch)))
+            (set! end (add1 end)))))))
 
-  ;; TODO
   (values emit))
-      
+
+(module+ test
+  (require rackunit "parser.rkt")
+  (define-simple-check (check-emitter test-file check-file)
+    (let* ([out (open-output-string)]
+           [in (open-input-file check-file)]
+           [emit (make-emitter out)])
+      (for ([event (parse-file test-file)])
+        (emit event))
+      (check-equal? (get-output-string out) (port->string in))
+      (close-output-port out)
+      (close-input-port in)))
+  (test-begin
+   (for ([(test-file check-file) (test-files #"emit")])
+     (check-emitter test-file check-file))))
