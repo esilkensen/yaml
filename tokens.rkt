@@ -1,42 +1,46 @@
 ;;;;;; tokens.rkt - YAML tokens.    -*- Mode: Racket -*-
 
-#lang racket
+#lang typed/racket
+
+(require "utils.rkt")
 
 (provide (all-defined-out))
 
-(struct token (type id start end attrs) #:transparent)
+(struct: token
+  ([type : Symbol] [id : String] [start : mark] [end : mark]
+   [attrs : (HashTable Symbol Any)]) #:transparent)
 
+(: token->string (token -> String))
 (define (token->string token)
-  (cond
-   [(token? token)
-    (let ([start (token-start token)]
-          [end (token-end token)]
-          [attrs (token-attrs token)])
-      (format "~a-token(~a)"
-              (token-type token)
-              (string-join
-               (map
-                (λ (attr)
-                  (format "~a=~s" attr (hash-ref attrs attr)))
-                (sort (hash-keys attrs)
-                      (λ (x y)
-                        (string<=? (symbol->string x)
-                                   (symbol->string y)))))
-               ", ")))]
-   [else "no token!"]))
+  (let ([start (token-start token)]
+        [end (token-end token)]
+        [attrs (token-attrs token)])
+    (format "~a-token(~a)"
+            (token-type token)
+            (string-join
+             (map
+              (λ: ([attr : Symbol])
+                (format "~a=~s" attr (hash-ref attrs attr)))
+              (sort (hash-keys attrs)
+                    (λ: ([x : Symbol] [y : Symbol])
+                      (string<=? (symbol->string x)
+                                 (symbol->string y)))))
+             ", "))))
 
+(: print-token (token -> Void))
 (define (print-token token)
   (displayln (token->string token)))
 
+(define-for-syntax (build-name id . parts)
+  (let ([str (apply string-append
+                    (map (λ (p)
+                           (if (syntax? p)
+                               (symbol->string (syntax-e p))
+                               (format "~a" p)))
+                         parts))])
+    (datum->syntax id (string->symbol str) id)))
+
 (define-syntax (define-token stx)
-  (define (build-name id . parts)
-    (let ([str (apply string-append
-                      (map (λ (p)
-                             (if (syntax? p)
-                                 (symbol->string (syntax-e p))
-                                 (format "~a" p)))
-                           parts))])
-      (datum->syntax id (string->symbol str) id)))
   (syntax-case stx ()
     [(_ name field ... id)
      (let ([t (build-name #'name #'name "-token")]
@@ -45,16 +49,19 @@
                       (build-name #'name #'name "-token-" f))
                     (syntax->list #'(field ...)))])
        #`(begin
-           (define (#,t start end field ...)
-             (let ([attrs (make-hash `((field . ,field) ...))])
+           (define:
+               (#,t [start : mark] [end : mark] [field : Any] ...) : token
+             (let ([attrs (ann (make-hash `((field . ,field) ...))
+                               (HashTable Symbol Any))])
                (token 'name id start end attrs)))
+           (: #,t? (Any -> Boolean))
            (define (#,t? token)
              (and (token? token)
                   (eq? 'name (token-type token))))
            (define-values (#,@fs)
              (values
-              (λ (token)
-                (hash-ref (token-attrs token) 'field)) ...))))]))
+              (λ: ([t : token])
+                (hash-ref (token-attrs t) 'field)) ...))))]))
 
 (define-token directive name value "<directive>")
 (define-token document-start "<document start>")

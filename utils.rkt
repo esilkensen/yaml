@@ -1,18 +1,14 @@
 ;;;;;; utils.rkt - Utilities.    -*- Mode: Racket -*-
 
-#lang racket
+#lang typed/racket
 
 (provide (all-defined-out))
 
-(define-syntax-rule (append! dst lst ...)
-  (set! dst (append dst lst ...)))
+(struct: mark
+  ([name : String] [index : Integer] [line : Integer]
+   [column : Integer] [buffer : (Vectorof Char)]))
 
-(define-syntax-rule (pop! lst)
-  (begin0 (last lst)
-    (set! lst (drop-right lst 1))))
-
-(struct mark (name index line column buffer))
-
+(: make-error (Symbol -> ((Option String) String mark -> Void)))
 (define (make-error type)
   (λ (context problem problem-mark)
     (error type "~a~a\n~a:~a:~a: ~a"
@@ -26,29 +22,37 @@
             (mark-buffer problem-mark)
             (mark-index problem-mark)))))
 
+(: read-file (String -> (Listof String)))
 (define (read-file filename)
   (with-input-from-file filename
     (λ ()
-      (let loop ([lines '()])
+      (let: loop : (Listof String)
+            ([lines : (Listof String) '()])
         (let ([ln (read-line)])
           (if (string? ln)
               (loop (cons ln lines))
               (reverse lines)))))))
 
+(: test-files
+   (case->
+    (Bytes -> (HashTable Path-String String))
+    (Bytes String -> (HashTable Path-String String))))
 (define (test-files extension [directory "test"])
+  (: remove-extension ((U String Path) -> (U String Path)))
   (define (remove-extension file)
-    (define fn (if (string? file) file (path->string file)))
-    (let* ([ext (filename-extension (string->path fn))]
-           [str (if ext (substring fn 0 (- (string-length fn)
-                                           (+ 1 (bytes-length ext)))) fn)])
+    (let*: ([fn : String (if (string? file) file (path->string file))]
+            [ext : (Option Bytes) (filename-extension (string->path fn))]
+            [str : String (if ext (substring fn 0 (- (string-length fn)
+                                                     (add1 (bytes-length ext))))
+                              fn)])
       (if (string? file) str (string->path str))))
   (make-hash
    (map
-    (λ (p)
+    (λ: ([p : Path])
       (let ([path (format "~a/~a" directory (path->string p))])
         (cons (remove-extension path) path)))
     (filter
-     (λ (p)
+     (λ: ([p : Path])
        (let ([path (string->path
                     (format "~a/~a" directory (path->string p)))])
          (and (equal? extension (filename-extension path))
