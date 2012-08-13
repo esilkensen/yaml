@@ -23,17 +23,7 @@
         (loop (cons (get-event) es))
         (reverse es))))
 
-(define (parser-error context problem problem-mark)
-  (error 'parser "~a~a\n~a:~a:~a: ~a"
-         (if (string? context)
-             (format "~a;\n " context) "")
-         problem
-         (mark-name problem-mark)
-         (mark-line problem-mark)
-         (mark-column problem-mark)
-         (vector-ref
-          (mark-buffer problem-mark)
-          (mark-index problem-mark))))
+(define parser-error (make-error 'parser))
 
 (define (make-parser [in (current-input-port)] #:name [name "<input>"])
   (define-values (check-token? peek-token get-token)

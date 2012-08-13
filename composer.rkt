@@ -7,17 +7,7 @@
 
 (provide make-composer)
 
-(define (composer-error context problem problem-mark)
-  (error 'composer "~a~a\n~a:~a:~a: ~a"
-         (if (string? context)
-             (format "~a;\n " context) "")
-         problem
-         (mark-name problem-mark)
-         (mark-line problem-mark)
-         (mark-column problem-mark)
-         (vector-ref
-          (mark-buffer problem-mark)
-          (mark-index problem-mark))))
+(define composer-error (make-error 'composer))
 
 (define (make-composer [in (current-input-port)] #:name [name "<input>"])
   (define-values (check-event? peek-event get-event)

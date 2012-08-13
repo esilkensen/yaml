@@ -22,16 +22,7 @@
         (loop (cons (get-token) ts))
         (reverse ts))))
 
-(define (scanner-error context problem problem-mark)
-  (error 'scanner "~a\n; ~a\n~a:~a:~a: ~a"
-         context
-         problem
-         (mark-name problem-mark)
-         (mark-line problem-mark)
-         (mark-column problem-mark)
-         (vector-ref
-          (mark-buffer problem-mark)
-          (mark-index problem-mark))))
+(define scanner-error (make-error 'scanner))
 
 (struct simple-key (token-number required? index line column mark))
 
