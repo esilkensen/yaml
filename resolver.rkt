@@ -2,8 +2,6 @@
 
 #lang racket
 
-(require (planet dyoo/while-loop) "nodes.rkt" "utils.rkt")
-
 (provide resolve add-implicit-resolver!)
 
 (define DEFAULT-SCALAR-TAG "tag:yaml.org,2002:str")
