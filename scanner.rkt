@@ -796,6 +796,8 @@
           (set! chunks (append chunks (string->list line-break))))
         (when (eq? #t chomping)
           (set! chunks (append chunks breaks)))
+        (unless (mark? end-mark)
+          (set! end-mark start-mark))
         (scalar-token start-mark end-mark (list->string chunks) #f style))))
 
   (define (scan-block-scalar-indicators start-mark)
