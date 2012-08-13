@@ -6,8 +6,6 @@
 
 (struct token (type id start end attrs) #:transparent)
 
-(struct mark (name index line column buffer))
-
 (define (token->string token)
   (cond
    [(token? token)

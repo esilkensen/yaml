@@ -2,7 +2,7 @@
 
 #lang racket
 
-(require srfi/13 (planet dyoo/while-loop) "tokens.rkt")
+(require srfi/13 (planet dyoo/while-loop) "tokens.rkt" "utils.rkt")
 
 (provide scan-file scan-string scan make-scanner)
 
