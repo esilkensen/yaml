@@ -11,6 +11,8 @@
   (begin0 (last lst)
     (set! lst (drop-right lst 1))))
 
+(struct mark (name index line column buffer))
+
 (define (read-file filename)
   (with-input-from-file filename
     (λ ()
