@@ -2,7 +2,7 @@
 
 #lang typed/racket
 
-(provide (all-defined-out))
+(provide yaml-struct:)
 
 (define-for-syntax (build-name id . parts)
   (let ([str (apply string-append
