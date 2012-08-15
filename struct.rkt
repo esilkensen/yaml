@@ -18,7 +18,7 @@
     [(_ name ([field : type] ...) options ...)
      (with-syntax ([s: (build-name #'name #'name ":")]
                    [s-strings (build-name #'name #'name "-strings")]
-                   [s->string (build-name #'name #'name "->strings")])
+                   [s->string (build-name #'name #'name "->string")])
        #`(begin
            (struct: name ([field : type] ...) options ...)
            (: s-strings (HashTable (Any -> Boolean) (name -> String)))
