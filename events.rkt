@@ -14,8 +14,10 @@
   ([explicit : Boolean]
    [version : (Option (Pairof Integer Integer))]
    [tags : (Option (HashTable String String))]))
-(event: document-end ([explicit : Boolean]))
-(event: alias ([anchor : (Option String)]))
+(event: document-end
+  ([explicit : Boolean]))
+(event: alias
+  ([anchor : (Option String)]))
 (event: scalar
   ([anchor : (Option String)]
    [tag : (Option String)]
