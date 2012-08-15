@@ -1,34 +1,30 @@
 ;;;;;; events.rkt - YAML events.    -*- Mode: Racket -*-
 
-#lang racket
+#lang typed/racket
 
-(provide (all-defined-out))
+(require "utils.rkt")
 
-(struct event (type start end attrs))
+(provide (except-out (all-defined-out) event-strings))
 
+(struct: event ([start : mark] [end : mark]))
+
+(: event-strings (HashTable (Any -> Boolean) (event -> String)))
+(define event-strings (make-hash))
+
+(: event->string (event -> String))
 (define (event->string event)
-  (cond
-   [(event? event)
-    (let ([start (event-start event)]
-          [end (event-end event)]
-          [attrs (event-attrs event)])
-      (format "~a-event(~a)"
-              (event-type event)
-              (string-join
-               (map
-                (λ (attr)
-                  (format "~a=~s" attr (hash-ref attrs attr)))
-                (sort (hash-keys attrs)
-                      (λ (x y)
-                        (string<=? (symbol->string x)
-                                   (symbol->string y)))))
-               ", ")))]
-   [else "no event!"]))
-
+  (let loop ([es (hash-keys event-strings)])
+    (if (null? es)
+        (error 'event->string "unexpected event type")
+        (if ((car es) event)
+            ((hash-ref event-strings (car es)) event)
+            (loop (cdr es))))))
+             
+(: print-event (event -> Void))
 (define (print-event event)
   (displayln (event->string event)))
 
-(define-syntax (define-event stx)
+(define-syntax (define-event: stx)
   (define (build-name id . parts)
     (let ([str (apply string-append
                       (map (λ (p)
@@ -37,58 +33,73 @@
                                  (format "~a" p)))
                            parts))])
       (datum->syntax id (string->symbol str) id)))
-  (syntax-case stx ()
-    [(_ name field ...)
+  (syntax-case stx (:)
+    [(_ name [field : type] ...)
      (let ([e (build-name #'name #'name "-event")]
            [e? (build-name #'name #'name "-event?")]
-           [fs (map (λ (f)
-                      (build-name #'name #'name "-event-" f))
-                    (syntax->list #'(field ...)))])
+           [e->string (build-name #'name #'name "-event->string")]
+           [fs (map (λ (f) `(cons ,(format "~a" (syntax->datum f))
+                                  ,(build-name #'name #'name "-event-" f)))
+                    (sort (syntax->list #'(field ...))
+                          (λ (s t)
+                            (string<? (format "~a" (syntax->datum s))
+                                      (format "~a" (syntax->datum t))))))])
        #`(begin
-           (define (#,e start end field ...)
-             (let ([attrs (make-hash `((field . ,field) ...))])
-               (event 'name start end attrs)))
-           (define (#,e? event)
-             (and (event? event)
-                  (eq? 'name (event-type event))))
-           (define-values (#,@fs)
-             (values
-              (λ (event)
-                (hash-ref (event-attrs event) 'field)) ...))))]))
+           (struct: #,e event ([field : type] ...))
+           (: #,e->string (event -> String))
+           (define (#,e->string e)
+             (if (#,e? e)
+                 (let* ([attr->string
+                         (λ: ([p : (Pairof String (#,e -> Any))])
+                           (format "~a=~s" (car p) ((cdr p) e)))]
+                        [fields (map attr->string (list #,@fs))])
+                   (format "~a(~a)" '#,e (string-join fields ", ")))
+                 (error '#,e->string "unexpected event type")))
+           (hash-set! event-strings #,e? #,e->string)))]))
 
-(define-event node anchor)
-(define-event collection-start anchor tag implicit flow-style) ; node
-(define-event collection-end)
-(define-event stream-start)
-(define-event stream-end)
-(define-event document-start explicit version tags)
-(define-event document-end explicit)
-(define-event alias anchor) ; node
-(define-event scalar anchor tag implicit value style) ; node
-(define-event sequence-start anchor tag implicit flow-style) ; collection-start
-(define-event sequence-end) ; collection-end
-(define-event mapping-start anchor tag implicit flow-style) ; collection-start
-(define-event mapping-end) ; collection-end
+(define-event: stream-start)
 
-(define (any-event-attr attr e)
-  (define (report-error)
-    (raise-argument-error
-     'any-event-attr
-     (format "'~a" (format (hash-keys (event-attrs e))))
-     attr))
-  (hash-ref (event-attrs e) attr report-error))
+(define-event: stream-end)
 
-(define (any-node-event? e)
-  (or (node-event? e)
-      (alias-event? e)
-      (scalar-event? e)))
+(define-event: document-start
+  [explicit : Boolean]
+  [version : (Option (Pairof Integer Integer))]
+  [tags : (Option (HashTable String String))])
 
-(define (any-collection-start-event? e)
-  (or (collection-start-event? e)
-      (sequence-start-event? e)
-      (mapping-start-event? e)))
+(define-event: document-end
+  [explicit : Boolean])
 
-(define (any-collection-end-event? e)
-  (or (collection-end-event? e)
-      (sequence-end-event? e)
-      (mapping-end-event? e)))
+(define-event: alias
+  [anchor : (Option String)])
+
+(define-event: scalar
+  [anchor : (Option String)]
+  [tag : (Option String)]
+  [implicit : (Pairof Boolean Boolean)]
+  [value : String]
+  [style : (Option Char)])
+
+(define-event: sequence-start
+  [anchor : (Option String)]
+  [tag : (Option String)]
+  [implicit : Boolean]
+  [flow-style : Boolean])
+
+(define-event: sequence-end)
+
+(define-event: mapping-start
+  [anchor : (Option String)]
+  [tag : (Option String)]
+  [implicit : Boolean]
+  [flow-style : Boolean])
+
+(define-event: mapping-end)
+
+(define-predicate node-event?
+  (U alias-event scalar-event))
+
+(define-predicate collection-start-event?
+  (U sequence-start-event mapping-start-event))
+
+(define-predicate collection-end-event?
+  (U sequence-end-event mapping-end-event))
