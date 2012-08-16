@@ -57,8 +57,9 @@
         (set! current-event (state))))
     (and (event? current-event)
          (or (null? choices)
-             (let ([type (event-type current-event)])
-               (ormap (λ (t) (eq? type t)) choices)))))
+             (and (list? choices)
+                  (ormap (λ (c?) (c? current-event))
+                         choices)))))
 
   (define (peek-event)
     ;; Get the next event.
@@ -87,7 +88,10 @@
 
   (define (parse-implicit-document-start)
     (cond
-     [(check-token? 'directive 'document-start 'stream-end)
+     [(check-token?
+       directive-token?
+       document-start-token?
+       stream-end-token?)
       (parse-document-start)]
      [else
       (set! tag-handles DEFAULT-TAGS)
@@ -97,10 +101,10 @@
           (set! state parse-block-node)))]))
 
   (define (parse-document-start)
-    (while (check-token? 'document-end)
+    (while (check-token? document-end-token?)
       (get-token))
     (cond
-     [(check-token? 'stream-end)
+     [(check-token? stream-end-token?)
       (let ([token (get-token)])
         (begin0 (stream-end-event (token-start token) (token-end token))
           (unless (and (null? states) (null? marks))
@@ -111,10 +115,10 @@
       (let* ([token (peek-token)]
              [start (token-start token)])
         (match-let ([(cons version tags) (process-directives)])
-          (unless (check-token? 'document-start)
+          (unless (check-token? document-start-token?)
             (parser-error
              (format "expected '<document start>', but found ~a"
-                     (token-id (peek-token)))
+                     (token->string (peek-token)))
              (token-start (peek-token))))
           (let ([end (token-end (get-token))])
             (begin0 (document-start-event start end #t version tags)
@@ -125,14 +129,18 @@
     (let ([start (token-start (peek-token))]
           [end (token-start (peek-token))]
           [explicit #f])
-      (when (check-token? 'document-end)
+      (when (check-token? document-end-token?)
         (set! end (token-end (get-token)))
         (set! explicit #t))
       (begin0 (document-end-event start end explicit)
         (set! state parse-document-start))))
 
   (define (parse-document-content)
-    (if (check-token? 'directive 'document-start 'document-end 'stream-end)
+    (if (check-token?
+         directive-token?
+         document-start-token?
+         document-end-token?
+         stream-end-token?)
         (begin0 (process-empty-scalar (token-start (peek-token)))
           (set! state (pop! states)))
         (parse-block-node)))
@@ -141,7 +149,7 @@
     (set! yaml-version #f)
     (set! tag-handles (make-hash))
     (let ([value #f])
-      (while (check-token? 'directive)
+      (while (check-token? directive-token?)
         (let ([token (get-token)])
           (cond
            [(string=? "YAML" (directive-token-name token))
@@ -187,7 +195,7 @@
 
   (define (parse-node block indentless-sequence)
     (cond
-     [(check-token? 'alias)
+     [(check-token? alias-token?)
       (let ([token (get-token)])
         (begin0 (alias-event
                  (token-start token)
@@ -197,22 +205,22 @@
      [else
       (let ([anchor #f] [tag #f] [start #f] [end #f] [tag-mark #f])
         (cond
-         [(check-token? 'anchor)
+         [(check-token? anchor-token?)
           (let ([token (get-token)])
             (set! start (token-start token))
             (set! end (token-end token))
             (set! anchor (anchor-token-value token))
-            (when (check-token? 'tag)
+            (when (check-token? tag-token?)
               (let ([token (get-token)])
                 (set! tag-mark (token-start token))
                 (set! end (token-end token))
                 (set! tag (tag-token-value token)))))]
-         [(check-token? 'tag)
+         [(check-token? tag-token?)
           (let ([token (get-token)])
             (set! start (token-start token))
             (set! tag-mark (token-start token))
             (set! tag (tag-token-value token))
-            (when (check-token? 'anchor)
+            (when (check-token? anchor-token?)
               (let ([token (get-token)])
                 (set! end (token-end token))
                 (set! anchor (anchor-token-value token)))))])
@@ -235,11 +243,11 @@
           (set! start (token-start (peek-token)))
           (set! end (token-start (peek-token))))
         (let ([implicit (or (not tag) (equal? #\! tag))])
-          (if (and indentless-sequence (check-token? 'block-entry))
+          (if (and indentless-sequence (check-token? block-entry-token?))
               (begin0 (sequence-start-event start end anchor tag implicit #f)
                 (set! state parse-indentless-sequence-entry))
               (cond
-               [(check-token? 'scalar)
+               [(check-token? scalar-token?)
                 (let ([token (get-token)])
                   (begin0 (scalar-event
                            start
@@ -255,19 +263,19 @@
                            (scalar-token-value token)
                            (scalar-token-style token))
                     (set! state (pop! states))))]
-               [(check-token? 'flow-sequence-start)
+               [(check-token? flow-sequence-start-token?)
                 (begin0 (sequence-start-event
                          start (token-end (peek-token)) anchor tag implicit #t)
                   (set! state parse-flow-sequence-first-entry))]
-               [(check-token? 'flow-mapping-start)
+               [(check-token? flow-mapping-start-token?)
                 (begin0 (mapping-start-event
                          start (token-end (peek-token)) anchor tag implicit #t)
                   (set! state parse-flow-mapping-first-key))]
-               [(and block (check-token? 'block-sequence-start))
+               [(and block (check-token? block-sequence-start-token?))
                 (begin0 (sequence-start-event
                          start (token-end (peek-token)) anchor tag implicit #f)
                   (set! state parse-block-sequence-first-entry))]
-               [(and block (check-token? 'block-mapping-start))
+               [(and block (check-token? block-mapping-start-token?))
                 (begin0 (mapping-start-event
                          start (token-end (peek-token)) anchor tag implicit #f)
                   (set! state parse-block-mapping-first-key))]
@@ -281,7 +289,7 @@
                    (format "while parsing a ~a node"
                            (if block "block" "flow"))
                    (format "expected the node content, but found ~a"
-                           (token-id (peek-token)))
+                           (token->string (peek-token)))
                    (token-start (peek-token))))]))))]))
 
   ;; block_sequence ::=
@@ -293,20 +301,21 @@
 
   (define (parse-block-sequence-entry)
     (cond
-     [(check-token? 'block-entry)
+     [(check-token? block-entry-token?)
       (let ([token (get-token)])
         (cond
-         [(check-token? 'block-entry 'block-end)
+         [(check-token? block-entry-token? block-end-token?)
           (set! state parse-block-sequence-entry)
           (process-empty-scalar (token-end token))]
          [else
           (append! states (list parse-block-sequence-entry))
           (parse-block-node)]))]
      [else
-      (unless (check-token? 'block-end)
+      (unless (check-token? block-end-token?)
         (parser-error
          "while parsing a block collection"
-         (format "expected <block end>, but found ~a" (token-id (peek-token)))
+         (format "expected <block end>, but found ~a"
+                 (token->string (peek-token)))
          (token-start (peek-token))))
       (let ([token (get-token)])
         (begin0 (sequence-end-event (token-start token) (token-end token))
@@ -317,10 +326,14 @@
 
   (define (parse-indentless-sequence-entry)
     (cond
-     [(check-token? 'block-entry)
+     [(check-token? block-entry-token?)
       (let ([token (get-token)])
         (cond
-         [(check-token? 'block-entry 'key 'value 'block-end)
+         [(check-token?
+           block-entry-token?
+           key-token?
+           value-token?
+           block-end-token?)
           (set! state parse-indentless-sequence-entry)
           (process-empty-scalar (token-end token))]
          [else
@@ -341,20 +354,24 @@
 
   (define (parse-block-mapping-key)
     (cond
-     [(check-token? 'key)
+     [(check-token? key-token?)
       (let ([token (get-token)])
         (cond
-         [(check-token? 'key 'value 'block-end)
+         [(check-token?
+           key-token?
+           value-token?
+           block-end-token?)
           (set! state parse-block-mapping-value)
           (process-empty-scalar (token-end token))]
          [else
           (append! states (list parse-block-mapping-value))
           (parse-block-node-or-indentless-sequence)]))]
      [else
-      (unless (check-token? 'block-end)
+      (unless (check-token? block-end-token?)
         (parser-error
          "while parsing a block mapping"
-         (format "expected <block end>, but found" (token-id (peek-token)))
+         (format "expected <block end>, but found"
+                 (token->string (peek-token)))
          (token-start (peek-token))))
       (let ([token (get-token)])
         (begin0 (mapping-end-event (token-start token) (token-end token))
@@ -363,10 +380,13 @@
 
   (define (parse-block-mapping-value)
     (cond
-     [(check-token? 'value)
+     [(check-token? value-token?)
       (let ([token (get-token)])
         (cond
-         [(check-token? 'key 'value 'block-end)
+         [(check-token?
+           key-token?
+           value-token?
+           block-end-token?)
           (set! state parse-block-mapping-key)
           (process-empty-scalar (token-end token))]
          [else
@@ -386,21 +406,22 @@
     (parse-flow-sequence-entry #t))
 
   (define (parse-flow-sequence-entry [first #f])
-    (let ([flow-seq-end? (check-token? 'flow-sequence-end)])
+    (let ([flow-seq-end? (check-token? flow-sequence-end-token?)])
       (when (and (not flow-seq-end?) (not first))
-        (if (check-token? 'flow-entry)
+        (if (check-token? flow-entry-token?)
             (get-token)
             (parser-error
              "while parsing a flow sequence"
-             (format "expected ',' or ']', but got ~a" (token-id (peek-token)))
+             (format "expected ',' or ']', but got ~a"
+                     (token->string (peek-token)))
              (token-start (peek-token)))))
       (cond
-       [(and (not flow-seq-end?) (check-token? 'key))
+       [(and (not flow-seq-end?) (check-token? key-token?))
         (let ([start (token-start (peek-token))]
               [end (token-end (peek-token))])
           (begin0 (mapping-start-event start end #f #f #t #t)
             (set! state parse-flow-sequence-entry-mapping-key)))]
-       [(and (not flow-seq-end?) (not (check-token? 'flow-sequence-end)))
+       [(and (not flow-seq-end?) (not (check-token? flow-sequence-end-token?)))
         (append! states (list parse-flow-sequence-entry))
         (parse-flow-node)]
        [else
@@ -412,7 +433,10 @@
   (define (parse-flow-sequence-entry-mapping-key)
     (let ([token (get-token)])
       (cond
-       [(check-token? 'value 'flow-entry 'flow-sequence-end)
+       [(check-token?
+         value-token?
+         flow-entry-token?
+         flow-sequence-end-token?)
         (set! state parse-flow-sequence-entry-mapping-value)
         (process-empty-scalar (token-end token))]
        [else
@@ -421,10 +445,12 @@
 
   (define (parse-flow-sequence-entry-mapping-value)
     (cond
-     [(check-token? 'value)
+     [(check-token? value-token?)
       (let ([token (get-token)])
         (cond
-         [(check-token? 'flow-entry 'flow-sewuence-end)
+         [(check-token?
+           flow-entry-token?
+           flow-sequence-end-token?)
           (set! state parse-flow-sequence-entry-mapping-end)
           (process-empty-scalar (token-end token))]
          [else
@@ -449,25 +475,31 @@
     (parse-flow-mapping-key #t))
 
   (define (parse-flow-mapping-key [first #f])
-    (let ([flow-map-end? (check-token? 'flow-mapping-end)])
+    (let ([flow-map-end? (check-token? flow-mapping-end-token?)])
       (when (and (not flow-map-end?) (not first))
-        (if (check-token? 'flow-entry)
+        (if (check-token? flow-entry-token?)
             (get-token)
             (parser-error
              "while parsing a flow mapping"
-             (format "expected ',' or '}', but got ~a" (token-id (peek-token)))
+             (format "expected ',' or '}', but got ~a"
+                     (token->string (peek-token)))
              (token-start (peek-token)))))
       (cond
-       [(and (not flow-map-end?) (check-token? 'key))
+       [(and (not flow-map-end?) (check-token? key-token?))
         (let ([token (get-token)])
           (cond
-           [(check-token? 'value 'flow-entry 'flow-mapping-end)
+           [(check-token?
+             value-token?
+             flow-entry-token?
+             flow-mapping-end-token?)
             (set! state parse-flow-mapping-value)
             (process-empty-scalar (token-end token))]
            [else
             (append! states (list parse-flow-mapping-value))
             (parse-flow-node)]))]
-       [(and (not flow-map-end?) (not (check-token? 'key 'flow-mapping-end)))
+       [(and (not flow-map-end?) (not (check-token?
+                                       key-token?
+                                       flow-mapping-end-token?)))
         (append! states (list parse-flow-mapping-empty-value))
         (parse-flow-node)]
        [else
@@ -478,10 +510,12 @@
 
   (define (parse-flow-mapping-value)
     (cond
-     [(check-token? 'value)
+     [(check-token? value-token?)
       (let ([token (get-token)])
         (cond
-         [(check-token? 'flow-entry 'flow-mapping-end)
+         [(check-token?
+           flow-entry-token?
+           flow-mapping-end-token?)
           (set! state parse-flow-mapping-key)
           (process-empty-scalar (token-end token))]
          [else
