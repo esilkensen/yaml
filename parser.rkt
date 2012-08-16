@@ -34,11 +34,10 @@
 (define (parse [name "<input>"] [in (current-input-port)])
   (define-values (check-event? peek-event get-event)
     (make-parser name in))
-  (generator ()
-    (let loop ()
-      (when (event? (peek-event))
-        (yield (get-event))
-        (loop)))))
+  (let loop ([es '()])
+    (if (event? (peek-event))
+        (loop (cons (get-event) es))
+        (reverse es))))
 
 (define parser-error (make-error 'parser))
 
@@ -547,7 +546,7 @@
 (module+ test
   (require rackunit)
   (define-simple-check (check-parser test-file check-file)
-    (for ([event (in-generator (parse-file test-file))]
+    (for ([event (parse-file test-file)]
           [line (read-file check-file)])
       (check-equal? (event->string event) line)))
   (test-begin
