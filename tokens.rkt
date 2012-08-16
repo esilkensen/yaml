@@ -10,7 +10,8 @@
 
 (token: directive
   ([name : String]
-   [value : (Option (Pair String String))]))
+   [value : (Option (U (Pairof String String)
+                       (Pairof Integer Integer)))]))
 (token: document-start)
 (token: document-end)
 (token: stream-start)
@@ -31,7 +32,7 @@
 (token: anchor
   ([value : String]))
 (token: tag
-  ([value : (Pair (Option String) (Option String))]))
+  ([value : (Pairof (Option String) (Option String))]))
 (token: scalar
   ([value : String]
    [plain : Boolean]
