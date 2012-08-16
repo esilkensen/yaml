@@ -135,7 +135,8 @@
     (and (not (null? tokens))
          (or (null? choices)
              (and (list? choices)
-                  (ormap (λ (c?) (c? (car tokens))) choices)))))
+                  (ormap (λ (c?) (c? (car tokens)))
+                         choices)))))
   
   (define (peek-token)
     ;; Return the next token, but do not delete if from the queue.
