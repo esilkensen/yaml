@@ -10,7 +10,7 @@
 
 (token: directive
   ([name : String]
-   [value : (Option (Pair Integer Integer))]))
+   [value : (Option (Pair String String))]))
 (token: document-start)
 (token: document-end)
 (token: stream-start)
@@ -35,4 +35,4 @@
 (token: scalar
   ([value : String]
    [plain : Boolean]
-   [style : Char]))
+   [style : (Option Char)]))

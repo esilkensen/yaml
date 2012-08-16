@@ -133,10 +133,9 @@
     (while (need-more-tokens?)
       (fetch-more-tokens))
     (and (not (null? tokens))
-         (let ([t (token-type (car tokens))])
-           (or (not choices)
-               (and (list? choices)
-                    (ormap (λ (c) (eq? t c)) choices))))))
+         (or (null? choices)
+             (and (list? choices)
+                  (ormap (λ (c?) (c? (car tokens))) choices)))))
   
   (define (peek-token)
     ;; Return the next token, but do not delete if from the queue.
@@ -715,7 +714,7 @@
         (forward)]
        [(or (eof-object? (peek 1))
             (string-index "\0 \t\r\n\x85\u2028\u2029" (peek 1)))
-        (set! suffix #\!)
+        (set! suffix "!")
         (forward)]
        [else
         (let ([len 1] [use-handle #f])
@@ -727,7 +726,7 @@
               (set! use-handle #t)
               (break))
             (set! len (+ len 1)))
-          (set! handle #\!)
+          (set! handle "!")
           (if use-handle
               (set! handle (scan-tag-handle "tag" start-mark))
               (forward))
@@ -1241,7 +1240,7 @@
   (values check-token? peek-token get-token))
 
 (module+ test
-  (require rackunit "utils.rkt")
+  (require rackunit)
   (define-simple-check (check-scanner test-file check-file)
     (for ([token (scan-file test-file)]
           [line (read-file check-file)])
