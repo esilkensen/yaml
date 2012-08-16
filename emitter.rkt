@@ -2,7 +2,11 @@
 
 #lang racket
 
-(require srfi/13 (planet dyoo/while-loop) "events.rkt" "utils.rkt")
+(require
+ srfi/13
+ (planet dyoo/while-loop)
+ "events.rkt"
+ "utils.rkt")
 
 (provide make-emitter)
 

@@ -2,8 +2,13 @@
 
 #lang racket
 
-(require (planet dyoo/while-loop)
-         "parser.rkt" "resolver.rkt" "events.rkt" "nodes.rkt" "utils.rkt")
+(require
+ (planet dyoo/while-loop)
+ "parser.rkt"
+ "resolver.rkt"
+ "events.rkt"
+ "nodes.rkt"
+ "utils.rkt")
 
 (provide make-composer)
 

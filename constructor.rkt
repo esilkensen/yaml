@@ -2,8 +2,13 @@
 
 #lang racket
 
-(require (planet dyoo/while-loop) srfi/13 net/base64
-         "composer.rkt" "nodes.rkt" "utils.rkt")
+(require
+ net/base64
+ srfi/13
+ (planet dyoo/while-loop)
+ "composer.rkt"
+ "nodes.rkt"
+ "utils.rkt")
 
 (define constructor-error (make-error 'constructor))
 
