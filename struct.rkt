@@ -57,7 +57,7 @@
                                       (λ: ([p : (Pairof String (t-s -> Any))])
                                         (format "~a=~s" (car p) ((cdr p) t)))]
                                      [fields (map attr->string (list #,@fs))])
-                                (format "~a(~a)" t-s (string-join fields ", ")))
+                                (format "~a(~a)" 't-s (string-join fields ", ")))
                               (let ([msg "unexpected ~a type"])
                                 (error 't-s->string msg 'name))))
                         (hash-set! s-strings t-s? t-s->string))))]

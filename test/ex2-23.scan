@@ -14,7 +14,7 @@ scalar-token(plain=#f, style=#\|, value="R0lGODlhDAAMAIQAAP//9/X\n17unp5WZmZgAAA
 key-token()
 scalar-token(plain=#t, style=#f, value="application specific tag")
 value-token()
-tag-token(value=(#\! . "something"))
+tag-token(value=("!" . "something"))
 scalar-token(plain=#f, style=#\|, value="The semantics of the tag\nabove may be different for\ndifferent documents.\n")
 block-end-token()
 stream-end-token()
