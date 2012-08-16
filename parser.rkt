@@ -2,10 +2,19 @@
 
 #lang racket
 
-(require (planet dyoo/while-loop)
-         "tokens.rkt" "scanner.rkt" "events.rkt" "utils.rkt")
+(require
+ racket/generator
+ (planet dyoo/while-loop)
+ "tokens.rkt"
+ "scanner.rkt"
+ "events.rkt"
+ "utils.rkt")
 
-(provide parse-file parse-string parse make-parser)
+(provide
+ parse-file
+ parse-string
+ parse
+ make-parser)
 
 (define-syntax-rule (append! dst lst ...)
   (set! dst (append dst lst ...)))
@@ -16,25 +25,26 @@
 
 (define (parse-file filename)
   (with-input-from-file filename
-    (λ () (parse #:name filename))))
+    (λ () (parse filename))))
 
 (define (parse-string string)
   (with-input-from-string string
-    (λ () (parse #:name "<string>"))))
+    (λ () (parse "<string>"))))
 
-(define (parse [in (current-input-port)] #:name [name "<input>"])
+(define (parse [name "<input>"] [in (current-input-port)])
   (define-values (check-event? peek-event get-event)
-    (make-parser in #:name name))
-  (let loop ([es '()])
-    (if (event? (peek-event))
-        (loop (cons (get-event) es))
-        (reverse es))))
+    (make-parser name in))
+  (generator ()
+    (let loop ()
+      (when (event? (peek-event))
+        (yield (get-event))
+        (loop)))))
 
 (define parser-error (make-error 'parser))
 
-(define (make-parser [in (current-input-port)] #:name [name "<input>"])
+(define (make-parser [name "<input>"] [in (current-input-port)])
   (define-values (check-token? peek-token get-token)
-    (make-scanner in #:name name))
+    (make-scanner name in))
 
   (define DEFAULT-TAGS #hash(("!" . "!") ("!!" . "tag:yaml.org,2002:")))
 
@@ -537,7 +547,7 @@
 (module+ test
   (require rackunit)
   (define-simple-check (check-parser test-file check-file)
-    (for ([event (parse-file test-file)]
+    (for ([event (in-generator (parse-file test-file))]
           [line (read-file check-file)])
       (check-equal? (event->string event) line)))
   (test-begin

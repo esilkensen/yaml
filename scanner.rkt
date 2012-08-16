@@ -2,31 +2,41 @@
 
 #lang racket
 
-(require srfi/13 (planet dyoo/while-loop) "tokens.rkt" "utils.rkt")
+(require
+ racket/generator
+ srfi/13
+ (planet dyoo/while-loop)
+ "tokens.rkt"
+ "utils.rkt")
 
-(provide scan-file scan-string scan make-scanner)
+(provide
+ scan-file
+ scan-string
+ scan
+ make-scanner)
 
 (define (scan-file filename)
   (with-input-from-file filename
-    (λ () (scan #:name filename))))
+    (λ () (scan filename))))
 
 (define (scan-string string)
   (with-input-from-string string
-    (λ () (scan #:name "<string>"))))
+    (λ () (scan "<string>"))))
 
-(define (scan [in (current-input-port)] #:name [name "<input>"])
+(define (scan [name "<input>"] [in (current-input-port)])
   (define-values (check-token? peek-token get-token)
-    (make-scanner in #:name name))
-  (let loop ([ts '()])
-    (if (token? (peek-token))
-        (loop (cons (get-token) ts))
-        (reverse ts))))
+    (make-scanner name in))
+  (generator ()
+    (let loop ()
+      (when (token? (peek-token))
+        (yield (get-token))
+        (loop)))))
 
 (define scanner-error (make-error 'scanner))
 
 (struct simple-key (token-number required? index line column mark))
 
-(define (make-scanner [in (current-input-port)] #:name [name "<input>"])
+(define (make-scanner [name "<input>"] [in (current-input-port)])
   (define line 0)
   (define column 0)
   (define index 0)
@@ -1243,7 +1253,7 @@
 (module+ test
   (require rackunit)
   (define-simple-check (check-scanner test-file check-file)
-    (for ([token (scan-file test-file)]
+    (for ([token (in-generator (scan-file test-file))]
           [line (read-file check-file)])
       (check-equal? (token->string token) line)))
   (test-begin
