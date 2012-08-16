@@ -37,9 +37,55 @@
    [flow-style : Boolean]))
 (event: mapping-end)
 
-(define-predicate node-event?
+(define-type node-event
   (U alias-event scalar-event))
-(define-predicate collection-start-event?
+(define-type collection-start-event
   (U sequence-start-event mapping-start-event))
-(define-predicate collection-end-event?
+(define-type collection-end-event
   (U sequence-end-event mapping-end-event))
+
+(define-predicate node-event? node-event)
+(define-predicate collection-start-event? collection-start-event)
+(define-predicate collection-end-event? collection-end-event)
+
+(: node-event-anchor
+   (node-event -> (Option String)))
+(define (node-event-anchor event)
+  (if (alias-event? event)
+      (alias-event-anchor event)
+      (scalar-event-anchor event)))
+
+(: collection-start-event-anchor
+   (collection-start-event -> (Option String)))
+(define (collection-start-event-anchor event)
+  (if (sequence-start-event? event)
+      (sequence-start-event-anchor event)
+      (mapping-start-event-anchor event)))
+
+(: collection-start-event-tag
+   (collection-start-event -> (Option String)))
+(define (collection-start-event-tag event)
+  (if (sequence-start-event? event)
+      (sequence-start-event-tag event)
+      (mapping-start-event-tag event)))
+
+(: collection-start-event-implicit
+   (collection-start-event -> Boolean))
+(define (collection-start-event-implicit event)
+  (if (sequence-start-event? event)
+      (sequence-start-event-implicit event)
+      (mapping-start-event-implicit event)))  
+
+(: any-event-tag
+   ((U scalar-event collection-start-event) -> (Option String)))
+(define (any-event-tag event)
+  (if (scalar-event? event)
+      (scalar-event-tag event)
+      (collection-start-event-tag event)))
+
+(: any-event-anchor
+   ((U node-event collection-start-event) -> (Option String)))
+(define (any-event-anchor event)
+  (if (node-event? event)
+      (node-event-anchor event)
+      (collection-start-event-anchor event)))

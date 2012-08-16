@@ -2,7 +2,7 @@
 
 #lang racket
 
-(require (planet dyoo/while-loop) srfi/13 "events.rkt" "utils.rkt")
+(require srfi/13 (planet dyoo/while-loop) "events.rkt" "utils.rkt")
 
 (provide make-emitter)
 
@@ -91,10 +91,10 @@
           (let ([e (car es)])
             (cond
              [(or (document-start-event? e)
-                  (any-collection-start-event? e))
+                  (collection-start-event? e))
               (set! level (add1 level))]
              [(or (document-end-event? e)
-                  (any-collection-end-event? e))
+                  (collection-end-event? e))
               (set! level (sub1 level))]
              [(stream-end-event? e)
               (set! level -1)])
@@ -120,12 +120,12 @@
      [else
       (emitter-error
        (format "expected stream-start, but got ~a"
-               (event-type event)))]))
+               (event->string event)))]))
 
   (define (expect-nothing)
     (emitter-error
      (format "expected nothing, but got ~a"
-             (event-type event))))
+             (event->string event))))
 
   ;; Document handlers.
 
@@ -133,8 +133,8 @@
     (expect-document-start #t))
 
   (define (expect-document-start [first #f])
-    (case (event-type event)
-      [(document-start)
+    (cond
+      [(document-start-event? event)
        (when (and (or (document-start-event-version event)
                       (document-start-event-tags event))
                   open-ended)
@@ -162,7 +162,7 @@
          (when canonical
            (write-indent)))
        (set! state expect-document-root)]
-      [(stream-end)
+      [(stream-end-event? event)
        (when open-ended
          (write-indicator "..." #t)
          (write-indent))
@@ -171,7 +171,7 @@
       [else
        (emitter-error
         (format "expected document-start, but got ~a"
-                (event-type event)))]))
+                (event->string event)))]))
 
   (define (expect-document-end)
     (cond
@@ -185,7 +185,7 @@
      [else
       (emitter-error
        (format "expected document-end, but got ~a"
-               (event-type event)))]))
+               (event->string event)))]))
 
   (define (expect-document-root)
     (append! states (list expect-document-end))
@@ -198,23 +198,24 @@
     (set! sequence-context sequence)
     (set! mapping-context mapping)
     (set! simple-key-context simple-key)
-    (case (event-type event)
-      [(alias)
+    (cond
+      [(alias-event? event)
        (expect-alias)]
-      [(scalar collection-start sequence-start mapping-start)
+      [(or (scalar-event? event)
+           (collection-start-event? event))
        (process-anchor "&")
        (process-tag)
-       (case (event-type event)
-         [(scalar)
+       (cond
+         [(scalar-event? event)
           (expect-scalar)]
-         [(sequence-start)
+         [(sequence-start-event? event)
           (if (or (> flow-level 0)
                   canonical
                   (sequence-start-event-flow-style event)
                   (check-empty-sequence?))
               (expect-flow-sequence)
               (expect-block-sequence))]
-         [(mapping-start)
+         [(mapping-start-event? event)
           (if (or (> flow-level 0)
                   canonical
                   (mapping-start-event-flow-style event)
@@ -224,7 +225,7 @@
       [else
        (emitter-error
         (format "expected node, but got ~a"
-                (event-type event)))]))
+                (event->string event)))]))
 
   (define (expect-alias)
     (unless (alias-event-anchor event)
@@ -419,17 +420,18 @@
 
   (define (check-simple-key?)
     (let ([len 0])
-      (when (and (any-node-event? event)
-                 (any-event-attr 'anchor event))
+      (when (and (node-event? event)
+                 (node-event-anchor event))
         (unless prepared-anchor
           (set! prepared-anchor
-                (prepare-anchor (any-event-attr 'anchor event))))
+                (prepare-anchor (node-event-anchor event))))
         (set! len (+ len (string-length prepared-anchor))))
       (when (and (or (scalar-event? event)
-                     (any-collection-start-event? event))
-                 (any-event-attr 'tag event))
+                     (collection-start-event? event))
+                 (any-event-tag event))
         (unless prepared-tag
-          (set! prepared-tag (prepare-tag (any-event-attr 'tag event))))
+          (set! prepared-tag
+                (prepare-tag (any-event-tag event))))
         (set! len (+ len (string-length prepared-tag))))
       (when (scalar-event? event)
         (unless analysis
@@ -447,18 +449,18 @@
 
   (define (process-anchor indicator)
     (cond
-     [(not (any-event-attr 'anchor event))
+     [(not (any-event-anchor event))
       (set! prepared-anchor #f)]
      [else
       (unless prepared-anchor
         (set! prepared-anchor
-              (prepare-anchor (any-event-attr 'anchor event))))
+              (prepare-anchor (any-event-anchor event))))
       (when prepared-anchor
         (write-indicator (format "~a~a" indicator prepared-anchor) #t))
       (set! prepared-anchor #f)]))
 
   (define (process-tag)
-    (let ([tag (any-event-attr 'tag event)])
+    (let ([tag (any-event-tag event)])
       (when (and (scalar-event? event)
                  (not style))
         (set! style (choose-scalar-style)))
@@ -473,7 +475,7 @@
        [(and (not (scalar-event? event))
              (or (not canonical)
                  (not tag))
-             (any-event-attr 'implicit event))
+             (collection-start-event-implicit event))
         (set! prepared-tag #f)]
        [else
         (when (and (scalar-event? event)
