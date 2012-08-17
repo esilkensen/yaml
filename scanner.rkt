@@ -2,13 +2,22 @@
 
 #lang typed/racket/no-check
 
-(require srfi/13 "tokens.rkt" "utils.rkt")
+(require/typed srfi/13
+  [string-index (String Char -> (Option Integer))])
+(require "tokens.rkt" "utils.rkt")
 
 (provide scan-file scan-string scan make-scanner)
 
 (define-syntax-rule (while test body ...)
-  (let loop ()
-    (when test body ... (loop))))
+  (let: loop : Void ()
+    (if test
+        (begin body ... (loop))
+        (void))))
+
+(: string-index? (String (U Char EOF) -> Boolean))
+(define (string-index? str ch)
+  (and (char? ch)
+       (integer? (string-index str ch))))
 
 (: scan-file (String -> (Listof token)))
 (define (scan-file filename)
@@ -28,10 +37,13 @@
 (define (scan [name "<input>"] [in (current-input-port)])
   (define-values (check-token? peek-token get-token)
     (make-scanner name in))
-  (let loop ([ts '()])
-    (if (token? (peek-token))
-        (loop (cons (get-token) ts))
-        (reverse ts))))
+  (let loop ([ts (ann '() (Listof token))])
+    (let ([t (peek-token)])
+      (if (token? t)
+          (begin
+            (get-token)
+            (loop (cons t ts)))
+          (reverse ts)))))
 
 (: scanner-error ((Option String) String mark -> Void))
 (define scanner-error (make-error 'scanner))
@@ -44,27 +56,30 @@
    [column : Integer]
    [mark : mark]))
 
-(define-type scanner
-  (Values ((Any -> Boolean) * -> Boolean)
-          (-> (Option token))
-          (-> (Option token))))
-
 (: make-scanner
-   (case-> (-> scanner)
-           (String -> scanner)
-           (String Input-Port -> scanner)))
+   (case-> (-> (Values ((Any -> Boolean) * -> Boolean)
+                       (-> (Option token))
+                       (-> (Option token))))
+           (String -> (Values ((Any -> Boolean) * -> Boolean)
+                              (-> (Option token))
+                              (-> (Option token))))
+           (String Input-Port -> (Values ((Any -> Boolean) * -> Boolean)
+                                         (-> (Option token))
+                                         (-> (Option token))))))
 (define (make-scanner [name "<input>"] [in (current-input-port)])
   (define line 0)
   (define column 0)
   (define index 0)
   (define buffer-length 0)
+  (: buffer (Vectorof (U Char EOF)))
   (define buffer (make-vector 1024 #\nul))
 
-;;  (: peek (case-> (-> (U Char EOF)) (Integer -> (U Char EOF))))
+  (: peek (case-> (-> (U Char EOF)) (Integer -> (U Char EOF))))
   (define (peek [i 0])
     ;; peek the next i-th character
     (when (>= (+ i index) (vector-length buffer))
-      (let ([new-buffer (make-vector (* (vector-length buffer 2)) #\nul)])
+      (let: ([new-buffer : (Vectorof (U Char EOF))
+                         (make-vector (* (vector-length buffer) 2) #\nul)])
         (vector-copy! new-buffer 0 buffer)
         (set! buffer new-buffer)))
     (when (>= (+ index i) buffer-length)
@@ -73,21 +88,26 @@
         (set! buffer-length (add1 buffer-length))))
     (vector-ref buffer (+ i index)))
 
-  ;; peek the next l characters
+  (: prefix (case-> (-> String) (Integer -> String)))
   (define (prefix [l 1])
-    (list->string
-     (for/list ([i (in-range l)]
-                #:when (char? (peek i)))
-       (peek i))))
+    ;; peek the next l characters
+    (let loop ([i 0] [cs (ann '() (Listof Char))])
+      (if (= i l)
+          (list->string (reverse cs))
+          (let ([c (peek i)])
+            (if (char? c)
+                (loop (+ i 1) (cons c cs))
+                (loop (+ i 1) cs))))))
   
-  ;; read the next l characters and move the index
+  (: forward (case-> (-> Void) (Integer -> Void)))
   (define (forward [l 1])
+    ;; read the next l characters and move the index
     (let ([tmp-index index])
       (for ([i (in-range l)])
         (when (char? (peek i))
           (set! tmp-index (add1 tmp-index))
           (cond
-           [(or (string-index "\n\x85\u2028\u2029" (peek i))
+           [(or (string-index? "\n\x85\u2028\u2029" (peek i))
                 (and (equal? #\return (peek i))
                      (not (equal? #\newline (peek (add1 i))))))
             (set! line (add1 line))
@@ -96,10 +116,11 @@
             (set! column (add1 column))])))
       (set! index tmp-index)))
 
+  (: get-mark (-> mark))
   (define (get-mark)
     (mark name index line column buffer))
 
-  (: add-token! (case-> (token -> Void) (token Integer -> Void)))
+  (: add-token! (case-> (token -> Void) (token (Option Integer) -> Void)))
   (define (add-token! token [i #f])
     (if (number? i)
         (let-values ([(left right) (split-at tokens i)])
@@ -166,7 +187,8 @@
     (and (not (null? tokens))
          (or (null? choices)
              (and (list? choices)
-                  (ormap (λ (c?) (c? (car tokens)))
+                  (ormap (λ: ([c? : (Any -> Boolean)])
+                           (c? (car tokens)))
                          choices)))))
 
   (: peek-token (-> (Option token)))
@@ -201,53 +223,60 @@
 
   (: fetch-more-tokens (-> Void))
   (define (fetch-more-tokens)
+    (: ctable
+       (HashTable
+        Char (U (-> Void) (Listof (Pairof (-> Boolean) (-> Void))))))
     (define ctable
       (make-hash
-       `((#\% . (,check-directive? . ,fetch-directive))
+       `((#\% . ((,check-directive? . ,fetch-directive)))
          (#\- . ((,check-document-start? . ,fetch-document-start)
                  (,check-block-entry? . ,fetch-block-entry)))
-         (#\. . (,check-document-end? . ,fetch-document-end))
+         (#\. . ((,check-document-end? . ,fetch-document-end)))
          (#\[ . ,fetch-flow-sequence-start)
          (#\{ . ,fetch-flow-mapping-start)
          (#\] . ,fetch-flow-sequence-end)
          (#\} . ,fetch-flow-mapping-end)
          (#\, . ,fetch-flow-entry)
-         (#\? . (,check-key? . ,fetch-key))
-         (#\: . (,check-value? . ,fetch-value))
+         (#\? . ((,check-key? . ,fetch-key)))
+         (#\: . ((,check-value? . ,fetch-value)))
          (#\* . ,fetch-alias)
          (#\& . ,fetch-anchor)
          (#\! . ,fetch-tag)
-         (#\| . (,(λ () (zero? flow-level)) . ,fetch-literal))
-         (#\> . (,(λ () (zero? flow-level)) . ,fetch-folded))
+         (#\| . ((,(λ () (zero? flow-level)) . ,fetch-literal)))
+         (#\> . ((,(λ () (zero? flow-level)) . ,fetch-folded)))
          (#\' . ,fetch-single)
          (#\" . ,fetch-double))))
+    (: check-ch? (Char -> (Option (-> Void))))
     (define (check-ch? ch)
-      (match (hash-ref ctable ch #f)
-        [(? procedure? fetch) fetch]
-        [(cons (? procedure? check?) (? procedure? fetch))
-         (and (check?) fetch)]
-        [(list (cons (? procedure? checks?) (? procedure? fetches)) ...)
-         (for/or ([check? checks?] [fetch fetches])
-           (and (check?) fetch))]
-        [else #f]))
+      (and (hash-has-key? ctable ch)
+           (let ([ct (hash-ref ctable ch)])
+             (if (list? ct)
+                 (let loop ([ct ct])
+                   (and (not (null? ct))
+                        (if ((caar ct))
+                            (cdar ct)
+                            (loop (cdr ct)))))
+                 ct))))
     (scan-to-next-token)
     (stale-possible-simple-keys!)
     (unwind-indent! column)
     (let ([ch (peek)])
-      (cond
-       [(or (eof-object? ch) (char=? #\nul ch))
-        (fetch-stream-end)]
-       [(check-ch? ch) ((check-ch? ch))]
-       [(check-plain?) (fetch-plain)]
-       [else
-        (scanner-error
-         "while scanning for the next token"
-         (format "found character ~a that cannot start any token" ch)
-         (get-mark))])))
+      (if (or (eof-object? ch) (char=? #\nul ch))
+          (fetch-stream-end)
+          (let ([ct (check-ch? ch)])
+            (if ct
+                (ct)
+                (if (check-plain?)
+                    (fetch-plain)
+                    (scanner-error
+                     "while scanning for the next token"
+                     (format
+                      "found character ~a that cannot start any token" ch)
+                     (get-mark))))))))
   
   ;;; Simple keys treatment.
 
-  (: next-possible-simple-key (-> (Option simple-key)))
+  (: next-possible-simple-key (-> (Option Integer)))
   (define (next-possible-simple-key)
     ;; Return the number of the nearest possible simple key.
     (and (hash? possible-simple-keys)
@@ -266,7 +295,7 @@
     ;; height (may cause problems if indentation is broken though).
     (hash-for-each
      possible-simple-keys
-     (λ (level key)
+     (λ: ([level : Integer] [key : simple-key])
        (when (or (not (= (simple-key-line key) line))
                  (> (- index (simple-key-index key)) 1024))
          (when (simple-key-required? key)
@@ -338,7 +367,8 @@
     (unwind-indent! -1)
     (remove-possible-simple-key!)
     (set! allow-simple-key #f)
-    (set! possible-simple-keys (make-hash))
+    (set! possible-simple-keys
+          (ann (make-hash) (HashTable Integer simple-key)))
     (let ([mark (get-mark)])
       (add-token! (stream-end-token mark mark)))
     (set! done? #t))
@@ -541,38 +571,33 @@
     ;; DOCUMENT-START: ^ '---' (' '|'\n')
     (and (zero? column)
          (string=? "---" (prefix 3))
-         (and (char? (peek 3))
-              (string-index "\0 \t\r\n\x85\u2028\u2029" (peek 3)))))
+         (string-index? "\0 \t\r\n\x85\u2028\u2029" (peek 3))))
 
   (: check-document-end? (-> Boolean))
   (define (check-document-end?)
     ;; DOCUMENT-END: ^ '...' (' '|'\n')
     (and (zero? column)
          (string=? "..." (prefix 3))
-         (and (char? (peek 3))
-              (string-index "\0 \t\r\n\x85\u2028\u2029" (peek 3)))))
+         (string-index? "\0 \t\r\n\x85\u2028\u2029" (peek 3))))
 
   (: check-block-entry? (-> Boolean))
   (define (check-block-entry?)
     ;; BLOCK-ENTRY: '-' (' '|'\n')
-    (and (char? (peek 1))
-         (string-index "\0 \t\r\n\x85\u2028\u2029" (peek 1))))
+    (string-index? "\0 \t\r\n\x85\u2028\u2029" (peek 1)))
 
   (: check-key? (-> Boolean))
   (define (check-key?)
     ;; KEY(flow context): '?'
     ;; KEY(block context): '?' (' '|'\n')
     (or (not (zero? flow-level))
-        (and (char? (peek 1))
-             (string-index "\0 \t\r\n\x85\u2028\u2029" (peek 1)))))
+        (string-index? "\0 \t\r\n\x85\u2028\u2029" (peek 1))))
 
   (: check-value? (-> Boolean))
   (define (check-value?)
     ;; VALUE(flow context): ':'
     ;; VALUE(block context): ':' (' '|'\n')
     (or (not (zero? flow-level))
-        (and (char? (peek 1))
-             (string-index "\0 \t\r\n\x85\u2028\u2029" (peek 1)))))
+        (string-index? "\0 \t\r\n\x85\u2028\u2029" (peek 1))))
 
   (: check-plain? (-> Boolean))
   (define (check-plain?)
@@ -589,14 +614,14 @@
     ;; '-' character) because we want the flow context to be space
     ;; independent.
     (or (and (not (eof-object? (peek)))
-             (not (string-index
+             (not (string-index?
                    "\0 \t\r\n\x85\u2028\u2029-?:,[]{}#&*!|>'\"%@"
                    (peek))))
         (and (not (eof-object? (peek)))
-             (not (string-index "\0 \t\r\n\x85\u2028\u2029" (peek 1)))
+             (not (string-index? "\0 \t\r\n\x85\u2028\u2029" (peek 1)))
              (or (equal? #\- (peek))
                  (and (zero? flow-level)
-                      (string-index "?:" (peek)))))))
+                      (string-index? "?:" (peek)))))))
 
   ;; Scanners.
 
@@ -607,13 +632,13 @@
     ;; `allow_simple_key' on.
     (when (and (zero? index) (equal? #\uFEFF (peek)))
       (forward))
-    (let ([found #f])
+    (let ([found (ann #f Boolean)])
       (while (not found)
         (while (equal? #\space (peek))
           (forward))
         (when (equal? #\# (peek))
           (while (and (not (eof-object? (peek)))
-                      (not (string-index "\0\r\n\x85\u2028\u2029" (peek))))
+                      (not (string-index? "\0\r\n\x85\u2028\u2029" (peek))))
             (forward)))
         (if (> (string-length (scan-line-break)) 0)
             (when (zero? flow-level)
@@ -637,7 +662,7 @@
          [else
           (set! end-mark (get-mark))
           (while (and (not (eof-object? (peek)))
-                      (not (string-index "\0\r\n\x85\u2028\u2029" (peek))))
+                      (not (string-index? "\0\r\n\x85\u2028\u2029" (peek))))
             (forward))])
         (scan-directive-ignored-line)
         (directive-token start-mark end-mark name value))))
@@ -656,7 +681,7 @@
       (let ([value (prefix len)])
         (forward len)
         (unless (or (eof-object? (peek))
-                    (string-index "\0 \r\n\x85\u2028\u2029" (peek)))
+                    (string-index? "\0 \r\n\x85\u2028\u2029" (peek)))
           (scanner-error
            "while scanning a directive"
            (format "expected alphanumeric character, but found ~a" (peek))
@@ -677,7 +702,7 @@
       (forward)
       (let ([minor (scan-yaml-directive-number)])
         (unless (or (eof-object? (peek))
-                    (string-index "\0 \r\n\x85\u2028\u2029" (peek)))
+                    (string-index? "\0 \r\n\x85\u2028\u2029" (peek)))
           (scanner-error
            "while scanning a directive"
            (format "expected a diit or ' ', but found ~a" (peek))
@@ -687,13 +712,16 @@
   (: scan-yaml-directive-number (-> Integer))
   (define (scan-yaml-directive-number)
     ;; See the specification for details.
-    (unless (char<=? #\0 (peek) #\9)
-      (scanner-error
-       "while scanning a directive"
-       (format "expected a digit, but found ~a" (peek))
-       (get-mark)))
+    (let ([c (peek)])
+      (unless (and (char? c) (char<=? #\0 c #\9))
+        (scanner-error
+         "while scanning a directive"
+         (format "expected a digit, but found ~a" c)
+         (get-mark))))
     (let ([len 0])
-      (while (char<=? #\0 (peek len) #\9)
+      (while (let ([c (peek len)])
+               (and (char? c)
+                    (char<=? #\0 c #\9)))
         (set! len (add1 len)))
       (let ([value (string->number (prefix len))])
         (forward len)
@@ -725,7 +753,7 @@
     ;; See the specification for details.
     (let ([value (scan-tag-uri "directive")])
       (unless (or (eof-object? (peek))
-                  (string-index "\0 \r\n\x85\u2028\u2029" (peek)))
+                  (string-index? "\0 \r\n\x85\u2028\u2029" (peek)))
         (scanner-error
          "while scanning a directive"
          (format "expected ' ', but found ~a" (peek))
@@ -739,10 +767,10 @@
       (forward))
     (when (equal? #\# (peek))
       (while (and (not (eof-object? (peek)))
-                  (not (string-index "\0 \r\n\x85\u2028\u2029" (peek))))
+                  (not (string-index? "\0 \r\n\x85\u2028\u2029" (peek))))
         (forward)))
     (unless (or (eof-object? (peek))
-                (string-index "\0\r\n\x85\u2028\u2029" (peek)))
+                (string-index? "\0\r\n\x85\u2028\u2029" (peek)))
       (scanner-error
        "while scanning a directive"
        (format "expected a comment or a line break, but found ~a" (peek))
@@ -774,7 +802,7 @@
         (let ([value (prefix len)])
           (forward len)
           (unless (or (eof-object? (peek))
-                      (string-index
+                      (string-index?
                        "\0 \t\r\n\x85\u2028\u2029?:,]}%@`"
                        (peek)))
             (scanner-error
@@ -800,15 +828,15 @@
            (get-mark)))
         (forward)]
        [(or (eof-object? (peek 1))
-            (string-index "\0 \t\r\n\x85\u2028\u2029" (peek 1)))
+            (string-index? "\0 \t\r\n\x85\u2028\u2029" (peek 1)))
         (set! suffix "!")
         (forward)]
        [else
         (let ([len 1] [use-handle #f])
           (call/cc
-           (λ (break)
+           (λ: ([break : (Any -> Any)])
              (while (and (not (eof-object? (peek len)))
-                         (not (string-index
+                         (not (string-index?
                                "\0 \t\r\n\x85\u2028\u2029"
                                (peek len))))
                (when (equal? #\! (peek len))
@@ -820,7 +848,7 @@
               (forward))
           (set! suffix (scan-tag-uri "tag")))])
       (unless (or (eof-object? (peek))
-                  (string-index "\0 \r\n\x85\u2028\u2029" (peek)))
+                  (string-index? "\0 \r\n\x85\u2028\u2029" (peek)))
         (scanner-error
          "while scanning a tag"
          (format "expected ' ', but found ~a" (peek))
@@ -831,8 +859,8 @@
   (define (scan-block-scalar style)
     ;; See the specification for details.
     (let ([folded (equal? style #\>)]
-          [chunks '()] [breaks #f] [line-break ""]
-          [start-mark (get-mark)] [end-mark #f])
+          [chunks (ann '() (Listof Char))] [breaks #f] [line-break ""]
+          [start-mark (get-mark)] [end-mark (ann #f (Option mark))])
       (forward)
       (match-let ([(cons chomping increment)
                    (scan-block-scalar-indicators)]
@@ -852,15 +880,15 @@
                 (set! end-mark e)
                 (set! tmp-indent (max min-indent i)))))
         (call/cc
-         (λ (break)
+         (λ: ([break : (Any -> Any)])
            (while (and (= column tmp-indent)
                        (char? (peek))
                        (not (char=? #\nul (peek))))
              (set! chunks (append chunks breaks))
-             (let ([leading-non-space (not (string-index " \t" (peek)))]
+             (let ([leading-non-space (not (string-index? " \t" (peek)))]
                    [len 0])
                (while (and (not (eof-object? (peek len)))
-                           (not (string-index
+                           (not (string-index?
                                  "\0\r\n\x85\u2028\u2029"
                                  (peek len))))
                  (set! len (+ len 1)))
@@ -876,7 +904,7 @@
                      (begin ;; Unfortunately, folding rules are ambiguous.
                        (if (and folded leading-non-space
                                 (equal? "\n" line-break)
-                                (not (string-index " \t" (peek))))
+                                (not (string-index? " \t" (peek))))
                            (when (null? breaks)
                              (set! chunks (append chunks '(#\space))))
                            (set! chunks
@@ -894,22 +922,31 @@
      (-> (Pairof (U Boolean 'None) (Option Integer))))
   (define (scan-block-scalar-indicators)
     ;; See the specification for details.
-    (let ([chomping 'None] [increment #f])
+    (let ([chomping (ann 'None (U Boolean 'None))]
+          [increment (ann #f (Option Integer))])
       (cond
        [(or (equal? #\+ (peek)) (equal? #\- (peek)))
         (set! chomping (equal? #\+ (peek)))
         (forward)
-        (when (string-index "0123456789" (peek))
-          (set! increment (string->number (string (peek))))
-          (when (zero? increment)
-            (scanner-error
-             "while scanning a block scalar"
-             "expected indentation indicator (1-9), but found 0"
-             (get-mark)))
-          (forward))]
-       [(string-index "0123456789" (peek))
-        (set! increment (string->number (string (peek))))
-        (when (zero? increment)
+        (let ([c (peek)])
+          (when (and (char? c)
+                     (string-index? "0123456789" (peek)))
+            (let ([inc (string->number (string c))])
+              (when (and (integer? inc) (not (flonum? inc)))
+                (set! increment inc)))
+            (when (zero? increment)
+              (scanner-error
+               "while scanning a block scalar"
+               "expected indentation indicator (1-9), but found 0"
+               (get-mark)))
+            (forward)))]
+       [(string-index? "0123456789" (peek))
+        (let ([c (peek)])
+          (when (char? c)
+            (let ([inc (string->number (string c))])
+              (when (and (integer? inc) (not (flonum? inc)))
+                (set! increment inc)))))
+        (when (and (integer? increment) (zero? increment))
           (scanner-error
            "while scanning a block scalar"
            "expected indentation indicator (1-9), but found 0"
@@ -919,7 +956,7 @@
           (set! chomping (equal? #\+ (peek)))
           (forward))])
       (unless (or (eof-object? (peek))
-                  (string-index "\0 \r\n\x85\u2028\u2029" (peek)))
+                  (string-index? "\0 \r\n\x85\u2028\u2029" (peek)))
         (scanner-error
          "while scanning a block scalar"
          (format "expected chomping or indentation indicators, but found ~a"
@@ -934,10 +971,10 @@
       (forward))
     (when (equal? #\# (peek))
       (while (and (not (eof-object? (peek)))
-                  (not (string-index "\0\r\n\x85\u2028\u2029" (peek))))
+                  (not (string-index? "\0\r\n\x85\u2028\u2029" (peek))))
         (forward)))
     (unless (or (eof-object? (peek))
-                (string-index "\0\r\n\x85\u2028\u2029" (peek)))
+                (string-index? "\0\r\n\x85\u2028\u2029" (peek)))
       (scanner-error
        "while scanning a block scalar"
        (format "expected a comment or a line break, but found ~a" (peek))
@@ -948,11 +985,11 @@
      (-> (List (Listof Char) Integer mark)))
   (define (scan-block-scalar-indentation)
     ;; See the specification for details.
-    (let ([chunks '()]
+    (let ([chunks (ann '() (Listof Char))]
           [max-indent 0]
           [end-mark (get-mark)])
       (while (and (not (eof-object? (peek)))
-                  (string-index " \r\n\x85\u2028\u2029" (peek)))
+                  (string-index? " \r\n\x85\u2028\u2029" (peek)))
         (cond
          [(not (equal? #\space (peek)))
           (set! chunks (append chunks (string->list (scan-line-break))))
@@ -967,14 +1004,14 @@
      (Integer -> (Pairof (Listof Char) (Option mark))))
   (define (scan-block-scalar-breaks indent)
     ;; See the specification for details.
-    (let ([chunks '()]
+    (let ([chunks (ann '() (Listof Char))]
           [max-indent 0]
-          [end-mark #f])
+          [end-mark (ann #f (Option mark))])
       (while (and (< column indent)
                   (equal? #\space (peek)))
         (forward))
       (while (and (not (eof-object? (peek)))
-                  (string-index "\r\n\x85\u2028\u2029" (peek)))
+                  (string-index? "\r\n\x85\u2028\u2029" (peek)))
         (set! chunks (append chunks (string->list (scan-line-break))))
         (set! end-mark (get-mark))
         (while (and (< column indent)
@@ -1009,6 +1046,7 @@
   (: scan-flow-scalar-non-spaces (Boolean -> (Listof Char)))
   (define (scan-flow-scalar-non-spaces double)
     ;; See the specification for details.
+    (: esc-repls (HashTable Char Char))
     (define esc-repls
       #hash((#\0 . #\nul)
             (#\a . #\u07)
@@ -1027,79 +1065,86 @@
             (#\_ . #\uA0)
             (#\L . #\u2028)
             (#\P . #\u2029)))
+    (: esc-codes (HashTable Char Integer))
     (define esc-codes #hash((#\x . 2) (#\u . 4) (#\U . 8)))
-    (let ([chunks '()])
+    (let ([chunks (ann '() (Listof Char))])
       (call/cc
-       (λ (break)
+       (λ: ([break : (Any -> Any)])
          (while #t
            (let ([len 0])
              (while (and (char? (peek len))
-                         (not (string-index "'\"\\\0 \t\r\n\x85\u2028\u2029"
-                                            (peek len))))
+                         (not (string-index? "'\"\\\0 \t\r\n\x85\u2028\u2029"
+                                             (peek len))))
                (set! len (+ len 1)))
              (unless (zero? len)
                (set! chunks (append chunks (string->list (prefix len))))
                (forward len))
-             (cond
-              [(and (not double)
-                    (equal? #\' (peek))
-                    (equal? #\' (peek 1)))
-               (set! chunks (append chunks (list #\')))
-               (forward 2)]
-              [(or (and double (equal? #\' (peek)))
-                   (and (not double) (or (equal? #\" (peek))
-                                         (equal? #\\ (peek)))))
-               (set! chunks (append chunks (list (peek))))
-               (forward)]
-              [(and double (equal? #\\ (peek)))
-               (forward)
+             (let ([c (peek)] [d (peek 1)])
                (cond
-                [(hash-has-key? esc-repls (peek))
-                 (set! chunks (append chunks
-                                      (list (hash-ref esc-repls (peek)))))
+                [(and (not double)
+                      (equal? #\' c)
+                      (equal? #\' d))
+                 (set! chunks (append chunks (list #\')))
+                 (forward 2)]
+                [(and (char? c)
+                      (or (and double (equal? #\' c))
+                          (and (not double) (or (equal? #\" c)
+                                                (equal? #\\ c)))))
+                 (set! chunks (append chunks (list c)))
                  (forward)]
-                [(hash-has-key? esc-codes (peek))
-                 (let ([len (hash-ref esc-codes (peek))])
-                   (forward)
-                   (for ([k (in-range len)])
-                     (let ([ch (peek k)])
-                       (unless (and (char? ch)
-                                    (string-index "01223456789ABCDEFabcdef" ch))
-                         (scanner-error
-                          "while scanning a double-quoted scalar"
-                          (format
-                           "expected escape sequence, but found ~a" ch)))))
-                   (let ([code (string->number (prefix len) 16)])
-                     (set! chunks (append chunks (list (integer->char code))))
-                     (forward len)))]
-                [(and (char? (peek))
-                      (string-index "\r\n\x85\u2028\u2029" (peek)))
-                 (scan-line-break)
-                 (set! chunks (append chunks (scan-flow-scalar-breaks)))]
-                [else
-                 (scanner-error
-                  "while scanning a double-quoted scalar"
-                  (format "found unknown escape character ~a" (peek))
-                  (get-mark))])]
-              [else (break (void))])))))
-         chunks))
+                [(and double (equal? #\\ c))
+                 (forward)
+                 (set! c (peek))
+                 (cond
+                  [(and (char? c) (hash-has-key? esc-repls c))
+                   (set! chunks (append chunks
+                                        (list (hash-ref esc-repls c))))
+                   (forward)]
+                  [(and (char? c) (hash-has-key? esc-codes c))
+                   (let ([len (hash-ref esc-codes c)])
+                     (forward)
+                     (for ([k (in-range len)])
+                       (let ([ch (peek k)])
+                         (unless (and (char? ch)
+                                      (string-index?
+                                       "01223456789ABCDEFabcdef" ch))
+                           (scanner-error
+                            "while scanning a double-quoted scalar"
+                            (format
+                             "expected escape sequence, but found ~a" ch)
+                            (get-mark)))))
+                     (let ([code (string->number (prefix len) 16)])
+                       (when (and (integer? code) (not (flonum? code)))
+                         (set! chunks
+                               (append chunks (list (integer->char code)))))
+                       (forward len)))]
+                  [(string-index? "\r\n\x85\u2028\u2029" (peek))
+                   (scan-line-break)
+                   (set! chunks (append chunks (scan-flow-scalar-breaks)))]
+                  [else
+                   (scanner-error
+                    "while scanning a double-quoted scalar"
+                    (format "found unknown escape character ~a" (peek))
+                    (get-mark))])]
+                [else (break (void))]))))))
+      chunks))
 
   (: scan-flow-scalar-spaces (-> (Listof Char)))
   (define (scan-flow-scalar-spaces)
     ;; See the specification for details.
-    (let ([chunks '()] [len 0])
+    (let ([chunks (ann '() (Listof Char))] [len 0])
       (while (or (equal? #\space (peek len))
                  (equal? #\tab (peek len)))
         (set! len (add1 len)))
       (let ([whitespaces (prefix len)])
         (forward len)
         (cond 
-         [(or (eof-object? (peek)) (char=? #\nul (peek)))
+         [(or (eof-object? (peek)) (equal? #\nul (peek)))
           (scanner-error
            "while scanning a quoted scalar"
            "found unexpected end of stream"
            (get-mark))]
-         [(string-index "\r\n\x85\u2028\u2029" (peek))
+         [(string-index? "\r\n\x85\u2028\u2029" (peek))
           (let* ([line-break (scan-line-break)]
                  [breaks (scan-flow-scalar-breaks)])
             (cond
@@ -1115,9 +1160,9 @@
   (: scan-flow-scalar-breaks (-> (Listof Char)))
   (define (scan-flow-scalar-breaks)
     ;; See the specification for details.
-    (let ([chunks '()])
+    (let ([chunks (ann '() (Listof Char))])
       (call/cc
-       (λ (break)
+       (λ: ([break : (Any -> Any)])
          (while #t
            ;; Instead of checking indentation, we check for document
            ;; separators.
@@ -1125,15 +1170,15 @@
              (when (and (or (equal? "---" pre)
                             (equal? "..." pre))
                         (char? (peek 3))
-                        (string-index "\0 \t\r\n\x85\u2028\u2029" (peek 3)))
+                        (string-index? "\0 \t\r\n\x85\u2028\u2029" (peek 3)))
                (scanner-error
                 "while scanning a quoted scalar"
                 "found unexpected document separator"
                 (get-mark)))
-             (while (and (char? (peek)) (string-index " \t" (peek)))
+             (while (and (char? (peek)) (string-index? " \t" (peek)))
                (forward))
              (if (and (char? (peek))
-                      (string-index "\r\n\x85\u2028\u2029" (peek)))
+                      (string-index? "\r\n\x85\u2028\u2029" (peek)))
                  (set! chunks (append chunks (string->list (scan-line-break))))
                  (break (void)))))))
       chunks))
@@ -1144,35 +1189,35 @@
     ;; We add an additional restriction for the flow context:
     ;;   plain scalars in the flow context cannot contain ',' ':' '?'.
     ;; We also keep track of the `allow-simple-key' flag here.
-    (let ([chunks '()]
-          [spaces '()]
+    (let ([chunks (ann '() (Listof Char))]
+          [spaces (ann '() (Listof Char))]
           [start-mark (get-mark)]
           [end-mark (get-mark)]
           [tmp-indent (add1 indent)])
       (call/cc
-       (λ (break)
+       (λ: ([break : (Any -> Any)])
          (while #t
-           (let ([len 0] [ch #f])
-             (when (equal? #\# (peek))
+           (let ([len 0] [ch (peek)])
+             (when (equal? #\# ch)
                (break (void)))
              (call/cc
-              (λ (break)
+              (λ: ([break : (Any -> Any)])
                 (while #t
                   (set! ch (peek len))
                   (when (or (eof-object? ch)
-                            (and (or (string-index
+                            (and (or (string-index?
                                       "\0 \t\r\n\x85\u2028\u2029" ch)
                                      (and (zero? flow-level) (equal? #\: ch)
-                                          (string-index
+                                          (string-index?
                                            "\0 \t\r\n\x85\u2028\u2029"
                                            (peek (add1 len))))
                                      (and (> flow-level 0)
-                                          (string-index ",:?[]{}" ch)))))
+                                          (string-index? ",:?[]{}" ch)))))
                     (break (void)))
                   (set! len (add1 len)))))
              (when (and (> flow-level 0) (equal? #\: ch)
                         (or (eof-object? (peek (add1 len)))
-                            (not (string-index
+                            (not (string-index?
                                   "\0 \t\r\n\x85\u2028\u2029,[]{}"
                                   (peek (add1 len))))))
                (forward len)
@@ -1198,29 +1243,30 @@
     ;; See the specification for details.
     ;; The specification is really confusing about tabs in plain scalars.
     ;; We just forbid them completely. Do not use tabs in YAML!
-    (let ([chunks '()] [len 0])
+    (let ([chunks (ann '() (Listof Char))] [len 0])
       (while (equal? #\space (peek len))
         (set! len (add1 len)))
       (let ([whitespaces (prefix len)])
         (forward len)
         (cond
          [(and (char? (peek))
-               (string-index "\r\n\x85\u2028\u2029" (peek)))
+               (string-index? "\r\n\x85\u2028\u2029" (peek)))
           (let ([line-break (scan-line-break)])
             (set! allow-simple-key #t)
             (let ([pre (prefix 3)])
               (if (and (or (equal? "---" pre)
                            (equal? "..." pre))
                        (and (char? (peek 3))
-                            (string-index
+                            (string-index?
                              "\0 \t\r\n\x85\u2028\u2029"
                              (peek 3))))
                   '()
-                  (let ([breaks '()] [ret #f])
+                  (let ([breaks (ann '() (Listof Char))]
+                        [ret (ann #f (Option Null))])
                     (call/cc
-                     (λ (break)
+                     (λ: ([break : (Any -> Any)])
                        (while (and (char? (peek))
-                                   (string-index
+                                   (string-index?
                                     " \r\n\x85\u2028\u2029"
                                     (peek)))
                          (cond
@@ -1234,7 +1280,7 @@
                              (when (and (or (equal? "---" pre)
                                             (equal? "..." pre))
                                         (char? (peek 3))
-                                        (string-index
+                                        (string-index?
                                          "\0 \t\r\n\x85\u2028\u2029"
                                          (peek 3)))
                                (set! ret '())
@@ -1261,13 +1307,14 @@
     (unless (equal? #\! (peek))
       (scanner-error
        (format "while scanning a ~a" name)
-       (forward "expected '!', but found ~a" (peek))
+       (format "expected '!', but found ~a" (peek))
        (get-mark)))
     (let ([len 1])
       (when (and (char? (peek len))
                  (not (equal? #\space (peek len))))
-        (while (and (char? (peek len))
-                    (regexp-match? #rx"[0-9A-Za-z_-]" (string (peek len))))
+        (while (let ([c (peek len)])
+                 (and (char? c)
+                      (regexp-match? #rx"[0-9A-Za-z_-]" (string c))))
           (set! len (add1 len)))
         (unless (equal? #\! (peek len))
           (forward len)
@@ -1284,10 +1331,12 @@
   (define (scan-tag-uri name)
     ;; See the specification for details.
     ;; Note: we do not check if URI is well-formed.
-    (let ([chunks '()] [len 0] [ch (peek)])
+    (let ([chunks (ann '() (Listof Char))]
+          [len 0]
+          [ch (peek)])
       (while (and (char? ch)
-                  (or (regexp-match? #rx"[0-9A-Za-z]" (string ch))
-                      (string-index "-/;?:@&=+$,_.!~*'()[]%" ch)))
+                  (or (regexp-match? #"[0-9A-Za-z]" (string ch))
+                      (string-index? "-/;?:@&=+$,_.!~*'()[]%" ch)))
         (cond
          [(equal? #\% ch)
           (set! chunks (append chunks (string->list (prefix len))))
@@ -1312,19 +1361,21 @@
   (: scan-uri-escapes (String -> String))
   (define (scan-uri-escapes name)
     ;; See the specification for details.
-    (let ([bytes '()]
+    (let ([bytes (ann '() (Listof Char))]
           [mark (get-mark)])
       (while (equal? #\% (peek))
         (forward)
         (for ([k (in-range 2)])
-          (unless (and (char? (peek k))
-                       (regexp-match? #rx"[0-9A-Za-z]" (string (peek k))))
-            (scanner-error
-             (format "while scanning a ~a" name)
-             (format "expected URI escape, but found ~a" (peek k))
-             (get-mark))))
+          (let ([c (peek k)])
+            (unless (and (char? c)
+                         (regexp-match? #rx"[0-9A-Za-z]" (string c)))
+              (scanner-error
+               (format "while scanning a ~a" name)
+               (format "expected URI escape, but found ~a" c)
+               (get-mark)))))
         (let ([c (string->number (prefix 2) 16)])
-          (set! bytes (append bytes (list (integer->char c))))
+          (and (integer? c) (not (flonum? c))
+               (set! bytes (append bytes (list (integer->char c)))))
           (forward 2)))
       (list->string bytes)))
 
@@ -1341,13 +1392,13 @@
     (let ([ch (peek)])
       (cond
        [(and (char? ch)
-             (string-index "\r\n\x85" ch))
+             (string-index? "\r\n\x85" ch))
         (if (equal? "\r\n" (prefix 2))
             (forward 2)
             (forward))
         "\n"]
        [(and (char? ch)
-             (string-index "\u2028\u2029" ch))
+             (string-index? "\u2028\u2029" ch))
         (forward)
         (string ch)]
        [else ""])))
