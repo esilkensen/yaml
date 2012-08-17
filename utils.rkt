@@ -8,7 +8,7 @@
   ([name : String] [index : Integer] [line : Integer]
    [column : Integer] [buffer : (Vectorof (U Char EOF))]))
 
-(: make-error (Symbol -> ((Option String) String mark -> Void)))
+(: make-error (Symbol -> ((Option String) String mark -> Nothing)))
 (define (make-error type)
   (λ (context problem problem-mark)
     (error type "~a~a\n~a:~a:~a: ~a"
@@ -58,3 +58,10 @@
          (and (equal? extension (filename-extension path))
               (file-exists? (remove-extension path)))))
      (directory-list directory)))))
+
+(: string->integer (case-> (String -> Integer) (String Integer -> Integer)))
+(define (string->integer str [radix 10])
+  (let ([n (string->number str radix)])
+    (if (and (integer? n) (not (flonum? n)))
+        n
+        (error 'string->integer "expected integer, but got ~a" n))))
