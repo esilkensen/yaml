@@ -6,7 +6,7 @@
 
 (struct: mark
   ([name : String] [index : Integer] [line : Integer]
-   [column : Integer] [buffer : (Vectorof Char)]))
+   [column : Integer] [buffer : (Vectorof (U Char EOF))]))
 
 (: make-error (Symbol -> ((Option String) String mark -> Void)))
 (define (make-error type)
