@@ -1,6 +1,6 @@
 ;;;;;; scanner.rkt - YAML scanner.    -*- Mode: Racket -*-
 
-#lang typed/racket/no-check
+#lang racket
 
 (require srfi/13 "tokens.rkt" "utils.rkt")
 
@@ -554,7 +554,7 @@
               (set! allow-simple-key #t))
             (set! found #t)))))
 
-  (: scan-directive (-> directive-token))
+  ;; (: scan-directive (-> directive-token))
   (define (scan-directive)
     ;; See the specification for details.
     (let ([start-mark (get-mark)])
@@ -578,7 +578,7 @@
         (scan-directive-ignored-line)
         (directive-token start-mark end-mark name value))))
 
-  (: scan-directive-name (-> String))
+  ;; (: scan-directive-name (-> String))
   (define (scan-directive-name)
     ;; See the specification fro details.
     (let ([len 0])
@@ -599,7 +599,7 @@
            (get-mark)))
         value)))
 
-  (: scan-yaml-directive-value (-> (Pairof Integer Integer)))
+  ;; (: scan-yaml-directive-value (-> (Pairof Integer Integer)))
   (define (scan-yaml-directive-value)
     ;; See the specification for details.
     (while (equal? #\space (peek))
@@ -620,7 +620,7 @@
            (get-mark)))
         (cons major minor))))
 
-  (: scan-yaml-directive-number (-> Integer))
+  ;; (: scan-yaml-directive-number (-> Integer))
   (define (scan-yaml-directive-number)
     ;; See the specification for details.
     (let ([c (peek)])
@@ -637,7 +637,7 @@
       (begin0 (string->integer (prefix len))
         (forward len))))
 
-  (: scan-tag-directive-value (-> (Pairof String String)))
+  ;; (: scan-tag-directive-value (-> (Pairof String String)))
   (define (scan-tag-directive-value)
     ;; See the specification for details.
     (while (equal? #\space (peek))
@@ -647,7 +647,7 @@
         (forward))
       (cons handle (scan-tag-directive-prefix))))
 
-  (: scan-tag-directive-handle (-> String))
+  ;; (: scan-tag-directive-handle (-> String))
   (define (scan-tag-directive-handle)
     ;; See the specification for details.
     (let ([value (scan-tag-handle "directive")])
@@ -658,7 +658,7 @@
          (get-mark)))
       value))
 
-  (: scan-tag-directive-prefix (-> String))
+  ;; (: scan-tag-directive-prefix (-> String))
   (define (scan-tag-directive-prefix)
     ;; See the specification for details.
     (let ([value (scan-tag-uri "directive")])
@@ -670,7 +670,7 @@
          (get-mark)))
       value))
 
-  (: scan-directive-ignored-line (-> String))
+  ;; (: scan-directive-ignored-line (-> String))
   (define (scan-directive-ignored-line)
     ;; See the specification for details.
     (while (equal? #\space (peek))
@@ -687,9 +687,9 @@
        (get-mark)))
     (scan-line-break))
 
-  (: scan-anchor
-     ((U (mark mark String -> alias-token)
-         (mark mark String -> anchor-token)) -> (U alias-token anchor-token)))
+  ;; (: scan-anchor
+  ;;    ((U (mark mark String -> alias-token)
+  ;;        (mark mark String -> anchor-token)) -> (U alias-token anchor-token)))
   (define (scan-anchor token)
     ;; The specification does not restrict characters for anchors and
     ;; aliases. This may lead to problems, for instance, the document:
@@ -723,7 +723,7 @@
           (let ([end-mark (get-mark)])
             (token start-mark end-mark value))))))
 
-  (: scan-tag (-> tag-token))
+  ;; (: scan-tag (-> tag-token))
   (define (scan-tag)
     ;; See the specification for details.
     (let ([start-mark (get-mark)]
@@ -766,7 +766,7 @@
          (get-mark)))
       (tag-token start-mark (get-mark) (cons handle suffix))))
 
-  (: scan-block-scalar ((Option Char) -> scalar-token))
+  ;; (: scan-block-scalar ((Option Char) -> scalar-token))
   (define (scan-block-scalar style)
     ;; See the specification for details.
     (let ([folded (equal? style #\>)]
@@ -833,8 +833,8 @@
         (let ([end (if (mark? end-mark) end-mark start-mark)])
           (scalar-token start-mark end (list->string chunks) #f style)))))
 
-  (: scan-block-scalar-indicators
-     (-> (Pairof (U Boolean 'None) (Option Integer))))
+  ;; (: scan-block-scalar-indicators
+  ;;    (-> (Pairof (U Boolean 'None) (Option Integer))))
   (define (scan-block-scalar-indicators)
     ;; See the specification for details.
     (let ([chomping 'None] [increment #f])
@@ -874,7 +874,7 @@
          (get-mark)))
       (cons chomping increment)))
 
-  (: scan-block-scalar-ignored-line (-> String))
+  ;; (: scan-block-scalar-ignored-line (-> String))
   (define (scan-block-scalar-ignored-line)
     ;; See the specification for details.
     (while (equal? #\space (peek))
@@ -891,8 +891,8 @@
        (get-mark)))
     (scan-line-break))
 
-  (: scan-block-scalar-indentation
-     (-> (List (Listof Char) Integer mark)))
+  ;; (: scan-block-scalar-indentation
+  ;;    (-> (List (Listof Char) Integer mark)))
   (define (scan-block-scalar-indentation)
     ;; See the specification for details.
     (let ([chunks '()]
@@ -910,8 +910,8 @@
             (set! max-indent column))]))
       (list chunks max-indent end-mark)))
 
-  (: scan-block-scalar-breaks
-     (Integer -> (Pairof (Listof Char) (Option mark))))
+  ;; (: scan-block-scalar-breaks
+  ;;    (Integer -> (Pairof (Listof Char) (Option mark))))
   (define (scan-block-scalar-breaks indent)
     ;; See the specification for details.
     (let ([chunks '()]
@@ -929,7 +929,7 @@
           (forward)))
       (cons chunks end-mark)))
 
-  (: scan-flow-scalar ((Option Char) -> scalar-token))
+  ;; (: scan-flow-scalar ((Option Char) -> scalar-token))
   (define (scan-flow-scalar style)
     ;; See the specification for details.
     ;; Note that we lose indentation rules for quoted scalars. Quoted
@@ -953,7 +953,7 @@
         (let ([end-mark (get-mark)])
           (scalar-token start-mark end-mark (list->string chunks) #f style)))))
 
-  (: scan-flow-scalar-non-spaces (Boolean -> (Listof Char)))
+  ;; (: scan-flow-scalar-non-spaces (Boolean -> (Listof Char)))
   (define (scan-flow-scalar-non-spaces double)
     ;; See the specification for details.
     (define esc-repls
@@ -1037,7 +1037,7 @@
                 [else (break (void))]))))))
       chunks))
 
-  (: scan-flow-scalar-spaces (-> (Listof Char)))
+  ;; (: scan-flow-scalar-spaces (-> (Listof Char)))
   (define (scan-flow-scalar-spaces)
     ;; See the specification for details.
     (let ([chunks '()] [len 0])
@@ -1065,7 +1065,7 @@
           (set! chunks (string->list whitespaces))])
         chunks)))
 
-  (: scan-flow-scalar-breaks (-> (Listof Char)))
+  ;; (: scan-flow-scalar-breaks (-> (Listof Char)))
   (define (scan-flow-scalar-breaks)
     ;; See the specification for details.
     (let ([chunks '()])
@@ -1091,7 +1091,7 @@
                  (break (void)))))))
       chunks))
 
-  (: scan-plain (-> scalar-token))
+  ;; (: scan-plain (-> scalar-token))
   (define (scan-plain)
     ;; See the specification for details.
     ;; We add an additional restriction for the flow context:
@@ -1146,7 +1146,7 @@
                (break (void)))))))
       (scalar-token start-mark end-mark (list->string chunks) #t #f)))
 
-  (: scan-plain-spaces (-> (Listof Char)))
+  ;; (: scan-plain-spaces (-> (Listof Char)))
   (define (scan-plain-spaces)
     ;; See the specification for details.
     ;; The specification is really confusing about tabs in plain scalars.
@@ -1207,7 +1207,7 @@
           (set! chunks (append chunks (string->list whitespaces)))])
         chunks)))
 
-  (: scan-tag-handle (String -> String))
+  ;; (: scan-tag-handle (String -> String))
   (define (scan-tag-handle name)
     ;; See the specification for details.
     ;; For some strange reason, the specification does not allow '_' in
@@ -1235,7 +1235,7 @@
         (forward len)
         value)))
 
-  (: scan-tag-uri (String -> String))
+  ;; (: scan-tag-uri (String -> String))
   (define (scan-tag-uri name)
     ;; See the specification for details.
     ;; Note: we do not check if URI is well-formed.
@@ -1266,7 +1266,7 @@
          (get-mark)))
       (list->string chunks)))
 
-  (: scan-uri-escapes (String -> String))
+  ;; (: scan-uri-escapes (String -> String))
   (define (scan-uri-escapes name)
     ;; See the specification for details.
     (let ([bytes '()]
@@ -1286,7 +1286,7 @@
           (forward 2)))
       (list->string bytes)))
 
-  (: scan-line-break (-> String))
+  ;; (: scan-line-break (-> String))
   (define (scan-line-break)
     ;; Transforms:
     ;;   '\r\n'   => '\n'
