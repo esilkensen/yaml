@@ -258,6 +258,9 @@
       (and (list-ref values 5) (string->number (list-ref values 5))))
     (define (get-second)
       (and (list-ref values 6) (string->number (list-ref values 6))))
+    (define (get-fraction)
+      (let ([value (list-ref values 7)])
+        (and value (substring value 0 (min 6 (string-length value))))))
     (define (get-tz-sign)
       (and (list-ref values 9) (if (equal? "-" (list-ref values 9)) -1 +1)))
     (define (get-tz-hour)
@@ -268,7 +271,13 @@
         (seconds->date (find-seconds 0 0 0 day month year #f) #f)
         (let ([hour (get-hour)]
               [minute (get-minute)]
-              [second (get-second)])
+              [second (get-second)]
+              [fraction 0])
+          (when (get-fraction)
+            (set! fraction (get-fraction))
+            (while (< (string-length fraction) 6)
+              (set! fraction (string-append fraction "0")))
+            (set! fraction (* 1000 (string->number fraction))))
           (if (get-tz-sign)
               (let* ([tz-hour (get-tz-hour)]
                      [tz-minute (or (get-tz-minute) 0)]
@@ -276,8 +285,10 @@
                      [offset (* tz-sign
                                 (+ (* tz-hour 60 60)
                                    (* tz-minute 60)))])
-                (date second minute hour day month year 0 0 #f offset))
-              (date second minute hour day month year 0 0 #f 0)))))
+                (date*
+                 second minute hour day month year 0 0 #f offset fraction "UTC"))
+              (date*
+               second minute hour day month year 0 0 #f 0 fraction "UTC")))))
   
   (define (construct-yaml-omap node)
     (unless (sequence-node? node)
