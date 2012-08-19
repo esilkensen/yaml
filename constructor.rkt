@@ -5,16 +5,16 @@
 (require
  net/base64
  srfi/13
- (planet dyoo/while-loop)
  "composer.rkt"
+ "errors.rkt"
  "nodes.rkt"
  "utils.rkt")
 
 (define constructor-error (make-error 'constructor))
 
-(define (make-constructor [in (current-input-port)] #:name [name "<input>"])
+(define (make-constructor [name "<input>"] [in (current-input-port)])
   (define-values (check-node? get-node get-single-node)
-    (make-composer in #:name name))
+    (make-composer name in))
   
   (define yaml-constructors (make-hash))
   (define yaml-multi-constructors (make-hash))
@@ -200,37 +200,97 @@
      (string->bytes/utf-8
       (format "~a" (construct-scalar)))))
 
-  (define (construct-yaml-timestamp node)
-    ;; TODO
-    #f)
-
+  (define (construct-yaml-timestamp value)
+    (define timestamp-regexp
+      (regexp
+       (string-append
+        "^([0-9][0-9][0-9][0-9])"
+        "-([0-9][0-9]?)"
+        "-([0-9][0-9]?)"
+        "(?:(?:[Tt]|[ \\t]+)"
+        "([0-9][0-9]?)"
+        ":([0-9][0-9])"
+        ":([0-9][0-9])"
+        "(?:\\.([0-9]*))?"
+        "(?:[ \\t]*(Z|([-+])([0-9][0-9]?)"
+        "(?::([0-9][0-9]))?))?)?$")))
+    (define values (regexp-match timestamp-regexp value))
+    (define year (string->number (list-ref values 1)))
+    (define month (string->number (list-ref values 2)))
+    (define day (string->number (list-ref values 3)))
+    (define (get-hour) (string->number (list-ref values 4)))
+    (define (get-minute) (string->number (list-ref values 5)))
+    (define (get-second) (string->number (list-ref values 6)))
+    (define (get-tz-sign)
+      (and (list-ref values 9)
+           (if (equal? "-" (list-ref values 9)) -1 +1)))
+    (define (get-tz-hour) (string->number (list-ref values 10)))
+    (define (get-tz-minute)
+      (and (list-ref values 11)
+           (string->number (list-ref values 11))))
+    (if (not (get-hour))
+        (seconds->date (find-seconds 0 0 0 day month year #f) #f)
+        (let ([hour (get-hour)]
+              [minute (get-minute)]
+              [second (get-second)])
+          (if (get-tz-sign)
+              (let* ([tz-hour (get-tz-hour)]
+                     [tz-minute (or (get-tz-minute) 0)]
+                     [tz-sign (get-tz-sign)]
+                     [offset (* tz-sign
+                                (+ (* tz-hour 60 60)
+                                   (* tz-minute 60)))])
+                (date second minute hour day month year 0 0 #f offset))
+              (date second minute hour day month year 0 0 #f 0)))))
+  
   (define (construct-yaml-omap node)
-    ;; TODO
-    #f)
+    (unless (sequence-node? node)
+      (constructor-error
+       "while constructing an ordered map"
+       (format "expected a sequence, but found ~a"
+               (node->string node))
+       (node-start node)))
+    (for/list ([subnode (sequence-node-value node)])
+      (unless (mapping-node? subnode)
+        (constructor-error
+         "while constructing an ordered map"
+         (format "expected a mapping of length 1, but found ~a"
+                 (node->string subnode))
+         (node-start subnode)))
+      (unless (= 1 (length (mapping-node-value subnode)))
+        (constructor-error
+         "while constructing an ordered map"
+         (format
+          "expected a single mapping item, but found ~a items"
+          (length (mapping-node-value subnode)))
+         (node-start subnode)))
+      (match-let ([(cons key-node value-node)
+                   (car (mapping-node-value subnode))])
+        (let* ([key (construct-object key-node)]
+               [value (construct-object value-node)])
+          (cons key value)))))
 
   (define (construct-yaml-pairs node)
-    ;; TODO
-    #f)
+    (construct-yaml-omap node))
 
   (define (construct-yaml-set node)
-    ;; TODO
-    #f)
+    (list->set (hash-keys (construct-mapping node))))
 
   (define (construct-yaml-str node)
-    ;; TODO
-    #f)
+    (construct-scalar node))
 
   (define (construct-yaml-seq node)
-    ;; TODO
-    #f)
+    (construct-sequence node))
 
   (define (construct-yaml-map node)
-    ;; TODO
-    #f)
+    (construct-mapping node))
 
   (define (construct-undefined node)
-    ;; TODO
-    #f)
+    (constructor-error
+     #f
+     (format "could not determine a constructor for the tag ~a"
+             (node-tag node))
+     (node-start node)))
 
   (define (add-constructor! tag constructor)
     (hash-set! yaml-constructors tag constructor))

@@ -1,67 +1,45 @@
 ;;;;;; utils.rkt - Utilities.    -*- Mode: Racket -*-
 
-#lang typed/racket
+#lang racket
 
 (provide (all-defined-out))
 
-(struct: mark
-  ([name : String] [index : Integer] [line : Integer]
-   [column : Integer] [buffer : (Vectorof (U Char EOF))]))
+(define-syntax-rule (append! dst lst ...)
+  (set! dst (append dst lst ...)))
 
-(: make-error (Symbol -> ((Option String) String mark -> Nothing)))
-(define (make-error type)
-  (λ (context problem problem-mark)
-    (error type "~a~a\n~a:~a:~a: ~a"
-           (if (string? context)
-               (format "~a;\n " context) "")
-           problem
-           (mark-name problem-mark)
-           (mark-line problem-mark)
-           (mark-column problem-mark)
-           (vector-ref
-            (mark-buffer problem-mark)
-            (mark-index problem-mark)))))
+(define-syntax-rule (pop! lst)
+  (begin0 (last lst)
+    (set! lst (drop-right lst 1))))
 
-(: read-file (String -> (Listof String)))
+(define-syntax-rule (while test body ...)
+  (let loop () (when test body ... (loop))))
+
 (define (read-file filename)
   (with-input-from-file filename
     (λ ()
-      (let: loop : (Listof String)
-            ([lines : (Listof String) '()])
-        (let ([ln (read-line)])
-          (if (string? ln)
-              (loop (cons ln lines))
+      (let loop ([lines '()])
+        (let ([line (read-line)])
+          (if (string? line)
+              (loop (cons line lines))
               (reverse lines)))))))
 
-(: test-files
-   (case->
-    (Bytes -> (HashTable Path-String String))
-    (Bytes String -> (HashTable Path-String String))))
 (define (test-files extension [directory "test"])
-  (: remove-extension ((U String Path) -> (U String Path)))
   (define (remove-extension file)
-    (let*: ([fn : String (if (string? file) file (path->string file))]
-            [ext : (Option Bytes) (filename-extension (string->path fn))]
-            [str : String (if ext (substring fn 0 (- (string-length fn)
-                                                     (add1 (bytes-length ext))))
-                              fn)])
+    (let* ([fn (if (string? file) file (path->string file))]
+           [ext (filename-extension (string->path fn))]
+           [str (if ext (substring fn 0 (- (string-length fn)
+                                           (add1 (bytes-length ext))))
+                    fn)])
       (if (string? file) str (string->path str))))
   (make-hash
    (map
-    (λ: ([p : Path])
+    (λ (p)
       (let ([path (format "~a/~a" directory (path->string p))])
         (cons (remove-extension path) path)))
     (filter
-     (λ: ([p : Path])
+     (λ (p)
        (let ([path (string->path
                     (format "~a/~a" directory (path->string p)))])
          (and (equal? extension (filename-extension path))
               (file-exists? (remove-extension path)))))
      (directory-list directory)))))
-
-(: string->integer (case-> (String -> Integer) (String Integer -> Integer)))
-(define (string->integer str [radix 10])
-  (let ([n (string->number str radix)])
-    (if (and (integer? n) (not (flonum? n)))
-        n
-        (error 'string->integer "expected integer, but got ~a" n))))

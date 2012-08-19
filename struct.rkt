@@ -18,7 +18,8 @@
     [(_ name ([field : type] ...) options ...)
      (with-syntax ([s: (build-name #'name #'name ":")]
                    [s-strings (build-name #'name #'name "-strings")]
-                   [s->string (build-name #'name #'name "->string")])
+                   [s->string (build-name #'name #'name "->string")]
+                   [print-s (build-name #'name "print-" #'name)])
        #`(begin
            (struct: name ([field : type] ...) options ...)
            (: s-strings (HashTable (Any -> Boolean) (name -> String)))
@@ -31,6 +32,9 @@
                    (if ((car ss) name)
                        ((hash-ref s-strings (car ss)) name)
                        (loop (cdr ss))))))
+           (: print-s (case-> (name -> Void) (name Output-Port -> Void)))
+           (define (print-s name [out (current-output-port)])
+             (fprintf out "~a\n" (s->string name)))
            (define-syntax (s: stx)
              (syntax-case stx (:)
                [(_ in ([in-field : in-type] (... ...)) in-options (... ...))

@@ -3,38 +3,64 @@
 #lang racket
 
 (require
- (planet dyoo/while-loop)
- "parser.rkt"
- "resolver.rkt"
+ "errors.rkt"
  "events.rkt"
  "nodes.rkt"
+ "parser.rkt"
+ "resolver.rkt"
  "utils.rkt")
 
-(provide make-composer)
+(provide
+ compose-file
+ compose-string
+ compose-all
+ compose
+ make-composer)
 
 (define composer-error (make-error 'composer))
 
-(define (make-composer [in (current-input-port)] #:name [name "<input>"])
+(define (compose-file filename)
+  (with-input-from-file filename
+    (λ () (compose-all filename))))
+
+(define (compose-string string)
+  (with-input-from-string string
+    (λ () (compose-all "<string>"))))
+
+(define (compose [name "<input>"] [in (current-input-port)])
+  (define-values (check-node? get-node get-single-node)
+    (make-composer name in))
+  (get-single-node))
+
+(define (compose-all [name "<input>"] [in (current-input-port)])
+  (define-values (check-node? get-node get-single-node)
+    (make-composer name in))
+  (let loop ([nodes '()])
+    (if (check-node?)
+        (loop (cons (get-node) nodes))
+        (reverse nodes))))
+
+(define (make-composer [name "<input>"] [in (current-input-port)])
   (define-values (check-event? peek-event get-event)
-    (make-parser in #:name name))
+    (make-parser name in))
   
   (define anchors (make-hash))
 
   (define (check-node?)
-    (when (check-event? 'stream-end)
+    (when (check-event? stream-start-event?)
       (get-event))
-    (not (check-event? 'stream-end)))
+    (not (check-event? stream-end-event?)))
 
   (define (get-node)
-    (unless (check-event? 'stream-end)
+    (unless (check-event? stream-end-event?)
       (compose-document)))
 
   (define (get-single-node)
     (let ([document #f])
       (get-event)
-      (unless (check-event? 'stream-end)
+      (unless (check-event? stream-end-event?)
         (set! document (compose-document)))
-      (unless (check-event? 'stream-end)
+      (unless (check-event? stream-end-event?)
         (composer-error
          "expected a single document in the stream"
          "but found another document"
@@ -51,9 +77,9 @@
 
   (define (compose-node parent index)
     (cond
-     [(check-event? 'alias)
+     [(check-event? alias-event?)
       (let* ([event (get-event)]
-             [anchor (any-event-attr 'anchor event)])
+             [anchor (any-event-anchor event)])
         (unless (hash-has-key? anchors anchor)
           (composer-error
            #f
@@ -62,7 +88,7 @@
         (hash-ref anchors anchor))]
      [else
       (let* ([event (peek-event)]
-             [anchor (any-event-attr 'anchor event)])
+             [anchor (any-event-anchor event)])
         (when (hash-has-key? anchors anchor)
           (composer-error
            #f
@@ -70,11 +96,11 @@
            (event-start event)))
         (let ([node #f])
           (cond
-           [(check-event? 'scalar)
+           [(check-event? scalar-event?)
             (set! node (compose-scalar-node anchor))]
-           [(check-event? 'sequence-start)
+           [(check-event? sequence-start-event?)
             (set! node (compose-sequence-node anchor))]
-           [(check-event? 'mapping-start)
+           [(check-event? mapping-start-event?)
             (set! node (compose-mapping-node anchor))])
           node))]))
 
@@ -89,47 +115,57 @@
             [start (event-start event)]
             [end (event-end event)]
             [style (scalar-event-style event)])
-        (let ([node (scalar-node tag value start end style)])
+        (let ([node (scalar-node start end tag value style)])
           (when anchor
             (hash-set! anchors anchor node))
           node))))
 
   (define (compose-sequence-node anchor)
     (let* ([event (get-event)]
-           [tag (any-event-attr 'tag event)])
+           [tag (any-event-tag event)])
       (when (or (not tag) (equal? "!" tag))
-        (set! tag (resolve 'sequence #f (any-event-attr 'implicit event))))
+        (set! tag (resolve 'sequence #f (any-event-implicit event))))
       (let* ([start (event-start event)]
-             [flow-style (any-event-attr 'flow-style event)]
-             [node (sequence-node tag '() start #f flow-style)]
+             [flow-style (collection-start-event-flow-style event)]
+             [node (sequence-node start #f tag '() flow-style)]
              [index 0])
         (when anchor
           (hash-set! anchors anchor node))
-        (while (not (check-event? 'sequence-end))
-          (let ([value (node-value node)]
+        (while (not (check-event? sequence-end-event?))
+          (let ([value (sequence-node-value node)]
                 [new (compose-node node index)])
-            (set-node-value! node (append value (list new)))
+            (set-sequence-node-value! node (append value (list new)))
             (set! index (add1 index))))
-        (set-node-end! (event-end (get-event)))
+        (set-node-end! node (event-end (get-event)))
         node)))
 
   (define (compose-mapping-node anchor)
     (let* ([event (get-event)]
-           [tag (any-event-attr 'tag event)])
+           [tag (any-event-tag event)])
       (when (or (not tag) (equal? "!" tag))
-        (set! tag (resolve 'mapping #f (any-event-attr 'implicit event))))
+        (set! tag (resolve 'mapping #f (any-event-implicit event))))
       (let* ([start (event-start event)]
-             [flow-style (any-event-attr 'flow-style event)]
-             [node (mapping-node tag '() start #f flow-style)])
+             [flow-style (collection-start-event-flow-style event)]
+             [node (mapping-node start #f tag '() flow-style)])
         (when anchor
           (hash-set! anchors anchor node))
-        (while (not (check-event? 'mapping-end))
+        (while (not (check-event? mapping-end-event?))
           (let* ([item-key (compose-node node #f)]
                  [item-value (compose-node node item-key)]
-                 [value (node-value node)]
+                 [value (mapping-node-value node)]
                  [new (cons item-key item-value)])
-            (set-node-value! node (append value (list new)))))
-        (set-node-end! (event-end (get-event)))
+            (set-mapping-node-value! node (append value (list new)))))
+        (set-node-end! node (event-end (get-event)))
         node)))
 
   (values check-node? get-node get-single-node))
+
+(module+ test
+  (require rackunit)
+  (define-simple-check (check-composer test-file check-file)
+    (for ([node (compose-file test-file)]
+          [line (read-file check-file)])
+      (check-equal? (node->string-rec node) line)))
+  (test-begin
+   (for ([(test-file check-file) (test-files #"compose")])
+     (check-composer test-file check-file))))

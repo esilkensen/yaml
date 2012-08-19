@@ -2,7 +2,7 @@
 
 #lang typed/racket
 
-(require "struct.rkt" "utils.rkt")
+(require "errors.rkt" "struct.rkt")
 
 (provide (all-defined-out))
 
@@ -74,7 +74,14 @@
 (define (collection-start-event-implicit event)
   (if (sequence-start-event? event)
       (sequence-start-event-implicit event)
-      (mapping-start-event-implicit event)))  
+      (mapping-start-event-implicit event)))
+
+(: collection-start-event-flow-style
+   (collection-start-event -> Boolean))
+(define (collection-start-event-flow-style event)
+  (if (sequence-start-event? event)
+      (sequence-start-event-flow-style event)
+      (mapping-start-event-flow-style event)))
 
 (: any-event-tag
    ((U scalar-event collection-start-event) -> (Option String)))
@@ -89,3 +96,11 @@
   (if (node-event? event)
       (node-event-anchor event)
       (collection-start-event-anchor event)))
+
+(: any-event-implicit
+   ((U scalar-event collection-start-event) ->
+    (U (Pairof Boolean Boolean) Boolean)))
+(define (any-event-implicit event)
+  (if (scalar-event? event)
+      (scalar-event-implicit event)
+      (collection-start-event-implicit event)))

@@ -4,10 +4,10 @@
 
 (require
  racket/generator
- (planet dyoo/while-loop)
+ "errors.rkt"
+ "events.rkt"
  "tokens.rkt"
  "scanner.rkt"
- "events.rkt"
  "utils.rkt")
 
 (provide
@@ -15,13 +15,6 @@
  parse-string
  parse
  make-parser)
-
-(define-syntax-rule (append! dst lst ...)
-  (set! dst (append dst lst ...)))
-
-(define-syntax-rule (pop! lst)
-  (begin0 (last lst)
-    (set! lst (drop-right lst 1))))
 
 (define (parse-file filename)
   (with-input-from-file filename
@@ -34,10 +27,10 @@
 (define (parse [name "<input>"] [in (current-input-port)])
   (define-values (check-event? peek-event get-event)
     (make-parser name in))
-  (let loop ([es '()])
+  (let loop ([events '()])
     (if (event? (peek-event))
-        (loop (cons (get-event) es))
-        (reverse es))))
+        (loop (cons (get-event) events))
+        (reverse events))))
 
 (define parser-error (make-error 'parser))
 

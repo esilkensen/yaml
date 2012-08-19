@@ -4,18 +4,11 @@
 
 (require
  srfi/13
- (planet dyoo/while-loop)
+ "errors.rkt"
  "events.rkt"
  "utils.rkt")
 
 (provide make-emitter)
-
-(define-syntax-rule (append! dst lst ...)
-  (set! dst (append dst lst ...)))
-
-(define-syntax-rule (pop! lst)
-  (begin0 (last lst)
-    (set! lst (drop-right lst 1))))
 
 (define (emitter-error message)
   (error 'emitter message))
@@ -1125,7 +1118,7 @@
   (values emit))
 
 (module+ test
-  (require rackunit "parser.rkt")
+  (require rackunit racket/generator "parser.rkt")
   (define-simple-check (check-emitter test-file check-file)
     (let* ([out (open-output-string)]
            [in (open-input-file check-file)]

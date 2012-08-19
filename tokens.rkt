@@ -2,7 +2,7 @@
 
 #lang typed/racket
 
-(require "struct.rkt" "utils.rkt")
+(require "errors.rkt" "struct.rkt")
 
 (provide (all-defined-out))
 
