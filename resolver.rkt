@@ -73,7 +73,7 @@
 
 (add-implicit-resolver!
  "tag:yaml.org,2002:null"
- (regexp "^(?:~|null|Null|NULL| )$")
+ (regexp "^(?:~|null|Null|NULL|)$")
  (append (string->list "~nN") (list "")))
 
 (add-implicit-resolver!
@@ -98,5 +98,3 @@
  "tag:yaml.org,2002:yaml"
  (regexp "^(?:!|&|\\*)$")
  (string->list "!&*"))
-
-
