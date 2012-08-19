@@ -1,0 +1,2 @@
+sequence-node(flow-style=#f, tag="tag:yaml.org,2002:seq", value=(scalar-node(style=#f, tag="tag:yaml.org,2002:str", value="Mark McGwire") scalar-node(style=#f, tag="tag:yaml.org,2002:str", value="Sammy Sosa") scalar-node(style=#f, tag="tag:yaml.org,2002:str", value="Ken Griffey")))
+sequence-node(flow-style=#f, tag="tag:yaml.org,2002:seq", value=(scalar-node(style=#f, tag="tag:yaml.org,2002:str", value="Chicago Cubs") scalar-node(style=#f, tag="tag:yaml.org,2002:str", value="St Louis Cardinals")))
