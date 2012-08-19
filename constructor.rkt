@@ -3,14 +3,43 @@
 #lang racket
 
 (require
+ racket/date
  net/base64
- srfi/13
+ (except-in srfi/13 string-replace)
  "composer.rkt"
  "errors.rkt"
  "nodes.rkt"
  "utils.rkt")
 
+(provide
+ construct-file
+ construct-string
+ construct-all
+ construct
+ make-constructor)
+
 (define constructor-error (make-error 'constructor))
+
+(define (construct-file filename)
+  (with-input-from-file filename
+    (λ () (construct-all filename))))
+
+(define (construct-string string)
+  (with-input-from-string string
+    (λ () (construct-all "<string>"))))
+
+(define (construct [name "<input>"] [in (current-input-port)])
+  (define-values (check-data? get-data get-single-data)
+    (make-constructor name in))
+  (get-single-data))
+
+(define (construct-all [name "<input>"] [in (current-input-port)])
+  (define-values (check-data? get-data get-single-data)
+    (make-constructor name in))
+  (let loop ([data '()])
+    (if (check-data?)
+        (loop (cons (get-data) data))
+        (reverse data))))
 
 (define (make-constructor [name "<input>"] [in (current-input-port)])
   (define-values (check-node? get-node get-single-node)
@@ -91,28 +120,31 @@
   (define (construct-scalar node)
     (unless (scalar-node? node)
       (constructor-error
-       #f (format "expected a scalar node, but found ~a" (node-type node))
+       #f (format "expected a scalar node, but found ~a"
+                  (node->string-rec node))
        (node-start node)))
-    (node-value node))
+    (scalar-node-value node))
 
   (define (construct-sequence node [deep #f])
     (unless (sequence-node? node)
       (constructor-error
-       #f (format "expected a sequence node, but found ~a" (node-type node))
+       #f (format "expected a sequence node, but found ~a"
+                  (node->string-rec node))
        (node-start node)))
     (map
      (λ (child)
        (construct-object child deep))
-     (node-value node)))
+     (sequence-node-value node)))
 
   (define (construct-mapping node [deep #f])
     (unless (mapping-node? node)
       (constructor-error
-       #f (format "expected a mapping node, but found ~a" (node-type node))
+       #f (format "expected a mapping node, but found ~a"
+                  (node->string-rec node))
        (node-start node)))
     (let ([mapping (make-hash)])
-      (for ([key-value (node-value node)])
-        (match-let ([(cons key-node value-node) key-value])
+      (for ([kv (mapping-node-value node)])
+        (match-let ([(cons key-node value-node) kv])
           (let* ([key (construct-object key-node deep)]
                  [value (construct-object value-node deep)])
             (hash-set! mapping key value))))
@@ -121,10 +153,11 @@
   (define (construct-pairs node [deep #f])
     (unless (mapping-node? node)
       (constructor-error
-       #f (format "expected a mapping node, but found ~a" (node-type node))
+       #f (format "expected a mapping node, but found ~a"
+                  (node->string-rec node))
        (node-start node)))
-    (for/list ([key-value (node-value node)])
-      (match-let ([(cons key-node value-node) key-value])
+    (for/list ([kv (mapping-node-value node)])
+      (match-let ([(cons key-node value-node) kv])
         (let* ([key (construct-object key-node deep)]
                [value (construct-object value-node deep)])
           (cons key value)))))
@@ -134,12 +167,13 @@
     '())
 
   (define (construct-yaml-bool node)
-    (case (string-downcase (construct-scalar node))
-      [("yes" "true" "on") #t]
-      [("no" "false" "off") #f]
-      [else (constructor-error
-             #f "expected a boolean, but didn't get it!"
-             (node-start node))]))
+    (let ([bool (string-downcase (construct-scalar node))])
+      (cond
+       [(member bool '("yes" "true" "on")) #t]
+       [(member bool '("no" "false" "off")) #f]
+       [else (constructor-error
+              #f (format "expected a boolean, but got ~a" bool)
+              (node-start node))])))
 
   (define (construct-yaml-int node)
     (let ([value (string-replace
@@ -172,7 +206,7 @@
   (define (construct-yaml-float node)
     (let ([value (string-replace
                   (string-downcase
-                   (format "~a" (construct-scalar node)) "_" ""))]
+                   (format "~a" (construct-scalar node))) "_" "")]
           [sign 1])
       (let ([ch (string-ref value 0)])
         (when (char=? #\- ch)
@@ -198,9 +232,9 @@
   (define (construct-yaml-binary node)
     (base64-decode
      (string->bytes/utf-8
-      (format "~a" (construct-scalar)))))
+      (format "~a" (construct-scalar node)))))
 
-  (define (construct-yaml-timestamp value)
+  (define (construct-yaml-timestamp node)
     (define timestamp-regexp
       (regexp
        (string-append
@@ -214,20 +248,22 @@
         "(?:\\.([0-9]*))?"
         "(?:[ \\t]*(Z|([-+])([0-9][0-9]?)"
         "(?::([0-9][0-9]))?))?)?$")))
-    (define values (regexp-match timestamp-regexp value))
+    (define values (regexp-match timestamp-regexp (scalar-node-value node)))
     (define year (string->number (list-ref values 1)))
     (define month (string->number (list-ref values 2)))
     (define day (string->number (list-ref values 3)))
-    (define (get-hour) (string->number (list-ref values 4)))
-    (define (get-minute) (string->number (list-ref values 5)))
-    (define (get-second) (string->number (list-ref values 6)))
+    (define (get-hour)
+      (and (list-ref values 4) (string->number (list-ref values 4))))
+    (define (get-minute)
+      (and (list-ref values 5) (string->number (list-ref values 5))))
+    (define (get-second)
+      (and (list-ref values 6) (string->number (list-ref values 6))))
     (define (get-tz-sign)
-      (and (list-ref values 9)
-           (if (equal? "-" (list-ref values 9)) -1 +1)))
-    (define (get-tz-hour) (string->number (list-ref values 10)))
+      (and (list-ref values 9) (if (equal? "-" (list-ref values 9)) -1 +1)))
+    (define (get-tz-hour)
+      (and (list-ref values 10) (string->number (list-ref values 10))))
     (define (get-tz-minute)
-      (and (list-ref values 11)
-           (string->number (list-ref values 11))))
+      (and (list-ref values 11) (string->number (list-ref values 11))))
     (if (not (get-hour))
         (seconds->date (find-seconds 0 0 0 day month year #f) #f)
         (let ([hour (get-hour)]
