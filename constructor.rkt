@@ -46,7 +46,6 @@
     (make-composer name in))
   
   (define yaml-constructors (make-hash))
-  (define yaml-multi-constructors (make-hash))
   (define constructed-objects (make-hash))
   (define recursive-objects (make-hash))
   (define deep-construct #f)
@@ -88,18 +87,8 @@
             (set! constructor (hash-ref yaml-constructors (node-tag node)))]
            [else
             (let ([break #f] [tag (node-tag node)])
-              (for ([(tag-prefix mc) yaml-multi-constructors])
-                (unless break
-                  (when (string-prefix? tag-prefix tag)
-                    (let ([n (string-length tag-prefix)])
-                      (set! tag-suffix (substring tag n))
-                      (set! constructor mc)
-                      (set! break #t)))))
               (unless break
                 (cond
-                 [(hash-has-key? yaml-multi-constructors #f)
-                  (set! tag-suffix tag)
-                  (set! constructor (hash-ref yaml-multi-constructors #f))]
                  [(hash-has-key? yaml-constructors #f)
                   (set! constructor (hash-ref yaml-constructors #f))]
                  [(scalar-node? node)
@@ -341,9 +330,6 @@
 
   (define (add-constructor! tag constructor)
     (hash-set! yaml-constructors tag constructor))
-  
-  (define (add-multi-constructor! tag-prefix multi-constructor)
-    (hash-set! yaml-multi-constructors tag-prefix multi-constructor))
   
   (add-constructor! "tag:yaml.org,2002:null" construct-yaml-null)
   (add-constructor! "tag:yaml.org,2002:bool" construct-yaml-bool)
