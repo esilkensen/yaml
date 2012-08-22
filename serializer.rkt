@@ -52,14 +52,14 @@
      [(eq? #t closed)
       (serializer-error "serializer is closed")])
     (emit (document-start-event #f #f explicit-start version tags))
-    (anchor node)
-    (serialize-node node #f #f)
+    (anchor-node node)
+    (serialize-node node #f)
     (emit (document-end-event #f #f explicit-end))
     (set! serialized-nodes (make-hash))
     (set! anchors (make-hash))
     (set! last-anchor-id 0))
 
-  (define (anchor node)
+  (define (anchor-node node)
     (cond
      [(hash-has-key? anchors node)
       (unless (hash-ref anchors node)
@@ -69,11 +69,11 @@
       (cond
        [(sequence-node? node)
         (for ([item (sequence-node-value node)])
-          (anchor item))]
+          (anchor-node item))]
        [(mapping-node? node)
         (for ([kv (mapping-node-value node)])
-          (anchor (car kv))
-          (anchor (cdr kv)))])]))
+          (anchor-node (car kv))
+          (anchor-node (cdr kv)))])]))
 
   (define (generate-anchor node)
     (set! last-anchor-id (add1 last-anchor-id))
@@ -82,7 +82,7 @@
         (set! str (string-append "0" str)))
       (format ANCHOR-TEMPLATE str)))
 
-  (define (serialize-node node parent index)
+  (define (serialize-node node parent)
     (let ([alias (hash-ref anchors node)])
       (cond
        [(hash-has-key? serialized-nodes node)
@@ -105,19 +105,21 @@
           (let* ([tag (sequence-node-tag node)]
                  [value (sequence-node-value node)]
                  [implicit (equal? tag (resolve 'sequence value #t))]
-                 [flow-style (sequence-node-flow-style node)]
-                 [index 0])
+                 [flow-style (sequence-node-flow-style node)])
             (emit (sequence-start-event #f #f alias tag implicit flow-style))
             (for ([item value])
-              (serialize-node item node index)
-              (set! index (add1 index)))
+              (serialize-node item node))
             (emit (sequence-end-event #f #f)))]
          [(mapping-node? node)
           (let* ([tag (mapping-node-tag node)]
                  [value (mapping-node-value node)]
                  [implicit (equal? tag (resolve 'mapping value #t))]
-                 [flow-style (mapping-start-event node)])
+                 [flow-style (mapping-node-flow-style node)])
             (emit
-             (mapping-start-event #f #f alias tag implicit flow-style)))])])))
+             (mapping-start-event #f #f alias tag implicit flow-style))
+            (for ([kv value])
+              (serialize-node (car kv) node)
+              (serialize-node (cdr kv) node))
+            (emit (mapping-end-event #f #f)))])])))
 
   (values open close serialize))

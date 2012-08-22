@@ -71,9 +71,9 @@
   (define (represent-mapping tag mapping [flow-style #f])
     (let ([value '()]
           [best-style #t])
-      (for ([kv mapping])
-        (let* ([node-key (represent-data (car kv))]
-               [node-value (represent-data (cdr kv))])
+      (for ([(key val) mapping])
+        (let* ([node-key (represent-data key)]
+               [node-value (represent-data val)])
           (when (not (and (scalar-node? node-key)
                           (not (scalar-node-style node-key))))
             (set! best-style #f))
@@ -100,7 +100,7 @@
     (represent-scalar "tag:yaml.org,2002:bool" (if data "true" "false")))
 
   (define (represent-int data)
-    (represent-scalar "tag:yaml.org,2002:int" (number->string node)))
+    (represent-scalar "tag:yaml.org,2002:int" (number->string data)))
 
   (define (represent-float data)
     (represent-scalar
@@ -111,9 +111,10 @@
        (if (equal? data +inf.0) ".inf" "-.inf")]
       [else
        (let ([value (number->string data)])
-         (when (and (not (string-index value #\.))
-                    (string-index value #\e))
-           (string-replace value "e" ".0e" #:all? #f)))])))
+         (if (and (not (string-index value #\.))
+                  (string-index value #\e))
+             (string-replace value "e" ".0e" #:all? #f)
+             value))])))
 
   (define (represent-list data)
     (represent-sequence "tag:yaml.org,2002:seq" data))
