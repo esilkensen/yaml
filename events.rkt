@@ -6,7 +6,7 @@
 
 (provide (all-defined-out))
 
-(yaml-struct: event ([start : mark] [end : mark]))
+(yaml-struct: event ([start : (Option mark)] [end : (Option mark)]))
 
 (event: stream-start)
 (event: stream-end)

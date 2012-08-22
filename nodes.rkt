@@ -6,7 +6,7 @@
 
 (provide (all-defined-out))
 
-(yaml-struct: node ([start : mark] [end : (Option mark)]) #:mutable)
+(yaml-struct: node ([start : (Option mark)] [end : (Option mark)]) #:mutable)
 
 (node: scalar
   ([tag : (Option String)]
