@@ -7,12 +7,10 @@
 (provide load-file load-string load dump)
 
 (define (load-file filename)
-  (with-input-from-file filename
-    (λ () (load))))
+  (with-input-from-file filename load))
 
 (define (load-string string)
-  (with-input-from-string string
-    (λ () (load))))
+  (with-input-from-string string load))
 
 (define (load [in (current-input-port)])
   (define-values (check-data? get-data get-single-data)
