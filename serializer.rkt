@@ -1,0 +1,123 @@
+;;;;;; serializer.rkt - YAML serializer.    -*- Mode: Racket -*-
+
+#lang racket
+
+(require
+ "emitter.rkt"
+ "errors.rkt"
+ "events.rkt"
+ "nodes.rkt"
+ "resolver.rkt"
+ "utils.rkt")
+
+(provide make-serializer)
+
+(define ANCHOR-TEMPLATE "id~a")
+
+(define (serializer-error msg) (error 'serializer msg))
+
+(define (make-serializer [out (current-output-port)]
+                         #:explicit-start [explicit-start #f]
+                         #:explicit-end [explicit-end #f]
+                         #:version [version #f]
+                         #:tags [tags #f])
+  (define emit (make-emitter out))
+  (define serialized-nodes (make-hash))
+  (define anchors (make-hash))
+  (define last-anchor-id 0)
+  (define closed 'None)
+
+  (define (open)
+    (cond
+     [(eq? 'None closed)
+      (emit (stream-start-event #f #f))
+      (set! closed #f)]
+     [(eq? #t closed)
+      (serializer-error "serializer is closed")]
+     [else
+      (serializer-error "serializer is already opened")]))
+
+  (define (close)
+    (cond
+     [(eq? 'None closed)
+      (serializer-error "serializer is not opened")]
+     [(eq? #f closed)
+      (emit (stream-end-event #f #f))
+      (set! closed #t)]))
+
+  (define (serialize node)
+    (cond
+     [(eq? 'None closed)
+      (serializer-error "serializer is not opened")]
+     [(eq? #t closed)
+      (serializer-error "serializer is closed")])
+    (emit (document-start-event #f #f explicit-start version tags))
+    (anchor node)
+    (serialize-node node #f #f)
+    (emit (document-end-event #f #f explicit-end))
+    (set! serialized-nodes (make-hash))
+    (set! anchors (make-hash))
+    (set! last-anchor-id 0))
+
+  (define (anchor node)
+    (cond
+     [(hash-has-key? anchors node)
+      (unless (hash-ref anchors node)
+        (hash-set! anchors node (generate-anchor node)))]
+     [else
+      (hash-set! anchors node #f)
+      (cond
+       [(sequence-node? node)
+        (for ([item (sequence-node-value node)])
+          (anchor item))]
+       [(mapping-node? node)
+        (for ([kv (mapping-node-value node)])
+          (anchor (car kv))
+          (anchor (cdr kv)))])]))
+
+  (define (generate-anchor node)
+    (set! last-anchor-id (add1 last-anchor-id))
+    (let ([str (number->string last-anchor-id)])
+      (while (< (string-length str) 3)
+        (set! str (string-append "0" str)))
+      (format ANCHOR-TEMPLATE str)))
+
+  (define (serialize-node node parent index)
+    (let ([alias (hash-ref anchors node)])
+      (cond
+       [(hash-has-key? serialized-nodes node)
+        (emit (alias-event #f #f alias))]
+       [else
+        (hash-set! serialized-nodes node #t)
+        (cond
+         [(scalar-node? node)
+          (let* ([tag (scalar-node-tag node)]
+                 [value (scalar-node-value node)]
+                 [style (scalar-node-style node)]
+                 [detected-tag
+                  (resolve 'scalar value (cons #t #f))]
+                 [default-tag
+                   (resolve 'scalar value (cons #f #t))]
+                 [implicit (cons (equal? tag detected-tag)
+                                 (equal? tag default-tag))])
+            (emit (scalar-event #f #f alias tag implicit value style)))]
+         [(sequence-node? node)
+          (let* ([tag (sequence-node-tag node)]
+                 [value (sequence-node-value node)]
+                 [implicit (equal? tag (resolve 'sequence value #t))]
+                 [flow-style (sequence-node-flow-style node)]
+                 [index 0])
+            (emit (sequence-start-event #f #f alias tag implicit flow-style))
+            (for ([item value])
+              (serialize-node item node index)
+              (set! index (add1 index)))
+            (emit (sequence-end-event #f #f)))]
+         [(mapping-node? node)
+          (let* ([tag (mapping-node-tag node)]
+                 [value (mapping-node-value node)]
+                 [implicit (equal? tag (resolve 'mapping value #t))]
+                 [flow-style (mapping-start-event node)])
+            (emit
+             (mapping-start-event #f #f alias tag implicit flow-style)))])])))
+
+  (values open close serialize))
