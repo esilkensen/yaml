@@ -26,7 +26,7 @@
   (define (represent-data data)
     (call/cc
      (λ (return)
-       (if (ignore-aliases data)
+       (if (ignore-aliases? data)
            (set! alias-key #f)
            (set! alias-key (eq-hash-code data)))
        (when alias-key
@@ -92,7 +92,7 @@
           (hash-set! represented-objects alias-key node))
         node)))
 
-  (define (ignore-aliases data)
+  (define (ignore-aliases? data)
     (or (null? data)
         (boolean? data)
         (string? data)
