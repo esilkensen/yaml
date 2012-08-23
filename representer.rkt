@@ -26,7 +26,9 @@
   (define (represent-data data)
     (call/cc
      (λ (return)
-       (set! alias-key (eq-hash-code data))
+       (if (ignore-aliases data)
+           (set! alias-key #f)
+           (set! alias-key (eq-hash-code data)))
        (when alias-key
          (when (hash-has-key? represented-objects alias-key)
            (return (hash-ref represented-objects alias-key)))
@@ -89,6 +91,12 @@
         (when alias-key
           (hash-set! represented-objects alias-key node))
         node)))
+
+  (define (ignore-aliases data)
+    (or (null? data)
+        (boolean? data)
+        (string? data)
+        (number? data)))
 
   (define (represent-null data)
     (represent-scalar "tag:yaml.org,2002:null" "null"))
