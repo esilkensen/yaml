@@ -22,8 +22,8 @@
                          #:version [version #f]
                          #:tags [tags #f])
   (define emit (make-emitter out))
-  (define serialized-nodes (make-hash))
-  (define anchors (make-hash))
+  (define serialized-nodes (make-hasheq))
+  (define anchors (make-hasheq))
   (define last-anchor-id 0)
   (define closed 'None)
 
@@ -53,10 +53,10 @@
       (serializer-error "serializer is closed")])
     (emit (document-start-event #f #f explicit-start version tags))
     (anchor-node node)
-    (serialize-node node #f)
+    (serialize-node node)
     (emit (document-end-event #f #f explicit-end))
-    (set! serialized-nodes (make-hash))
-    (set! anchors (make-hash))
+    (set! serialized-nodes (make-hasheq))
+    (set! anchors (make-hasheq))
     (set! last-anchor-id 0))
 
   (define (anchor-node node)
@@ -82,7 +82,7 @@
         (set! str (string-append "0" str)))
       (format ANCHOR-TEMPLATE str)))
 
-  (define (serialize-node node parent)
+  (define (serialize-node node)
     (let ([alias (hash-ref anchors node)])
       (cond
        [(hash-has-key? serialized-nodes node)
@@ -108,7 +108,7 @@
                  [flow-style (sequence-node-flow-style node)])
             (emit (sequence-start-event #f #f alias tag implicit flow-style))
             (for ([item value])
-              (serialize-node item node))
+              (serialize-node item))
             (emit (sequence-end-event #f #f)))]
          [(mapping-node? node)
           (let* ([tag (mapping-node-tag node)]
@@ -118,8 +118,8 @@
             (emit
              (mapping-start-event #f #f alias tag implicit flow-style))
             (for ([kv value])
-              (serialize-node (car kv) node)
-              (serialize-node (cdr kv) node))
+              (serialize-node (car kv))
+              (serialize-node (cdr kv)))
             (emit (mapping-end-event #f #f)))])])))
 
   (values open close serialize))
