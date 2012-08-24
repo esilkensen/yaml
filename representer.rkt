@@ -59,7 +59,7 @@
             (set! best-style #f))
           (append! value (list node-item))))
       (unless flow-style
-        (if (not (eq? 'None default-flow-style))
+        (if (not (eq? 'best default-flow-style))
             (set! flow-style default-flow-style)
             (set! flow-style best-style)))
       (let ([node (sequence-node #f #f tag value flow-style)])
@@ -81,7 +81,7 @@
             (set! best-style #f))
           (append! value (list (cons node-key node-value)))))
       (unless flow-style
-        (if (not (eq? 'None default-flow-style))
+        (if (not (eq? 'best default-flow-style))
             (set! flow-style default-flow-style)
             (set! flow-style best-style)))
       (let ([node (mapping-node #f #f tag value flow-style)])
