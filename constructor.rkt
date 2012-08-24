@@ -273,9 +273,17 @@
                      [tz-sign (get-tz-sign)]
                      [offset (* tz-sign
                                 (+ (* tz-hour 60 60)
-                                   (* tz-minute 60)))])
+                                   (* tz-minute 60)))]
+                     ;; subtract offset to get to UTC time without tz
+                     [base (- (find-seconds
+                               second minute hour day month year #f)
+                              offset)]
+                     ;; subtract offset again to count tz
+                     [d0 (seconds->date (- base offset))])
                 (date*
-                 second minute hour day month year 0 0 #f offset fraction "UTC"))
+                 (date-second d0) (date-minute d0) (date-hour d0)
+                 (date-day d0) (date-month d0) (date-year d0)
+                 0 0 #f 0 fraction "UTC"))
               (date*
                second minute hour day month year 0 0 #f 0 fraction "UTC")))))
   
@@ -321,6 +329,11 @@
   (define (construct-yaml-map node)
     (construct-mapping node))
 
+  (define (construct-racket-pair node)
+    (let ([value (sequence-node-value node)])
+      (cons (construct-object (first value))
+            (construct-object (second value)))))
+
   (define (construct-undefined node)
     (constructor-error
      #f
@@ -343,6 +356,7 @@
   (add-constructor! "tag:yaml.org,2002:str" construct-yaml-str)
   (add-constructor! "tag:yaml.org,2002:seq" construct-yaml-seq)
   (add-constructor! "tag:yaml.org,2002:map" construct-yaml-map)
+  (add-constructor! "tag:yaml.org,2002:racket/pair" construct-racket-pair)
   (add-constructor! #f construct-undefined)
 
   (values check-data? get-data get-single-data))

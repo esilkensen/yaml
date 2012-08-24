@@ -35,14 +35,11 @@
          (append! object-keeper (list data)))
        (let loop ([kvs yaml-representers])
          (if (null? kvs)
-             (scalar-node #f #f #f data)
+             (scalar-node #f #f #f data #f)
              (let ([type? (caar kvs)] [repr (cdar kvs)])
                (if (type? data)
                    (repr data)
                    (loop (cdr kvs)))))))))
-
-  (define (add-representer! type? representer)
-    (append! yaml-representers (list (cons type? representer))))
 
   (define (represent-scalar tag value [style #f])
     (unless style
@@ -133,13 +130,28 @@
   (define (represent-set data)
     (let ([value (make-hash)])
       (for ([key data])
-        (hash-set! key #f))
+        (hash-set! value key '()))
       (represent-mapping "tag:yaml.org,2002:set" value)))
 
   (define (represent-date data)
     (parameterize ([date-display-format 'iso-8601])
-      (let ([value (date->string data)])
+      ;; this isn't perfect, but it'll have to do...
+      (let* ([time? (or (not (zero? (date-second data)))
+                        (not (zero? (date-minute data)))
+                        (not (zero? (date-hour data))))]
+             [value (date->string data time?)])
+        (when (and (date*? data)
+                   (not (zero? (date*-nanosecond data))))
+          (let ([microsecond (/ (date*-nanosecond data) 1000)])
+            (set! value (format "~a.~a" value microsecond))))
         (represent-scalar "tag:yaml.org,2002:timestamp" value))))
+
+  (define (represent-pair data)
+    (let ([value (list (car data) (cdr data))])
+      (represent-sequence "tag:yaml.org,2002:racket/pair" value)))
+
+  (define (add-representer! type? representer)
+    (append! yaml-representers (list (cons type? representer))))
 
   (add-representer! null? represent-null)
   (add-representer! string? represent-str)
@@ -150,5 +162,6 @@
   (add-representer! hash? represent-hash)
   (add-representer! set? represent-set)
   (add-representer! date? represent-date)
+  (add-representer! pair? represent-pair)
 
   (values represent))
