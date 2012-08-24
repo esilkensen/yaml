@@ -15,25 +15,29 @@
  dump-all)
 
 (define (load-file filename)
-  (with-input-from-file filename load))
+  (with-input-from-file filename
+    (λ () (load filename))))
 
 (define (load-string string)
-  (with-input-from-string string load))
+  (with-input-from-string string
+    (λ () (load "<string>"))))
 
 (define (load-file/all filename)
-  (with-input-from-file filename load-all))
+  (with-input-from-file filename
+    (λ () (load-all filename))))
 
 (define (load-string/all string)
-  (with-input-from-string string load-all))
+  (with-input-from-string string
+    (λ () (load-all "<string>"))))
 
-(define (load [in (current-input-port)])
+(define (load [name "<input>"] [in (current-input-port)])
   (define-values (check-data? get-data get-single-data)
-    (make-constructor "<input>" in))
+    (make-constructor name in))
   (get-single-data))
 
-(define (load-all [in (current-input-port)])
+(define (load-all [name "<input>"] [in (current-input-port)])
   (define-values (check-data? get-data get-single-data)
-    (make-constructor "<input>" in))
+    (make-constructor name in))
   (let loop ([docs '()])
     (if (check-data?)
         (loop (cons (get-data) docs))
