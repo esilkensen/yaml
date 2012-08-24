@@ -2,17 +2,31 @@
 
 #lang racket
 
-(require "constructor.rkt" "representer.rkt" "serializer.rkt")
+(require
+ "constructor.rkt"
+ "representer.rkt"
+ "serializer.rkt")
 
 (provide
- load-file
- load-string
- load-file/all
- load-string/all
- load
- load-all
- dump
- dump-all)
+ (contract-out
+  [load-file (-> string? any/c)]
+  [load-string (-> string? any/c)]
+  [load-file/all (-> string? list?)]
+  [load-string/all (-> string? list?)]
+  [load (->* (string? input-port?) any/c)]
+  [load-all (->* (string? input-port?) list?)]
+  [dump
+   (->* (any/c)
+        (output-port?
+         #:default-style (or/c #f char?)
+         #:default-flow-style (or/c boolean? 'best))
+        void?)]
+  [dump-all
+   (->* (list?)
+        (output-port?
+         #:default-style (or/c #f char?)
+         #:default-flow-style (or/c boolean? 'best))
+        void?)]))
 
 (define (load-file filename)
   (with-input-from-file filename
@@ -45,14 +59,14 @@
 
 (define (dump document [out (current-output-port)]
               #:default-style [default-style #f]
-              #:default-flow-style [default-flow-style 'None])
+              #:default-flow-style [default-flow-style 'best])
   (dump-all (list document) out
             #:default-style default-style
             #:default-flow-style default-flow-style))
 
 (define (dump-all documents [out (current-output-port)]
                   #:default-style [default-style #f]
-                  #:default-flow-style [default-flow-style 'None])
+                  #:default-flow-style [default-flow-style 'best])
   (define-values (open close serialize)
     (make-serializer out))
   (define represent
