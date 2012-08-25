@@ -2,6 +2,6 @@
 (define name "YAML")
 (define blurb '("A YAML parser and emitter for Racket."))
 (define primary-file "main.rkt")
-(define categories '(parsing-library))
+(define categories '(net datastructures misc))
 (define repositories '("4.x"))
-(define scribblings '(("manual.scrbl")))
+(define scribblings '(("manual.scrbl" (user-doc) (parsing-library))))
