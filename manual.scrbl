@@ -26,30 +26,30 @@ The parameter}
 
 The following
 
-@defproc[(write-yaml [doc yaml?] [out output-port? (current-output-port)] [#:null null any/c (yaml-null)] [#:style default-style (or/c char? #f) #f] [#:flow-style default-flow-style (or/c boolean? 'best) 'best]) void?]{
+@defproc[(write-yaml [document yaml?] [out output-port? (current-output-port)] [#:style default-style (or/c char? #f) #f] [#:flow-style default-flow-style (or/c boolean? 'best) 'best]) void?]{
 Write Documentation.}
 
-@defproc[(write-yaml* [docs (listof yaml?)] [out output-port? (current-output-port)] [#:null null any/c (yaml-null)] [#:style default-style (or/c char? #f) #f] [#:flow-style default-flow-style (or/c boolean? 'best) 'best]) void?]{
+@defproc[(write-yaml* [documents (listof yaml?)] [out output-port? (current-output-port)] [#:style default-style (or/c char? #f) #f] [#:flow-style default-flow-style (or/c boolean? 'best) 'best]) void?]{
 Write-all Documentation.}
 
-@defproc[(yaml->string [doc yaml?] [#:null null any/c (yaml-null)] [#:style default-style (or/c char? #f) #f] [#:flow-style default-flow-style (or/c boolean? 'best) 'best]) string?]{
+@defproc[(yaml->string [document yaml?] [#:style default-style (or/c char? #f) #f] [#:flow-style default-flow-style (or/c boolean? 'best) 'best]) string?]{
 To-string Documentation.}
 
-@defproc[(yaml*->string [docs (listof yaml?)] [#:null null any/c (yaml-null)] [#:style default-style (or/c char? #f) #f] [#:flow-style default-flow-style (or/c boolean? 'best) 'best]) (listof string?)]{
+@defproc[(yaml*->string [documents (listof yaml?)] [#:style default-style (or/c char? #f) #f] [#:flow-style default-flow-style (or/c boolean? 'best) 'best]) (listof string?)]{
 To-string-all Documentation.}
 
 @section{Parsing YAML Text into YAML Expressions}
 
 The following 
 
-@defproc[(read-yaml [name any/c 'input] [in input-port? (current-input-port)] [#:null null any/c (yaml-null)]) yaml?]{
+@defproc[(read-yaml [name any/c 'input] [in input-port? (current-input-port)]) yaml?]{
 Read Documentation.}
 
-@defproc[(read-yaml* [name any/c 'input] [in input-port? (current-input-port)] [#:null null any/c (yaml-null)]) (listof yaml?)]{
+@defproc[(read-yaml* [name any/c 'input] [in input-port? (current-input-port)]) (listof yaml?)]{
 Read-all Documentation.}
 
-@defproc[(string->yaml [str string?] [#:null null any/c (yaml-null)]) yaml?]{
+@defproc[(string->yaml [str string?]) yaml?]{
 From-string Documentation.}
 
-@defproc[(string->yaml* [str string?] [#:null null any/c (yaml-null)]) (listof yaml?)]{
+@defproc[(string->yaml* [str string?]) (listof yaml?)]{
 From-string-all Documentation.}
