@@ -12,7 +12,9 @@
 
 (provide make-representer)
 
-(define (make-representer serialize [default-style #f] [default-flow-style #f])
+(define (make-representer serialize
+                          #:scalar [default-style #f]
+                          #:style [default-flow-style #f])
   (define yaml-representers '())
   (define represented-objects (make-hash))
   (define object-keeper '())

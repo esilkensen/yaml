@@ -17,11 +17,21 @@
 (define (serializer-error msg) (error 'serializer msg))
 
 (define (make-serializer [out (current-output-port)]
+                         #:canonical [canonical #f]
+                         #:indent [default-indent #f]
+                         #:width [default-width #f]
+                         #:allow-unicode [allow-unicode #f]
+                         #:line-break [line-break #f]
                          #:explicit-start [explicit-start #f]
                          #:explicit-end [explicit-end #f]
                          #:version [version #f]
                          #:tags [tags #f])
-  (define emit (make-emitter out))
+  (define emit (make-emitter out
+                             #:canonical canonical
+                             #:indent default-indent
+                             #:width default-width
+                             #:allow-unicode allow-unicode
+                             #:line-break line-break))
   (define serialized-nodes (make-hasheq))
   (define anchors (make-hasheq))
   (define last-anchor-id 0)

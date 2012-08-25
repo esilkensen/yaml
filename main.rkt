@@ -12,16 +12,16 @@
 
 (provide
  (contract-out [read-yaml (->* () (any/c input-port?) yaml?)]))
-(define (read-yaml [name 'input] [in (current-input-port)])
+(define (read-yaml [source-name 'input] [in (current-input-port)])
   (define-values (check-data? get-data get-single-data)
-    (make-constructor name in))
+    (make-constructor source-name in))
   (get-single-data))
 
 (provide
  (contract-out [read-yaml* (->* () (any/c input-port?) (listof yaml?))]))
-(define (read-yaml* [name 'input] [in (current-input-port)])
+(define (read-yaml* [source-name 'input] [in (current-input-port)])
   (define-values (check-data? get-data get-single-data)
-    (make-constructor name in))
+    (make-constructor source-name in))
   (let loop ([docs '()])
     (if (check-data?)
         (loop (cons (get-data) docs))
@@ -44,31 +44,69 @@
   [write-yaml
    (->* (yaml?)
         (output-port?
-         #:style (or/c #f char?)
-         #:flow-style (or/c boolean? 'best))
+         #:canonical boolean?
+         #:indent exact-positive-integer?
+         #:width exact-positive-integer?
+         #:line-break (or/c "\r" "\n" "\r\n")
+         #:explicit-start boolean?
+         #:explicit-end boolean?
+         #:scalar (or/c #\" #\' #\| #\> 'plain)
+         #:style (or/c 'block 'flow 'best))
         void?)]))
 (define (write-yaml document [out (current-output-port)]
-                    #:style [default-style #f]
-                    #:flow-style [default-flow-style 'best])
+                    #:canonical [canonical #f]
+                    #:indent [indent 2]
+                    #:width [width 80]
+                    #:line-break [line-break "\n"]
+                    #:explicit-start [explicit-start #f]
+                    #:explicit-end [explicit-end #f]
+                    #:scalar [scalar 'plain]
+                    #:style [style 'best])
   (write-yaml* (list document) out
-               #:style default-style
-               #:flow-style default-flow-style))
+               #:canonical canonical
+               #:indent indent
+               #:width width
+               #:line-break line-break
+               #:explicit-start explicit-start
+               #:explicit-end explicit-end
+               #:scalar scalar
+               #:style style))
 
 (provide
  (contract-out
   [write-yaml*
    (->* ((listof yaml?))
         (output-port?
-         #:style (or/c #f char?)
-         #:flow-style (or/c boolean? 'best))
+         #:canonical boolean?
+         #:indent exact-positive-integer?
+         #:width exact-positive-integer?
+         #:line-break (or/c "\r" "\n" "\r\n")
+         #:explicit-start boolean?
+         #:explicit-end boolean?
+         #:scalar (or/c #\" #\' #\| #\> 'plain)
+         #:style (or/c 'block 'flow 'best))
         void?)]))
 (define (write-yaml* documents [out (current-output-port)]
-                     #:style [default-style #f]
-                     #:flow-style [default-flow-style 'best])
+                     #:canonical [canonical #f]
+                     #:indent [indent 2]
+                     #:width [width 80]
+                     #:line-break [line-break "\n"]
+                     #:explicit-start [explicit-start #f]
+                     #:explicit-end [explicit-end #f]
+                     #:scalar [scalar 'plain]
+                     #:style [style 'best])
   (define-values (open close serialize)
-    (make-serializer out))
+    (make-serializer out
+                     #:canonical canonical
+                     #:indent indent
+                     #:width width
+                     #:line-break line-break
+                     #:explicit-start explicit-start
+                     #:explicit-end explicit-end))
   (define represent
-    (make-representer serialize default-style default-flow-style))
+    (let ([scalar (if (eq? 'plain scalar) #f scalar)]
+          [style (if (eq? 'best style) style (eq? 'flow style))])
+      (make-representer serialize #:scalar scalar #:style style)))
   (open)
   (for ([data documents])
     (represent data))
@@ -78,30 +116,64 @@
  (contract-out
   [yaml->string
    (->* (yaml?)
-        (#:style (or/c #f char?)
-         #:flow-style (or/c boolean? 'best))
+        (#:canonical boolean?
+         #:indent exact-positive-integer?
+         #:width exact-positive-integer?
+         #:line-break (or/c "\r" "\n" "\r\n")
+         #:explicit-start boolean?
+         #:explicit-end boolean?
+         #:scalar (or/c #\" #\' #\| #\> 'plain)
+         #:style (or/c 'block 'flow 'best))
         string?)]))
 (define (yaml->string document
-                      #:style [default-style #f]
-                      #:flow-style [default-flow-style 'best])
+                      #:canonical [canonical #f]
+                      #:indent [indent 2]
+                      #:width [width 80]
+                      #:line-break [line-break "\n"]
+                      #:explicit-start [explicit-start #f]
+                      #:explicit-end [explicit-end #f]
+                      #:scalar [scalar 'plain]
+                      #:style [style 'best])
   (with-output-to-string
-    (λ ()
-      (write-yaml document
-                  #:style default-style
-                  #:flow-style default-flow-style))))
+    (λ () (write-yaml document
+                      #:canonical canonical
+                      #:indent indent
+                      #:width width
+                      #:line-break line-break
+                      #:explicit-start explicit-start
+                      #:explicit-end explicit-end
+                      #:scalar scalar
+                      #:style style))))
 
 (provide
  (contract-out
   [yaml*->string
    (->* ((listof yaml?))
-        (#:style (or/c #f char?)
-         #:flow-style (or/c boolean? 'best))
+        (#:canonical boolean?
+         #:indent exact-positive-integer?
+         #:width exact-positive-integer?
+         #:line-break (or/c "\r" "\n" "\r\n")
+         #:explicit-start boolean?
+         #:explicit-end boolean?
+         #:scalar (or/c #\" #\' #\| #\> 'plain)
+         #:style (or/c 'block 'flow 'best))
         string?)]))
 (define (yaml*->string documents
-                       #:style [default-style #f]
-                       #:flow-style [default-flow-style 'best])
+                       #:canonical [canonical #f]
+                       #:indent [indent 2]
+                       #:width [width 80]
+                       #:line-break [line-break "\n"]
+                       #:explicit-start [explicit-start #f]
+                       #:explicit-end [explicit-end #f]
+                       #:scalar [scalar 'plain]
+                       #:style [style 'best])
   (with-output-to-string
-    (λ ()
-      (write-yaml* documents
-                   #:style default-style
-                   #:flow-style default-flow-style))))
+    (λ () (write-yaml* documents
+                       #:canonical canonical
+                       #:indent indent
+                       #:width width
+                       #:line-break line-break
+                       #:explicit-start explicit-start
+                       #:explicit-end explicit-end
+                       #:scalar scalar
+                       #:style style))))

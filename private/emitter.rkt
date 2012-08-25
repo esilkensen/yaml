@@ -19,8 +19,8 @@
 
 (define (make-emitter [out (current-output-port)]
                       #:canonical [canonical #f]
-                      #:indent [indent #f]
-                      #:width [width #f]
+                      #:indent [default-indent #f]
+                      #:width [default-width #f]
                       #:allow-unicode [allow-unicode #f]
                       #:line-break [line-break #f])
   (define DEFAULT-TAG-PREFIXES
@@ -44,9 +44,15 @@
   (define indention #t)
   (define open-ended #f)
   (define best-indent
-    (if (and indent (< 1 indent 10)) indent 2))
+    (if (and default-indent
+             (< 1 default-indent 10))
+        default-indent
+        2))
   (define best-width
-    (if (and width (> width (* 2 best-indent))) width 80))
+    (if (and default-width
+             (> default-width (* 2 best-indent)))
+        default-width
+        80))
   (define best-line-break
     (if (member line-break '("\r" "\n" "\r\n")) line-break "\n"))
   (define tag-prefixes #f)
