@@ -91,7 +91,7 @@
         node)))
 
   (define (ignore-aliases? data)
-    (or (null? data)
+    (or (equal? (yaml-null) data)
         (boolean? data)
         (string? data)
         (number? data)))
@@ -131,7 +131,7 @@
   (define (represent-set data)
     (let ([value (make-hash)])
       (for ([key data])
-        (hash-set! value key '()))
+        (hash-set! value key (yaml-null)))
       (represent-mapping "tag:yaml.org,2002:set" value)))
 
   (define (represent-date data)
