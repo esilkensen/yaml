@@ -18,14 +18,14 @@
   [dump
    (->* (any/c)
         (output-port?
-         #:default-style (or/c #f char?)
-         #:default-flow-style (or/c boolean? 'best))
+         #:style (or/c #f char?)
+         #:flow-style (or/c boolean? 'best))
         void?)]
   [dump-all
    (->* (list?)
         (output-port?
-         #:default-style (or/c #f char?)
-         #:default-flow-style (or/c boolean? 'best))
+         #:style (or/c #f char?)
+         #:flow-style (or/c boolean? 'best))
         void?)]))
 
 (define (load-file path)
@@ -58,15 +58,15 @@
         (reverse docs))))
 
 (define (dump document [out (current-output-port)]
-              #:default-style [default-style #f]
-              #:default-flow-style [default-flow-style 'best])
+              #:style [default-style #f]
+              #:flow-style [default-flow-style 'best])
   (dump-all (list document) out
-            #:default-style default-style
-            #:default-flow-style default-flow-style))
+            #:style default-style
+            #:flow-style default-flow-style))
 
 (define (dump-all documents [out (current-output-port)]
-                  #:default-style [default-style #f]
-                  #:default-flow-style [default-flow-style 'best])
+                  #:style [default-style #f]
+                  #:flow-style [default-flow-style 'best])
   (define-values (open close serialize)
     (make-serializer out))
   (define represent
