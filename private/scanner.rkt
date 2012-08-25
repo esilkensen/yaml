@@ -49,12 +49,6 @@
         (set! buffer-length (add1 buffer-length))))
     (vector-ref buffer (+ i index)))
 
-  (define (peek-char [i 0])
-    (let ([c (peek i)])
-      (if (char? c)
-          c
-          (error 'peek-char "expected char, but got: ~a" c))))
-  
   (define (prefix [l 1])
     ;; peek the next l characters
     (let loop ([i 0] [cs '()])
@@ -63,7 +57,7 @@
           (let ([c (peek i)])
             (if (char? c)
                 (loop (+ i 1) (cons c cs))
-                (loop (+ i 1) cs))))))
+                (loop l cs))))))
   
   (define (forward [l 1])
     ;; read the next l characters and move the index
@@ -149,12 +143,11 @@
 
   (define (get-token)
     ;; Return the next token.
-    (while (need-more-tokens?)
-      (fetch-more-tokens))
-    (and (not (null? tokens))
-         (begin0 (car tokens)
+    (let ([token (peek-token)])
+      (and (token? token)
            (set! tokens (cdr tokens))
-           (set! tokens-taken (add1 tokens-taken)))))
+           (set! tokens-taken (add1 tokens-taken))
+           token)))
 
   ;;; Private methods.
 
@@ -519,10 +512,10 @@
                    "\0 \t\r\n\x85\u2028\u2029-?:,[]{}#&*!|>'\"%@"
                    (peek))))
         (and (not (eof-object? (peek)))
-             (not (string-index "\0 \t\r\n\x85\u2028\u2029" (peek 1)))
-             (or (equal? #\- (peek))
-                 (and (zero? flow-level)
-                      (string-index "?:" (peek)))))))
+             (and (not (string-index "\0 \t\r\n\x85\u2028\u2029" (peek 1)))
+                  (or (equal? #\- (peek))
+                      (and (zero? flow-level)
+                           (string-index "?:" (peek))))))))
 
   ;; Scanners.
 
@@ -573,7 +566,7 @@
   (define (scan-directive-name)
     ;; See the specification fro details.
     (let ([len 0])
-      (while (regexp-match? #rx"[0-9A-Za-z_-]" (string (peek-char len)))
+      (while (regexp-match? #rx"[0-9A-Za-z_-]" (string (peek len)))
         (set! len (add1 len)))
       (when (zero? len)
         (scanner-error
@@ -694,7 +687,7 @@
           [name (if (equal? #\* (peek)) "alias" "anchor")])
       (forward)
       (let ([len 0])
-        (while (regexp-match? #rx"[0-9A-Za-z_-]" (string (peek-char len)))
+        (while (regexp-match? #rx"[0-9A-Za-z_-]" (string (peek len)))
           (set! len (add1 len)))
         (when (zero? len)
           (scanner-error
@@ -989,19 +982,19 @@
                       (or (and double (equal? #\' c))
                           (and (not double) (or (equal? #\" c)
                                                 (equal? #\\ c)))))
-                 (set! chunks (append chunks (list (peek-char))))
+                 (set! chunks (append chunks (list (peek))))
                  (forward)]
                 [(and double (equal? #\\ c))
                  (forward)
                  (set! c (peek))
                  (cond
-                  [(and (char? c) (hash-has-key? esc-repls (peek-char)))
+                  [(and (char? c) (hash-has-key? esc-repls (peek)))
                    (set! chunks
                          (append chunks
-                                 (list (hash-ref esc-repls (peek-char)))))
+                                 (list (hash-ref esc-repls (peek)))))
                    (forward)]
-                  [(and (char? c) (hash-has-key? esc-codes (peek-char)))
-                   (let ([len (hash-ref esc-codes (peek-char))])
+                  [(and (char? c) (hash-has-key? esc-codes (peek)))
+                   (let ([len (hash-ref esc-codes (peek))])
                      (forward)
                      (for ([k (in-range len)])
                        (let ([ch (peek k)])
