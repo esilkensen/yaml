@@ -9,7 +9,8 @@
  "composer.rkt"
  "errors.rkt"
  "nodes.rkt"
- "utils.rkt")
+ "utils.rkt"
+ "yaml.rkt")
 
 (provide
  construct-file
@@ -153,7 +154,7 @@
 
   (define (construct-yaml-null node)
     (construct-scalar node)
-    '())
+    (yaml-null))
 
   (define (construct-yaml-bool node)
     (let ([bool (string-downcase (construct-scalar node))])

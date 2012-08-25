@@ -7,7 +7,8 @@
  (except-in srfi/13 string-replace)
  "errors.rkt"
  "nodes.rkt"
- "utils.rkt")
+ "utils.rkt"
+ "yaml.rkt")
 
 (provide make-representer)
 
@@ -153,7 +154,7 @@
   (define (add-representer! type? representer)
     (append! yaml-representers (list (cons type? representer))))
 
-  (add-representer! null? represent-null)
+  (add-representer! (λ (x) (equal? x (yaml-null))) represent-null)
   (add-representer! string? represent-str)
   (add-representer! boolean? represent-bool)
   (add-representer! integer? represent-int)
