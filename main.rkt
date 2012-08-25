@@ -3,9 +3,9 @@
 #lang racket
 
 (require
- "constructor.rkt"
- "representer.rkt"
- "serializer.rkt")
+ "private/constructor.rkt"
+ "private/representer.rkt"
+ "private/serializer.rkt")
 
 (provide
  (contract-out
