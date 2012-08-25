@@ -35,7 +35,7 @@ Write-all Documentation.}
 @defproc[(yaml->string [document yaml?] [#:style default-style (or/c char? #f) #f] [#:flow-style default-flow-style (or/c boolean? 'best) 'best]) string?]{
 To-string Documentation.}
 
-@defproc[(yaml*->string [documents (listof yaml?)] [#:style default-style (or/c char? #f) #f] [#:flow-style default-flow-style (or/c boolean? 'best) 'best]) (listof string?)]{
+@defproc[(yaml*->string [documents (listof yaml?)] [#:style default-style (or/c char? #f) #f] [#:flow-style default-flow-style (or/c boolean? 'best) 'best]) string?]{
 To-string-all Documentation.}
 
 @section{Parsing YAML Text into YAML Expressions}

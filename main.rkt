@@ -96,7 +96,7 @@
    (->* ((listof yaml?))
         (#:style (or/c #f char?)
          #:flow-style (or/c boolean? 'best))
-        (listof string?))]))
+        string?)]))
 (define (yaml*->string documents
                        #:style [default-style #f]
                        #:flow-style [default-flow-style 'best])
