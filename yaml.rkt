@@ -1,4 +1,4 @@
-;;;;;; yaml.rkt - YAML library.    -*- Mode: Racket -*-
+;;;;;; main.rkt - YAML library.    -*- Mode: Racket -*-
 
 #lang racket
 
@@ -9,12 +9,12 @@
 
 (provide
  (contract-out
-  [load-file (-> string? any/c)]
+  [load-file (-> path-string? any/c)]
   [load-string (-> string? any/c)]
-  [load-file/all (-> string? list?)]
+  [load-file/all (-> path-string? list?)]
   [load-string/all (-> string? list?)]
-  [load (->* (string? input-port?) any/c)]
-  [load-all (->* (string? input-port?) list?)]
+  [load (->* () (input-port? any/c) any/c)]
+  [load-all (->* () (input-port? any/c) list?)]
   [dump
    (->* (any/c)
         (output-port?
@@ -28,28 +28,28 @@
          #:default-flow-style (or/c boolean? 'best))
         void?)]))
 
-(define (load-file filename)
-  (with-input-from-file filename
-    (λ () (load filename))))
+(define (load-file path)
+  (with-input-from-file path
+    (λ () (load path))))
 
-(define (load-string string)
-  (with-input-from-string string
-    (λ () (load "<string>"))))
+(define (load-string str)
+  (with-input-from-string str
+    (λ () (load 'string))))
 
-(define (load-file/all filename)
-  (with-input-from-file filename
-    (λ () (load-all filename))))
+(define (load-file/all path)
+  (with-input-from-file path
+    (λ () (load-all path))))
 
-(define (load-string/all string)
-  (with-input-from-string string
-    (λ () (load-all "<string>"))))
+(define (load-string/all str)
+  (with-input-from-string str
+    (λ () (load-all 'string))))
 
-(define (load [name "<input>"] [in (current-input-port)])
+(define (load [name 'input] [in (current-input-port)])
   (define-values (check-data? get-data get-single-data)
     (make-constructor name in))
   (get-single-data))
 
-(define (load-all [name "<input>"] [in (current-input-port)])
+(define (load-all [name 'input] [in (current-input-port)])
   (define-values (check-data? get-data get-single-data)
     (make-constructor name in))
   (let loop ([docs '()])
