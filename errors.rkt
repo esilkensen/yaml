@@ -5,7 +5,7 @@
 (provide (all-defined-out))
 
 (struct: mark
-  ([name : String] [index : Integer] [line : Integer]
+  ([name : Any] [index : Integer] [line : Integer]
    [column : Integer] [buffer : (Vectorof (U Char EOF))]))
 
 (: make-error (Symbol -> ((Option String) String mark -> Nothing)))
