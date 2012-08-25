@@ -9,47 +9,73 @@
 
 (provide
  (contract-out
-  [load-file (-> path-string? any/c)]
-  [load-string (-> string? any/c)]
-  [load-file/all (-> path-string? list?)]
-  [load-string/all (-> string? list?)]
-  [load (->* () (input-port? any/c) any/c)]
-  [load-all (->* () (input-port? any/c) list?)]
-  [dump
-   (->* (any/c)
+  [yaml? (-> any/c boolean?)]
+  [yaml-null (case-> (-> any/c) (-> any/c void?))]
+  [read-yaml
+   (->* () (input-port? any/c #:null any/c) yaml?)]
+  [read-yaml*
+   (->* () (input-port? any/c #:null any/c) (listof yaml?))]
+  [string->yaml
+   (->* (string?) (#:null any/c) yaml?)]
+  [string->yaml*
+   (->* (string?) (#:null any/c) (listof yaml?))]
+  [write-yaml
+   (->* (yaml?)
         (output-port?
+         #:null any/c
          #:style (or/c #f char?)
          #:flow-style (or/c boolean? 'best))
         void?)]
-  [dump-all
-   (->* (list?)
+  [write-yaml*
+   (->* ((listof yaml?))
         (output-port?
+         #:null any/c
          #:style (or/c #f char?)
          #:flow-style (or/c boolean? 'best))
-        void?)]))
+        void?)]
+  [yaml->string
+   (->* (yaml?)
+        (#:null any/c
+         #:style (or/c #f char?)
+         #:flow-style (or/c boolean? 'best))
+        string?)]
+  [yaml*->string
+   (->* ((listof yaml?))
+        (#:null any/c
+         #:style (or/c #f char?)
+         #:flow-style (or/c boolean? 'best))
+        (listof string?))]))
 
-(define (load-file path)
-  (with-input-from-file path
-    (λ () (load path))))
+(define yaml-null (make-parameter 'null))
 
-(define (load-string str)
-  (with-input-from-string str
-    (λ () (load 'string))))
+(define (yaml? v)
+  (or (equal? v (yaml-null))
+      (string? v)
+      (boolean? v)
+      (exact-integer? v)
+      (inexact-real? v)
+      (date? v)
+      (and (list? v)
+           (andmap yaml? v))
+      (and (hash? v)
+           (for/and ([(key val) v])
+             (and (yaml? key)
+                  (yaml? val))))
+      (and (set? v)
+           (for/and ([val v])
+             (yaml? val)))
+      (and (pair? v)
+           (yaml? (car v))
+           (yaml? (cdr v)))))
 
-(define (load-file/all path)
-  (with-input-from-file path
-    (λ () (load-all path))))
-
-(define (load-string/all str)
-  (with-input-from-string str
-    (λ () (load-all 'string))))
-
-(define (load [name 'input] [in (current-input-port)])
+(define (read-yaml [name 'input] [in (current-input-port)]
+                   #:null [null (yaml-null)])
   (define-values (check-data? get-data get-single-data)
     (make-constructor name in))
   (get-single-data))
 
-(define (load-all [name 'input] [in (current-input-port)])
+(define (read-yaml* [name 'input] [in (current-input-port)]
+                    #:null [null (yaml-null)])
   (define-values (check-data? get-data get-single-data)
     (make-constructor name in))
   (let loop ([docs '()])
@@ -57,16 +83,27 @@
         (loop (cons (get-data) docs))
         (reverse docs))))
 
-(define (dump document [out (current-output-port)]
-              #:style [default-style #f]
-              #:flow-style [default-flow-style 'best])
-  (dump-all (list document) out
-            #:style default-style
-            #:flow-style default-flow-style))
+(define (string->yaml str #:null [null (yaml-null)])
+  (with-input-from-string str
+    (λ () (read-yaml 'string #:null null))))
 
-(define (dump-all documents [out (current-output-port)]
-                  #:style [default-style #f]
-                  #:flow-style [default-flow-style 'best])
+(define (string->yaml* str #:null [null (yaml-null)])
+  (with-input-from-string str
+    (λ () (read-yaml* 'string #:null null))))
+
+(define (write-yaml document [out (current-output-port)]
+                    #:null [null (yaml-null)]
+                    #:style [default-style #f]
+                    #:flow-style [default-flow-style 'best])
+  (write-yaml* (list document) out
+               #:null null
+               #:style default-style
+               #:flow-style default-flow-style))
+
+(define (write-yaml* documents [out (current-output-port)]
+                     #:null [null (yaml-null)]
+                     #:style [default-style #f]
+                     #:flow-style [default-flow-style 'best])
   (define-values (open close serialize)
     (make-serializer out))
   (define represent
@@ -75,3 +112,25 @@
   (for ([data documents])
     (represent data))
   (close))
+
+(define (yaml->string document
+                      #:null [null (yaml-null)]
+                      #:style [default-style #f]
+                      #:flow-style [default-flow-style 'best])
+  (with-output-to-string
+    (λ ()
+      (write-yaml document
+                  #:null null
+                  #:style default-style
+                  #:flow-style default-flow-style))))
+
+(define (yaml*->string documents
+                       #:null [null (yaml-null)]
+                       #:style [default-style #f]
+                       #:flow-style [default-flow-style 'best])
+  (with-output-to-string
+    (λ ()
+      (write-yaml* documents
+                   #:null null
+                   #:style default-style
+                   #:flow-style default-flow-style))))
