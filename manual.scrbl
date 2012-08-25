@@ -22,7 +22,11 @@ The implementation is ported from @link["http://pyyaml.org"]{PyYAML}.
 
 @section{Examples}
 
-Better start with an example or two.
+As a quick introduction, this section shows an example of using the module
+to go from Racket values to YAML and back again.
+
+The @racket[write-yaml] procedure turns a Racket value into YAML output.
+Here it displays a sequence of mappings in @emph{flow style} (by default):
 @interaction[#:eval yaml-evaluator
 (write-yaml
  '(#hash(("name" . "Mark McGwire")
@@ -30,9 +34,10 @@ Better start with an example or two.
          ("avg" . 0.278))
    #hash(("name" . "Sammy Sosa")
          ("hr" . 63)
-         ("avg" . 0.288)))
- #:flow-style #f)]
- And yeah!
+         ("avg" . 0.288))))]
+The @racket[string->yaml] procedure turns YAML text into a Racket value.
+Here it constructs the same sequence of mappings from above, where this
+time the YAML is in @emph{block style}:
 @interaction[#:eval yaml-evaluator
 (string->yaml
  (string-append
@@ -69,68 +74,117 @@ A parameter that determines the Racket value that corresponds to a YAML
 
 @section{Reading YAML}
 
-The following 
-
 @defproc[(read-yaml
-           [name any/c 'input]
+           [source-name any/c 'input]
            [in input-port? (current-input-port)])
          yaml?]{
-Read Documentation.
+Parses the first
+@link["http://www.yaml.org/spec/1.2/spec.html#id2800132"]{YAML document}
+from @racket[in] and returns the corresponding YAML expression in Racket.
+The @racket[source-name] is used to identify the source of the input in
+error messages.
 }
 
 @defproc[(read-yaml*
-           [name any/c 'input]
+           [source-name any/c 'input]
            [in input-port? (current-input-port)])
          (listof yaml?)]{
-Read-all Documentation.
+Like @racket[read-yaml], but parses @emph{all}
+@link["http://www.yaml.org/spec/1.2/spec.html#id2800132"]{YAML documents}
+from @racket[in] and returns a list of the corresponding YAML expressions
+in Racket.
 }
 
 @defproc[(string->yaml
            [str string?])
          yaml?]{
-From-string Documentation.
+Equivalent to
+@racketblock[
+(with-input-from-string str
+  (λ () (read-yaml 'string)))
+]
 }
 
 @defproc[(string->yaml*
            [str string?])
          (listof yaml?)]{
-From-string-all Documentation.
+Equivalent to
+@racketblock[
+(with-input-from-string str
+  (λ () (read-yaml* 'string)))
+]
 }
 
 @section{Writing YAML}
 
-The following
-
 @defproc[(write-yaml
            [document yaml?]
            [out output-port? (current-output-port)]
-           [#:style default-style (or/c char? #f) #f]
-           [#:flow-style default-flow-style (or/c boolean? 'best) 'best])
+           [#:canonical canonical boolean? #f]
+           [#:indent indent exact-positive-integer? 2]
+           [#:width width exact-positive-integer? 80]
+           [#:line-break line-break (or/c "\r" "\n" "\r\n") "\n"]
+           [#:explicit-start explicit-start boolean? #f]
+           [#:explicit-end explicit-end boolean? #f]
+           [#:scalar scalar (or/c #\" #\' #\| #\> 'plain) 'plain]
+           [#:style style (or/c 'block 'flow 'best) 'best])
          void?]{
-Write Documentation.
+Equivalent to
+@racketblock[
+(write-yaml* (list document) out ....)
+]
 }
 
 @defproc[(write-yaml*
            [documents (listof yaml?)]
            [out output-port? (current-output-port)]
-           [#:style default-style (or/c char? #f) #f]
-           [#:flow-style default-flow-style (or/c boolean? 'best) 'best])
+           [#:canonical canonical boolean? #f]
+           [#:indent indent exact-positive-integer? 2]
+           [#:width width exact-positive-integer? 80]
+           [#:line-break line-break (or/c "\r" "\n" "\r\n") "\n"]
+           [#:explicit-start explicit-start boolean? #f]
+           [#:explicit-end explicit-end boolean? #f]
+           [#:scalar scalar (or/c #\" #\' #\| #\> 'plain) 'plain]
+           [#:style style (or/c 'block 'flow 'best) 'best])
          void?]{
-Write-all Documentation.
+Writes a sequence of Racket YAML expressions to @racket[out] as YAML
+text formatted with the keyword arguments. See the
+@link["http://www.yaml.org/spec/1.2/spec.html"]{YAML specification}
+for more information on style.
 }
 
 @defproc[(yaml->string
            [document yaml?]
-           [#:style default-style (or/c char? #f) #f]
-           [#:flow-style default-flow-style (or/c boolean? 'best) 'best])
+           [#:canonical canonical boolean? #f]
+           [#:indent indent exact-positive-integer? 2]
+           [#:width width exact-positive-integer? 80]
+           [#:line-break line-break (or/c "\r" "\n" "\r\n") "\n"]
+           [#:explicit-start explicit-start boolean? #f]
+           [#:explicit-end explicit-end boolean? #f]
+           [#:scalar scalar (or/c #\" #\' #\| #\> 'plain) 'plain]
+           [#:style style (or/c 'block 'flow 'best) 'best])
          string?]{
-To-string Documentation.
+Equivalent to
+@racketblock[
+(with-output-to-string
+  (λ () (write-yaml document ....)))
+]
 }
 
 @defproc[(yaml*->string
            [documents (listof yaml?)]
-           [#:style default-style (or/c char? #f) #f]
-           [#:flow-style default-flow-style (or/c boolean? 'best) 'best])
+           [#:canonical canonical boolean? #f]
+           [#:indent indent exact-positive-integer? 2]
+           [#:width width exact-positive-integer? 80]
+           [#:line-break line-break (or/c "\r" "\n" "\r\n") "\n"]
+           [#:explicit-start explicit-start boolean? #f]
+           [#:explicit-end explicit-end boolean? #f]
+           [#:scalar scalar (or/c #\" #\' #\| #\> 'plain) 'plain]
+           [#:style style (or/c 'block 'flow 'best) 'best])
          string?]{
-To-string-all Documentation.
+Equivalent to
+@racketblock[
+(with-output-to-string
+  (λ () (write-yaml* documents ....)))
+]
 }
