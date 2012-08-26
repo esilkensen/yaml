@@ -8,11 +8,11 @@
  (contract-out
   [yaml? (-> any/c boolean?)]
   [yaml-null (case-> (-> any/c) (-> any/c void?))]
-  [yaml-struct? (-> any/c boolean?)]
-  [gen->yaml (-> yaml-struct?
-                 (listof (cons/c string? yaml?)))]
-  [gen-order (-> yaml-struct? (listof string?))])
- yaml-struct)
+  [struct-yaml? (-> any/c boolean?)]
+  [gen->yaml (-> struct-yaml?
+                 (listof (cons/c string? yaml?)))])
+ struct-yaml
+ struct-yaml-constructors)
 
 (define yaml-null (make-parameter 'null))
 
@@ -23,7 +23,7 @@
       (exact-integer? v)
       (inexact-real? v)
       (date? v)
-      (yaml-struct? v)
+      (struct-yaml? v)
       (and (list? v)
            (not (null? v))
            (andmap yaml? v))
@@ -40,11 +40,13 @@
            (yaml? (car v))
            (yaml? (cdr v)))))
 
-(define-generics yaml-struct
-  (gen->yaml yaml-struct)
-  (gen-order yaml-struct))
+(define-generics struct-yaml
+  (gen->yaml struct-yaml)
+  (gen-order struct-yaml))
 
-(define-syntax (yaml-struct stx)
+(define struct-yaml-constructors (make-hash))
+
+(define-syntax (struct-yaml stx)
   (define (build-name id . parts)
     (let ([str (apply string-append
                       (map (λ (p)
@@ -59,18 +61,13 @@
                       `(cons ,(format "~a" (syntax->datum f))
                              ,(build-name #'id #'id "-" f)))
                     (syntax->list #'(field ...)))])
-       #`(struct id (field ...) struct-option ...
-                 #:methods gen:yaml-struct
-                 [(define (gen->yaml id)
-                    (map (λ (p)  `(,(car p) . ,((cdr p) id)))
-                         (list #,@fs)))
-                  (define (gen-order id)
-                    (map car (list #,@fs)))]))]))
-
-;;; idea: create some sort of static hash in this file that new
-;;; structs register themselves with in the macro expansion.
-;;; then in the constructor/representer/etc. and whatever code,
-;;; pull the new structs in during (make) procedures
-;;;
-;;; will almost certainly have to go back and implement the
-;;; multi-constructor stuff from pyyaml
+       #`(begin
+           (struct id (field ...) struct-option ...
+                   #:methods gen:struct-yaml
+                   [(define (gen->yaml id)
+                      (map (λ (p)  `(,(car p) . ,((cdr p) id)))
+                           (list #,@fs)))])
+           (hash-set!
+            struct-yaml-constructors
+            (symbol->string 'id)
+            (cons (map car (list #,@fs)) id))))]))

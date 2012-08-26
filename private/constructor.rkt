@@ -47,6 +47,7 @@
     (make-composer name in))
   
   (define yaml-constructors (make-hash))
+  (define yaml-multi-constructors (make-hash))
   (define constructed-objects (make-hash))
   (define recursive-objects (make-hash))
   (define deep-construct #f)
@@ -83,13 +84,29 @@
              #f "found unconstructable recursive node"
              (node-start node)))
           (hash-set! recursive-objects node #f)
-          (cond
-           [(hash-has-key? yaml-constructors (node-tag node))
-            (set! constructor (hash-ref yaml-constructors (node-tag node)))]
-           [else
-            (let ([break #f] [tag (node-tag node)])
+          (let ([tag (node-tag node)]
+                [break #f])
+            (cond
+             [(hash-has-key? yaml-multi-constructors tag)
+              (set! constructor (hash-ref yaml-multi-constructors tag))]
+             [(hash-has-key? yaml-constructors tag)
+              (set! constructor (hash-ref yaml-constructors tag))]
+             [else
+              (let loop ([ts (hash-keys yaml-multi-constructors)])
+                (unless (null? ts)
+                  (cond
+                   [(string-prefix? (car ts) tag)
+                    (set! tag-suffix
+                          (substring tag (string-length (car ts))))
+                    (set! constructor
+                          (hash-ref yaml-multi-constructors (car ts)))
+                    (set! break #t)]
+                   [else (loop (cdr ts))])))
               (unless break
                 (cond
+                 [(hash-has-key? yaml-multi-constructors #f)
+                  (set! tag-suffix tag)
+                  (set! constructor (hash-ref yaml-multi-constructors #f))]
                  [(hash-has-key? yaml-constructors #f)
                   (set! constructor (hash-ref yaml-constructors #f))]
                  [(scalar-node? node)
@@ -97,7 +114,7 @@
                  [(sequence-node? node)
                   (set! constructor construct-sequence)]
                  [(mapping-node? node)
-                  (set! constructor construct-mapping)])))])
+                  (set! constructor construct-mapping)]))]))
           (let ([data (if (not tag-suffix)
                           (constructor node)
                           (constructor tag-suffix node))])
@@ -342,8 +359,16 @@
              (node-tag node))
      (node-start node)))
 
+  (define (construct-racket-struct suffix node)
+    (printf "suffix = ~a\n" (pretty-format suffix))
+    (pretty-print (hash-ref struct-yaml-constructors suffix))
+    (error 'construct-racket-struct "yay!"))
+
   (define (add-constructor! tag constructor)
     (hash-set! yaml-constructors tag constructor))
+
+  (define (add-multi-constructor! tag-prefix multi-constructor)
+    (hash-set! yaml-multi-constructors tag-prefix multi-constructor))
   
   (add-constructor! "tag:yaml.org,2002:null" construct-yaml-null)
   (add-constructor! "tag:yaml.org,2002:bool" construct-yaml-bool)
@@ -359,5 +384,8 @@
   (add-constructor! "tag:yaml.org,2002:map" construct-yaml-map)
   (add-constructor! "tag:yaml.org,2002:racket/pair" construct-racket-pair)
   (add-constructor! #f construct-undefined)
+
+  (add-multi-constructor!
+   "tag:yaml.org,2002:racket/struct:" construct-racket-struct)
 
   (values check-data? get-data get-single-data))

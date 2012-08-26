@@ -62,15 +62,11 @@ A @deftech{YAML expression} is one of:
   @item{@racket[(cons/c yaml? yaml?)]}
   @item{a nonempty @racket[(listof yaml?)]}
   @item{a nonempty @racket[(hash/c yaml? yaml?)]}
-  @item{a nonempty @racket[(set/c yaml?)]}
-]
-}
+  @item{a nonempty @racket[(set/c yaml?)]}]}
 
 @defparam[yaml-null null any/c]{
-
 A parameter that determines the Racket value that corresponds to a YAML
-``@tt{null}'' (empty scalar) value. It is @racket['null] by default.
-}
+``@tt{null}'' (empty scalar) value. It is @racket['null] by default.}
 
 @section{Reading YAML}
 
@@ -82,8 +78,7 @@ Parses the first
 @link["http://www.yaml.org/spec/1.2/spec.html#id2800132"]{YAML document}
 from @racket[in] and returns the corresponding YAML expression in Racket.
 The @racket[source-name] is used to identify the source of the input in
-error messages.
-}
+error messages.}
 
 @defproc[(read-yaml*
            [source-name any/c 'input]
@@ -92,8 +87,7 @@ error messages.
 Like @racket[read-yaml], but parses @emph{all}
 @link["http://www.yaml.org/spec/1.2/spec.html#id2800132"]{YAML documents}
 from @racket[in] and returns a list of the corresponding YAML expressions
-in Racket.
-}
+in Racket.}
 
 @defproc[(string->yaml
            [str string?])
@@ -101,9 +95,7 @@ in Racket.
 Equivalent to
 @racketblock[
 (with-input-from-string str
-  (λ () (read-yaml 'string)))
-]
-}
+  (λ () (read-yaml 'string)))]}
 
 @defproc[(string->yaml*
            [str string?])
@@ -111,9 +103,7 @@ Equivalent to
 Equivalent to
 @racketblock[
 (with-input-from-string str
-  (λ () (read-yaml* 'string)))
-]
-}
+  (λ () (read-yaml* 'string)))]}
 
 @section{Writing YAML}
 
@@ -130,9 +120,7 @@ Equivalent to
          void?]{
 Equivalent to
 @racketblock[
-(write-yaml* (list document) out ....)
-]
-}
+(write-yaml* (list document) out ....)]}
 
 @defproc[(write-yaml*
            [documents (listof yaml?)]
@@ -148,8 +136,7 @@ Equivalent to
 Writes a sequence of Racket YAML expressions to @racket[out] as YAML
 text formatted with the keyword arguments. See the
 @link["http://www.yaml.org/spec/1.2/spec.html"]{YAML specification}
-for more information on style.
-}
+for more information on style.}
 
 @defproc[(yaml->string
            [document yaml?]
@@ -164,9 +151,7 @@ for more information on style.
 Equivalent to
 @racketblock[
 (with-output-to-string
-  (λ () (write-yaml document ....)))
-]
-}
+  (λ () (write-yaml document ....)))]}
 
 @defproc[(yaml*->string
            [documents (listof yaml?)]
@@ -181,9 +166,7 @@ Equivalent to
 Equivalent to
 @racketblock[
 (with-output-to-string
-  (λ () (write-yaml* documents ....)))
-]
-}
+  (λ () (write-yaml* documents ....)))]}
 
 @section{Extending YAML}
 

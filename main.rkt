@@ -12,7 +12,7 @@
  (except-out
   (all-from-out "private/yaml.rkt")
   gen->yaml
-  gen-order))
+  struct-yaml-constructors))
 
 (provide
  (contract-out [read-yaml (->* () (any/c input-port?) yaml?)]))
