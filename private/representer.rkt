@@ -175,6 +175,6 @@
   (add-representer! set? represent-set)
   (add-representer! date? represent-date)
   (add-representer! pair? represent-pair)
-  (add-representer! struct-yaml? represent-struct)
+  (add-representer! yaml-struct? represent-struct)
 
   (values represent))

@@ -360,13 +360,13 @@
      (node-start node)))
 
   (define (construct-racket-struct id node)
-    (unless (hash-has-key? struct-yaml-constructors id)
+    (unless (hash-has-key? yaml-struct-constructors id)
       (constructor-error
        #f
        (format "unrecognized struct ~a" id)
        (node-start node)))
-    (match-let ([(cons make-struct fields)
-                 (hash-ref struct-yaml-constructors id)]
+    (match-let ([(cons make-struct (list (cons fields _) ...))
+                 (hash-ref yaml-struct-constructors id)]
                 [state (construct-mapping node)])
       (for ([n (mapping-node-value node)])
         (let ([arg-node (car n)]

@@ -8,11 +8,11 @@
  (contract-out
   [yaml? (-> any/c boolean?)]
   [yaml-null (case-> (-> any/c) (-> any/c void?))]
-  [struct-yaml? (-> any/c boolean?)]
-  [gen->yaml (-> struct-yaml?
+  [yaml-struct? (-> any/c boolean?)]
+  [gen->yaml (-> yaml-struct?
                  (listof (cons/c string? yaml?)))])
- struct-yaml
- struct-yaml-constructors)
+ yaml-struct
+ yaml-struct-constructors)
 
 (define yaml-null (make-parameter 'null))
 
@@ -23,7 +23,7 @@
       (exact-integer? v)
       (inexact-real? v)
       (date? v)
-      (struct-yaml? v)
+      (yaml-struct? v)
       (and (list? v)
            (not (null? v))
            (andmap yaml? v))
@@ -40,13 +40,13 @@
            (yaml? (car v))
            (yaml? (cdr v)))))
 
-(define-generics struct-yaml
-  (gen->yaml struct-yaml)
-  (gen-order struct-yaml))
+(define-generics yaml-struct
+  (gen->yaml yaml-struct)
+  (gen-order yaml-struct))
 
-(define struct-yaml-constructors (make-hash))
+(define yaml-struct-constructors (make-hash))
 
-(define-syntax (struct-yaml stx)
+(define-syntax (yaml-struct stx)
   (define (build-name id . parts)
     (let ([str (apply string-append
                       (map (λ (p)
@@ -56,18 +56,51 @@
                            parts))])
       (datum->syntax id (string->symbol str) id)))
   (syntax-case stx ()
-    [(_ id (field ...) struct-option ...)
+    [(_ id super-id (field ...) struct-option ...)
+     (and (identifier? #'id)
+          (identifier? #'super-id))
      (let ([fs (map (λ (f)
                       `(cons ,(format "~a" (syntax->datum f))
                              ,(build-name #'id #'id "-" f)))
                     (syntax->list #'(field ...)))])
-       #`(begin
+       (quasisyntax/loc stx
+         (begin
+           (let ([sid (symbol->string 'super-id)])
+             (unless (hash-has-key? yaml-struct-constructors sid)
+               (raise-syntax-error
+                'yaml-struct
+                (format "~a not a yaml-struct" 'super-id))))
+           (struct id super-id (field ...) struct-option ...
+                   #:methods gen:yaml-struct
+                   [(define (gen->yaml id)
+                      (map (λ (p) `(,(car p) . ,((cdr p) id)))
+                           (let ([sid (symbol->string 'super-id)])
+                             (append
+                              (cdr (hash-ref yaml-struct-constructors sid))
+                              (list #,@fs)))))])
+           (let* ([sid (symbol->string 'super-id)]
+                  [sfs (cdr (hash-ref yaml-struct-constructors sid))])
+             (hash-set!
+              yaml-struct-constructors
+              (symbol->string 'id)
+              (cons id (append sfs (list #,@fs))))))))]
+    [(_ id (field ...) struct-option ...)
+     (identifier? #'id)
+     (let ([fs (map (λ (f)
+                      `(cons ,(format "~a" (syntax->datum f))
+                             ,(build-name #'id #'id "-" f)))
+                    (syntax->list #'(field ...)))])
+       (quasisyntax/loc stx
+         (begin
            (struct id (field ...) struct-option ...
-                   #:methods gen:struct-yaml
+                   #:methods gen:yaml-struct
                    [(define (gen->yaml id)
                       (map (λ (p)  `(,(car p) . ,((cdr p) id)))
                            (list #,@fs)))])
            (hash-set!
-            struct-yaml-constructors
+            yaml-struct-constructors
             (symbol->string 'id)
-            (cons id (map car (list #,@fs))))))]))
+            (cons id (list #,@fs))))))]
+    [(_ thing . _)
+     (raise-syntax-error
+      #f "expected an identifier for the structure type name" stx #'thing)]))
