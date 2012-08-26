@@ -11,13 +11,14 @@
 (: make-error (Symbol -> ((Option String) String mark -> Nothing)))
 (define (make-error type)
   (λ (context problem problem-mark)
-    (error type "~a~a\n~a:~a:~a: ~a"
-           (if (string? context)
-               (format "~a;\n " context) "")
-           problem
-           (mark-name problem-mark)
-           (mark-line problem-mark)
-           (mark-column problem-mark)
-           (vector-ref
-            (mark-buffer problem-mark)
-            (mark-index problem-mark)))))
+    (raise-user-error
+     (string->symbol
+      (format
+       "~a:~a:~a"
+       (mark-name problem-mark)
+       (mark-line problem-mark)
+       (mark-column problem-mark)))
+     "~a~a"
+     (if (string? context)
+         (format "~a;\n " context) "")
+     problem)))
