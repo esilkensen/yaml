@@ -70,4 +70,4 @@
            (hash-set!
             struct-yaml-constructors
             (symbol->string 'id)
-            (cons (map car (list #,@fs)) id))))]))
+            (cons id (map car (list #,@fs))))))]))

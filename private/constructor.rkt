@@ -359,10 +359,30 @@
              (node-tag node))
      (node-start node)))
 
-  (define (construct-racket-struct suffix node)
-    (printf "suffix = ~a\n" (pretty-format suffix))
-    (pretty-print (hash-ref struct-yaml-constructors suffix))
-    (error 'construct-racket-struct "yay!"))
+  (define (construct-racket-struct id node)
+    (unless (hash-has-key? struct-yaml-constructors id)
+      (constructor-error
+       #f
+       (format "unrecognized struct ~a" id)
+       (node-start node)))
+    (match-let ([(cons make-struct fields)
+                 (hash-ref struct-yaml-constructors id)]
+                [state (construct-mapping node)])
+      (for ([n (mapping-node-value node)])
+        (let ([arg-node (car n)]
+              [arg (scalar-node-value (car n))])
+          (unless (member arg fields)
+            (constructor-error
+             (format "unrecognized field for struct ~a" id)
+             (format "  field: ~a" (pretty-format arg))
+             (node-start arg-node)))))
+      (for ([f fields])
+        (unless (hash-has-key? state f)
+          (constructor-error
+           (format "missing expected field for struct ~a" id)
+           (format "  field: ~a" (pretty-format f))
+           (node-start node))))
+      (apply make-struct (map (λ (f) (hash-ref state f)) fields))))
 
   (define (add-constructor! tag constructor)
     (hash-set! yaml-constructors tag constructor))
