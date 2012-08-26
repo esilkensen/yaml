@@ -8,7 +8,11 @@
  "private/serializer.rkt"
  "private/yaml.rkt")
 
-(provide (all-from-out "private/yaml.rkt"))
+(provide
+ (except-out
+  (all-from-out "private/yaml.rkt")
+  gen->yaml
+  gen-order))
 
 (provide
  (contract-out [read-yaml (->* () (any/c input-port?) yaml?)]))
@@ -47,7 +51,6 @@
          #:canonical boolean?
          #:indent exact-positive-integer?
          #:width exact-positive-integer?
-         #:line-break (or/c "\r" "\n" "\r\n")
          #:explicit-start boolean?
          #:explicit-end boolean?
          #:scalar (or/c #\" #\' #\| #\> 'plain)
@@ -57,7 +60,6 @@
                     #:canonical [canonical #f]
                     #:indent [indent 2]
                     #:width [width 80]
-                    #:line-break [line-break "\n"]
                     #:explicit-start [explicit-start #f]
                     #:explicit-end [explicit-end #f]
                     #:scalar [scalar 'plain]
@@ -66,7 +68,6 @@
                #:canonical canonical
                #:indent indent
                #:width width
-               #:line-break line-break
                #:explicit-start explicit-start
                #:explicit-end explicit-end
                #:scalar scalar
@@ -80,7 +81,6 @@
          #:canonical boolean?
          #:indent exact-positive-integer?
          #:width exact-positive-integer?
-         #:line-break (or/c "\r" "\n" "\r\n")
          #:explicit-start boolean?
          #:explicit-end boolean?
          #:scalar (or/c #\" #\' #\| #\> 'plain)
@@ -90,7 +90,6 @@
                      #:canonical [canonical #f]
                      #:indent [indent 2]
                      #:width [width 80]
-                     #:line-break [line-break "\n"]
                      #:explicit-start [explicit-start #f]
                      #:explicit-end [explicit-end #f]
                      #:scalar [scalar 'plain]
@@ -100,7 +99,6 @@
                      #:canonical canonical
                      #:indent indent
                      #:width width
-                     #:line-break line-break
                      #:explicit-start explicit-start
                      #:explicit-end explicit-end))
   (define represent
@@ -119,7 +117,6 @@
         (#:canonical boolean?
          #:indent exact-positive-integer?
          #:width exact-positive-integer?
-         #:line-break (or/c "\r" "\n" "\r\n")
          #:explicit-start boolean?
          #:explicit-end boolean?
          #:scalar (or/c #\" #\' #\| #\> 'plain)
@@ -129,7 +126,6 @@
                       #:canonical [canonical #f]
                       #:indent [indent 2]
                       #:width [width 80]
-                      #:line-break [line-break "\n"]
                       #:explicit-start [explicit-start #f]
                       #:explicit-end [explicit-end #f]
                       #:scalar [scalar 'plain]
@@ -139,7 +135,6 @@
                       #:canonical canonical
                       #:indent indent
                       #:width width
-                      #:line-break line-break
                       #:explicit-start explicit-start
                       #:explicit-end explicit-end
                       #:scalar scalar
@@ -152,7 +147,6 @@
         (#:canonical boolean?
          #:indent exact-positive-integer?
          #:width exact-positive-integer?
-         #:line-break (or/c "\r" "\n" "\r\n")
          #:explicit-start boolean?
          #:explicit-end boolean?
          #:scalar (or/c #\" #\' #\| #\> 'plain)
@@ -162,7 +156,6 @@
                        #:canonical [canonical #f]
                        #:indent [indent 2]
                        #:width [width 80]
-                       #:line-break [line-break "\n"]
                        #:explicit-start [explicit-start #f]
                        #:explicit-end [explicit-end #f]
                        #:scalar [scalar 'plain]
@@ -172,7 +165,6 @@
                        #:canonical canonical
                        #:indent indent
                        #:width width
-                       #:line-break line-break
                        #:explicit-start explicit-start
                        #:explicit-end explicit-end
                        #:scalar scalar

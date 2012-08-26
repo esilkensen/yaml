@@ -123,7 +123,6 @@ Equivalent to
            [#:canonical canonical boolean? #f]
            [#:indent indent exact-positive-integer? 2]
            [#:width width exact-positive-integer? 80]
-           [#:line-break line-break (or/c "\r" "\n" "\r\n") "\n"]
            [#:explicit-start explicit-start boolean? #f]
            [#:explicit-end explicit-end boolean? #f]
            [#:scalar scalar (or/c #\" #\' #\| #\> 'plain) 'plain]
@@ -141,7 +140,6 @@ Equivalent to
            [#:canonical canonical boolean? #f]
            [#:indent indent exact-positive-integer? 2]
            [#:width width exact-positive-integer? 80]
-           [#:line-break line-break (or/c "\r" "\n" "\r\n") "\n"]
            [#:explicit-start explicit-start boolean? #f]
            [#:explicit-end explicit-end boolean? #f]
            [#:scalar scalar (or/c #\" #\' #\| #\> 'plain) 'plain]
@@ -158,7 +156,6 @@ for more information on style.
            [#:canonical canonical boolean? #f]
            [#:indent indent exact-positive-integer? 2]
            [#:width width exact-positive-integer? 80]
-           [#:line-break line-break (or/c "\r" "\n" "\r\n") "\n"]
            [#:explicit-start explicit-start boolean? #f]
            [#:explicit-end explicit-end boolean? #f]
            [#:scalar scalar (or/c #\" #\' #\| #\> 'plain) 'plain]
@@ -176,7 +173,6 @@ Equivalent to
            [#:canonical canonical boolean? #f]
            [#:indent indent exact-positive-integer? 2]
            [#:width width exact-positive-integer? 80]
-           [#:line-break line-break (or/c "\r" "\n" "\r\n") "\n"]
            [#:explicit-start explicit-start boolean? #f]
            [#:explicit-end explicit-end boolean? #f]
            [#:scalar scalar (or/c #\" #\' #\| #\> 'plain) 'plain]
@@ -188,3 +184,7 @@ Equivalent to
   (λ () (write-yaml* documents ....)))
 ]
 }
+
+@section{Extending YAML}
+
+Oh yeah!

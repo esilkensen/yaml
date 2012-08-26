@@ -153,6 +153,15 @@
     (let ([value (list (car data) (cdr data))])
       (represent-sequence "tag:yaml.org,2002:racket/pair" value)))
 
+  (define (represent-struct data)
+    (define-values (struct-type skipped?)
+      (struct-info data))
+    (define-values (name a b c d e f g)
+      (struct-type-info struct-type))
+    (represent-mapping
+     (format "tag:yaml.org,2002:racket/struct:~a" name)
+     (make-hash (gen->yaml data))))
+  
   (define (add-representer! type? representer)
     (append! yaml-representers (list (cons type? representer))))
 
@@ -166,5 +175,6 @@
   (add-representer! set? represent-set)
   (add-representer! date? represent-date)
   (add-representer! pair? represent-pair)
+  (add-representer! yaml-struct? represent-struct)
 
   (values represent))

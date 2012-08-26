@@ -54,7 +54,9 @@
         default-width
         80))
   (define best-line-break
-    (if (member line-break '("\r" "\n" "\r\n")) line-break "\n"))
+    (if (member line-break '("\r" "\n" "\r\n"))
+        line-break
+        (string #\newline)))
   (define tag-prefixes #f)
   (define prepared-anchor #f)
   (define prepared-tag #f)
