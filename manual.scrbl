@@ -27,6 +27,7 @@ to go from Racket values to YAML and back again.
 
 The @racket[write-yaml] procedure turns a Racket value into YAML output.
 Here it displays a sequence of mappings in @emph{flow style} (by default):
+
 @interaction[#:eval yaml-evaluator
 (write-yaml
  '(#hash(("name" . "Mark McGwire")
@@ -35,9 +36,11 @@ Here it displays a sequence of mappings in @emph{flow style} (by default):
    #hash(("name" . "Sammy Sosa")
          ("hr" . 63)
          ("avg" . 0.288))))]
+
 The @racket[string->yaml] procedure turns YAML text into a Racket value.
 Here it constructs the same sequence of mappings from above, where this
 time the YAML is in @emph{block style}:
+
 @interaction[#:eval yaml-evaluator
 (string->yaml
  (string-append
@@ -47,6 +50,15 @@ time the YAML is in @emph{block style}:
   "- name: Sammy Sosa\n"
   "  hr:   63\n"
   "  avg:  0.288\n"))]
+
+The @racket[yaml-struct] macro defines a @racket[struct] that can
+be written to and read from YAML:
+
+@interaction[#:eval yaml-evaluator
+(yaml-struct player (name hr avg) #:transparent)
+(write-yaml (player "Mark McGwire" 65 0.278))
+(string->yaml
+ "!!struct:player {hr: 65, avg: 0.278, name: Mark McGwire}")]
 
 @section{YAML Expressions}
 
@@ -62,11 +74,23 @@ A @deftech{YAML expression} is one of:
   @item{@racket[(cons/c yaml? yaml?)]}
   @item{a nonempty @racket[(listof yaml?)]}
   @item{a nonempty @racket[(hash/c yaml? yaml?)]}
-  @item{a nonempty @racket[(set/c yaml?)]}]}
+  @item{a nonempty @racket[(set/c yaml?)]}
+  @item{a @racket[yaml-struct?] whose fields are all @racket[yaml?]}]}
 
 @defparam[yaml-null null any/c]{
 A parameter that determines the Racket value that corresponds to a YAML
 ``@tt{null}'' (empty scalar) value. It is @racket['null] by default.}
+
+@defproc[(yaml-struct? [v any/c]) boolean?]{
+Returns @racket[#t] if @racket[v] is an instance of a YAML structure,
+@racket[#f] otherwise.}
+
+@defform[(yaml-struct id maybe-super (field ...)
+                      struct-option ...)]{
+Creates a new structure that can be used as a YAML expression. This
+macro expands to a call to @racket[struct] that uses @racket[#:methods]
+to register itself with the YAML implementation.
+}
 
 @section{Reading YAML}
 
@@ -109,18 +133,12 @@ Equivalent to
 
 @defproc[(write-yaml
            [document yaml?]
-           [out output-port? (current-output-port)]
-           [#:canonical canonical boolean? #f]
-           [#:indent indent exact-positive-integer? 2]
-           [#:width width exact-positive-integer? 80]
-           [#:explicit-start explicit-start boolean? #f]
-           [#:explicit-end explicit-end boolean? #f]
-           [#:scalar scalar (or/c #\" #\' #\| #\> 'plain) 'plain]
-           [#:style style (or/c 'block 'flow 'best) 'best])
+           [out output-port? (current-output-port)])
          void?]{
 Equivalent to
-@racketblock[
-(write-yaml* (list document) out ....)]}
+@racketblock[(write-yaml* (list document) out ....)]
+Accepts the same keyword arguments as @racket[write-yaml*]
+(represented above by @racket[....]).}
 
 @defproc[(write-yaml*
            [documents (listof yaml?)]
@@ -130,7 +148,7 @@ Equivalent to
            [#:width width exact-positive-integer? 80]
            [#:explicit-start explicit-start boolean? #f]
            [#:explicit-end explicit-end boolean? #f]
-           [#:scalar scalar (or/c #\" #\' #\| #\> 'plain) 'plain]
+           [#:scalar-style scalar-style (or/c #\" #\' #\| #\> 'plain) 'plain]
            [#:style style (or/c 'block 'flow 'best) 'best])
          void?]{
 Writes a sequence of Racket YAML expressions to @racket[out] as YAML
@@ -139,35 +157,21 @@ text formatted with the keyword arguments. See the
 for more information on style.}
 
 @defproc[(yaml->string
-           [document yaml?]
-           [#:canonical canonical boolean? #f]
-           [#:indent indent exact-positive-integer? 2]
-           [#:width width exact-positive-integer? 80]
-           [#:explicit-start explicit-start boolean? #f]
-           [#:explicit-end explicit-end boolean? #f]
-           [#:scalar scalar (or/c #\" #\' #\| #\> 'plain) 'plain]
-           [#:style style (or/c 'block 'flow 'best) 'best])
+           [document yaml?])
          string?]{
 Equivalent to
 @racketblock[
 (with-output-to-string
-  (λ () (write-yaml document ....)))]}
+  (λ () (write-yaml document ....)))]
+Accepts the same keyword arguments as @racket[write-yaml]
+(represented above by @racket[....]).}
 
 @defproc[(yaml*->string
-           [documents (listof yaml?)]
-           [#:canonical canonical boolean? #f]
-           [#:indent indent exact-positive-integer? 2]
-           [#:width width exact-positive-integer? 80]
-           [#:explicit-start explicit-start boolean? #f]
-           [#:explicit-end explicit-end boolean? #f]
-           [#:scalar scalar (or/c #\" #\' #\| #\> 'plain) 'plain]
-           [#:style style (or/c 'block 'flow 'best) 'best])
+           [documents (listof yaml?)])
          string?]{
 Equivalent to
 @racketblock[
 (with-output-to-string
-  (λ () (write-yaml* documents ....)))]}
-
-@section{Extending YAML}
-
-Oh yeah!
+  (λ () (write-yaml* documents ....)))]
+Accepts the same keyword arguments as @racket[write-yaml*]
+(represented above by @racket[....]).}
