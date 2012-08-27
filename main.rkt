@@ -53,7 +53,7 @@
          #:width exact-positive-integer?
          #:explicit-start boolean?
          #:explicit-end boolean?
-         #:scalar (or/c #\" #\' #\| #\> 'plain)
+         #:scalar-style (or/c #\" #\' #\| #\> 'plain)
          #:style (or/c 'block 'flow 'best))
         void?)]))
 (define (write-yaml document [out (current-output-port)]
@@ -62,7 +62,7 @@
                     #:width [width 80]
                     #:explicit-start [explicit-start #f]
                     #:explicit-end [explicit-end #f]
-                    #:scalar [scalar 'plain]
+                    #:scalar-style [scalar-style 'plain]
                     #:style [style 'best])
   (write-yaml* (list document) out
                #:canonical canonical
@@ -70,7 +70,7 @@
                #:width width
                #:explicit-start explicit-start
                #:explicit-end explicit-end
-               #:scalar scalar
+               #:scalar-style scalar-style
                #:style style))
 
 (provide
@@ -83,7 +83,7 @@
          #:width exact-positive-integer?
          #:explicit-start boolean?
          #:explicit-end boolean?
-         #:scalar (or/c #\" #\' #\| #\> 'plain)
+         #:scalar-style (or/c #\" #\' #\| #\> 'plain)
          #:style (or/c 'block 'flow 'best))
         void?)]))
 (define (write-yaml* documents [out (current-output-port)]
@@ -92,7 +92,7 @@
                      #:width [width 80]
                      #:explicit-start [explicit-start #f]
                      #:explicit-end [explicit-end #f]
-                     #:scalar [scalar 'plain]
+                     #:scalar-style [scalar-style 'plain]
                      #:style [style 'best])
   (define-values (open close serialize)
     (make-serializer out
@@ -102,9 +102,9 @@
                      #:explicit-start explicit-start
                      #:explicit-end explicit-end))
   (define represent
-    (let ([scalar (if (eq? 'plain scalar) #f scalar)]
+    (let ([scalar-style (if (eq? 'plain scalar-style) #f scalar-style)]
           [style (if (eq? 'best style) style (eq? 'flow style))])
-      (make-representer serialize #:scalar scalar #:style style)))
+      (make-representer serialize #:scalar-style scalar-style #:style style)))
   (open)
   (for ([data documents])
     (represent data))
@@ -119,7 +119,7 @@
          #:width exact-positive-integer?
          #:explicit-start boolean?
          #:explicit-end boolean?
-         #:scalar (or/c #\" #\' #\| #\> 'plain)
+         #:scalar-style (or/c #\" #\' #\| #\> 'plain)
          #:style (or/c 'block 'flow 'best))
         string?)]))
 (define (yaml->string document
@@ -128,7 +128,7 @@
                       #:width [width 80]
                       #:explicit-start [explicit-start #f]
                       #:explicit-end [explicit-end #f]
-                      #:scalar [scalar 'plain]
+                      #:scalar-style [scalar-style 'plain]
                       #:style [style 'best])
   (with-output-to-string
     (λ () (write-yaml document
@@ -137,7 +137,7 @@
                       #:width width
                       #:explicit-start explicit-start
                       #:explicit-end explicit-end
-                      #:scalar scalar
+                      #:scalar-style scalar-style
                       #:style style))))
 
 (provide
@@ -149,7 +149,7 @@
          #:width exact-positive-integer?
          #:explicit-start boolean?
          #:explicit-end boolean?
-         #:scalar (or/c #\" #\' #\| #\> 'plain)
+         #:scalar-style (or/c #\" #\' #\| #\> 'plain)
          #:style (or/c 'block 'flow 'best))
         string?)]))
 (define (yaml*->string documents
@@ -158,7 +158,7 @@
                        #:width [width 80]
                        #:explicit-start [explicit-start #f]
                        #:explicit-end [explicit-end #f]
-                       #:scalar [scalar 'plain]
+                       #:scalar-style [scalar-style 'plain]
                        #:style [style 'best])
   (with-output-to-string
     (λ () (write-yaml* documents
@@ -167,5 +167,5 @@
                        #:width width
                        #:explicit-start explicit-start
                        #:explicit-end explicit-end
-                       #:scalar scalar
+                       #:scalar-style scalar-style
                        #:style style))))

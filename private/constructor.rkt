@@ -347,7 +347,7 @@
   (define (construct-yaml-map node)
     (construct-mapping node))
 
-  (define (construct-racket-pair node)
+  (define (construct-yaml-pair node)
     (let ([value (sequence-node-value node)])
       (cons (construct-object (first value))
             (construct-object (second value)))))
@@ -359,7 +359,7 @@
              (node-tag node))
      (node-start node)))
 
-  (define (construct-racket-struct id node)
+  (define (construct-yaml-struct id node)
     (unless (hash-has-key? yaml-struct-constructors id)
       (constructor-error
        #f
@@ -402,10 +402,9 @@
   (add-constructor! "tag:yaml.org,2002:str" construct-yaml-str)
   (add-constructor! "tag:yaml.org,2002:seq" construct-yaml-seq)
   (add-constructor! "tag:yaml.org,2002:map" construct-yaml-map)
-  (add-constructor! "tag:yaml.org,2002:racket/pair" construct-racket-pair)
+  (add-constructor! "tag:yaml.org,2002:pair" construct-yaml-pair)
   (add-constructor! #f construct-undefined)
 
-  (add-multi-constructor!
-   "tag:yaml.org,2002:racket/struct:" construct-racket-struct)
+  (add-multi-constructor! "tag:yaml.org,2002:struct:" construct-yaml-struct)
 
   (values check-data? get-data get-single-data))

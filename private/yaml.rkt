@@ -69,7 +69,7 @@
              (unless (hash-has-key? yaml-struct-constructors sid)
                (raise-syntax-error
                 'yaml-struct
-                (format "~a not a yaml-struct" 'super-id))))
+                (format "parent not a yaml-struct\n  at: ~a" 'super-id))))
            (struct id super-id (field ...) struct-option ...
                    #:methods gen:yaml-struct
                    [(define (gen->yaml id)

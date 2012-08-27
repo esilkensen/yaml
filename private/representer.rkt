@@ -13,7 +13,7 @@
 (provide make-representer)
 
 (define (make-representer serialize
-                          #:scalar [default-style #f]
+                          #:scalar-style [default-style #f]
                           #:style [default-flow-style #f])
   (define yaml-representers '())
   (define represented-objects (make-hash))
@@ -151,7 +151,7 @@
 
   (define (represent-pair data)
     (let ([value (list (car data) (cdr data))])
-      (represent-sequence "tag:yaml.org,2002:racket/pair" value)))
+      (represent-sequence "tag:yaml.org,2002:pair" value)))
 
   (define (represent-struct data)
     (define-values (struct-type skipped?)
@@ -159,7 +159,7 @@
     (define-values (name a b c d e f g)
       (struct-type-info struct-type))
     (represent-mapping
-     (format "tag:yaml.org,2002:racket/struct:~a" name)
+     (format "tag:yaml.org,2002:struct:~a" name)
      (make-hash (gen->yaml data))))
   
   (define (add-representer! type? representer)
