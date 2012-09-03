@@ -1,5 +1,5 @@
-racket-yaml
-===========
+yaml
+====
 
 A YAML parser and emitter for Racket ported from [PyYAML](http://pyyaml.org). See
 [PLaneT](http://planet.racket-lang.org/package-source/esilkensen/yaml.plt/1/0/planet-docs/manual/index.html)
