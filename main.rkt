@@ -9,53 +9,79 @@
  "private/yaml.rkt")
 
 (provide
+ (contract-out
+  [read-yaml (() (input-port?) . ->* . yaml?)]
+  [read-yaml* (() (input-port?) . ->* . (listof yaml?))]
+  [string->yaml (string? . -> . yaml?)]
+  [string->yaml* (string? . -> . (listof yaml?))]
+  [write-yaml
+   ((yaml?)
+    (output-port?
+     #:canonical boolean?
+     #:indent exact-positive-integer?
+     #:width exact-positive-integer?
+     #:explicit-start boolean?
+     #:explicit-end boolean?
+     #:scalar-style (or/c #\" #\' #\| #\> 'plain)
+     #:style (or/c 'block 'flow 'best))
+    . ->* . void?)]
+  [write-yaml*
+   (((listof yaml?))
+    (output-port?
+     #:canonical boolean?
+     #:indent exact-positive-integer?
+     #:width exact-positive-integer?
+     #:explicit-start boolean?
+     #:explicit-end boolean?
+     #:scalar-style (or/c #\" #\' #\| #\> 'plain)
+     #:style (or/c 'block 'flow 'best))
+    . ->* . void?)]
+  [yaml->string
+   ((yaml?)
+    (#:canonical boolean?
+     #:indent exact-positive-integer?
+     #:width exact-positive-integer?
+     #:explicit-start boolean?
+     #:explicit-end boolean?
+     #:scalar-style (or/c #\" #\' #\| #\> 'plain)
+     #:style (or/c 'block 'flow 'best))
+    . ->* . string?)]
+  [yaml*->string
+   (((listof yaml?))
+    (#:canonical boolean?
+     #:indent exact-positive-integer?
+     #:width exact-positive-integer?
+     #:explicit-start boolean?
+     #:explicit-end boolean?
+     #:scalar-style (or/c #\" #\' #\| #\> 'plain)
+     #:style (or/c 'block 'flow 'best))
+    . ->* . string?)])
  (except-out
   (all-from-out "private/yaml.rkt")
   gen->yaml
   yaml-struct-constructors))
 
-(provide
- (contract-out [read-yaml (->* () (any/c input-port?) yaml?)]))
-(define (read-yaml [source-name 'input] [in (current-input-port)])
+(define (read-yaml [in (current-input-port)])
   (define-values (check-data? get-data get-single-data)
-    (make-constructor source-name in))
+    (make-constructor in))
   (get-single-data))
 
-(provide
- (contract-out [read-yaml* (->* () (any/c input-port?) (listof yaml?))]))
-(define (read-yaml* [source-name 'input] [in (current-input-port)])
+(define (read-yaml* [in (current-input-port)])
   (define-values (check-data? get-data get-single-data)
-    (make-constructor source-name in))
+    (make-constructor in))
   (let loop ([docs '()])
     (if (check-data?)
         (loop (cons (get-data) docs))
         (reverse docs))))
 
-(provide
- (contract-out [string->yaml (-> string? yaml?)]))
 (define (string->yaml str)
   (with-input-from-string str
-    (λ () (read-yaml 'string))))
+    (λ () (read-yaml))))
 
-(provide
- (contract-out [string->yaml* (-> string? (listof yaml?))]))
 (define (string->yaml* str)
   (with-input-from-string str
-    (λ () (read-yaml* 'string))))
+    (λ () (read-yaml*))))
 
-(provide
- (contract-out
-  [write-yaml
-   (->* (yaml?)
-        (output-port?
-         #:canonical boolean?
-         #:indent exact-positive-integer?
-         #:width exact-positive-integer?
-         #:explicit-start boolean?
-         #:explicit-end boolean?
-         #:scalar-style (or/c #\" #\' #\| #\> 'plain)
-         #:style (or/c 'block 'flow 'best))
-        void?)]))
 (define (write-yaml document [out (current-output-port)]
                     #:canonical [canonical #f]
                     #:indent [indent 2]
@@ -73,19 +99,6 @@
                #:scalar-style scalar-style
                #:style style))
 
-(provide
- (contract-out
-  [write-yaml*
-   (->* ((listof yaml?))
-        (output-port?
-         #:canonical boolean?
-         #:indent exact-positive-integer?
-         #:width exact-positive-integer?
-         #:explicit-start boolean?
-         #:explicit-end boolean?
-         #:scalar-style (or/c #\" #\' #\| #\> 'plain)
-         #:style (or/c 'block 'flow 'best))
-        void?)]))
 (define (write-yaml* documents [out (current-output-port)]
                      #:canonical [canonical #f]
                      #:indent [indent 2]
@@ -110,18 +123,6 @@
     (represent data))
   (close))
 
-(provide
- (contract-out
-  [yaml->string
-   (->* (yaml?)
-        (#:canonical boolean?
-         #:indent exact-positive-integer?
-         #:width exact-positive-integer?
-         #:explicit-start boolean?
-         #:explicit-end boolean?
-         #:scalar-style (or/c #\" #\' #\| #\> 'plain)
-         #:style (or/c 'block 'flow 'best))
-        string?)]))
 (define (yaml->string document
                       #:canonical [canonical #f]
                       #:indent [indent 2]
@@ -140,18 +141,6 @@
                       #:scalar-style scalar-style
                       #:style style))))
 
-(provide
- (contract-out
-  [yaml*->string
-   (->* ((listof yaml?))
-        (#:canonical boolean?
-         #:indent exact-positive-integer?
-         #:width exact-positive-integer?
-         #:explicit-start boolean?
-         #:explicit-end boolean?
-         #:scalar-style (or/c #\" #\' #\| #\> 'plain)
-         #:style (or/c 'block 'flow 'best))
-        string?)]))
 (define (yaml*->string documents
                        #:canonical [canonical #f]
                        #:indent [indent 2]

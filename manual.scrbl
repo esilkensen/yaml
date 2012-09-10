@@ -95,17 +95,13 @@ to register itself with the YAML implementation.
 @section{Reading YAML}
 
 @defproc[(read-yaml
-           [source-name any/c 'input]
            [in input-port? (current-input-port)])
          yaml?]{
 Parses the first
 @link["http://www.yaml.org/spec/1.2/spec.html#id2800132"]{YAML document}
-from @racket[in] and returns the corresponding YAML expression in Racket.
-The @racket[source-name] is used to identify the source of the input in
-error messages.}
+from @racket[in] and returns the corresponding YAML expression in Racket.}
 
 @defproc[(read-yaml*
-           [source-name any/c 'input]
            [in input-port? (current-input-port)])
          (listof yaml?)]{
 Like @racket[read-yaml], but parses @emph{all}

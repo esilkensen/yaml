@@ -20,29 +20,27 @@
 (define composer-error (make-error 'composer))
 
 (define (compose-file filename)
-  (with-input-from-file filename
-    (λ () (compose-all filename))))
+  (with-input-from-file filename compose-all))
 
 (define (compose-string string)
-  (with-input-from-string string
-    (λ () (compose-all "<string>"))))
+  (with-input-from-string string compose-all))
 
-(define (compose [name "<input>"] [in (current-input-port)])
+(define (compose [in (current-input-port)])
   (define-values (check-node? get-node get-single-node)
-    (make-composer name in))
+    (make-composer in))
   (get-single-node))
 
-(define (compose-all [name "<input>"] [in (current-input-port)])
+(define (compose-all [in (current-input-port)])
   (define-values (check-node? get-node get-single-node)
-    (make-composer name in))
+    (make-composer in))
   (let loop ([nodes '()])
     (if (check-node?)
         (loop (cons (get-node) nodes))
         (reverse nodes))))
 
-(define (make-composer [name "<input>"] [in (current-input-port)])
+(define (make-composer [in (current-input-port)])
   (define-values (check-event? peek-event get-event)
-    (make-parser name in))
+    (make-parser in))
   
   (define anchors (make-hash))
 

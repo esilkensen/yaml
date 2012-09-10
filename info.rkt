@@ -5,3 +5,5 @@
 (define categories '(net datastructures misc))
 (define repositories '("4.x"))
 (define scribblings '(("manual.scrbl" (user-doc) (parsing-library))))
+(define release-notes
+  '("Removed source-name argument from read-yaml procedures."))

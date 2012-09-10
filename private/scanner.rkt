@@ -11,16 +11,14 @@
 (provide scan-file scan-string scan make-scanner)
 
 (define (scan-file filename)
-  (with-input-from-file filename
-    (λ () (scan filename))))
+  (with-input-from-file filename scan))
 
 (define (scan-string string)
-  (with-input-from-string string
-    (λ () (scan "<string>"))))
+  (with-input-from-string string scan))
 
-(define (scan [name "<input>"] [in (current-input-port)])
+(define (scan [in (current-input-port)])
   (define-values (check-token? peek-token get-token)
-    (make-scanner name in))
+    (make-scanner in))
   (let loop ([tokens '()])
     (if (token? (peek-token))
         (loop (cons (get-token) tokens))
@@ -30,7 +28,7 @@
 
 (struct simple-key (token-number required? index line column mark))
 
-(define (make-scanner [name "<input>"] [in (current-input-port)])
+(define (make-scanner [in (current-input-port)])
   (define line 0)
   (define column 0)
   (define index 0)
@@ -76,6 +74,12 @@
       (set! index tmp-index)))
 
   (define (get-mark)
+    (define name
+      (if (path? (object-name in))
+          (let-values ([(path-base path-name path-dir?)
+                        (split-path (object-name in))])
+            path-name)
+          (object-name in)))
     (mark name index line column buffer))
 
   (define (add-token! token)

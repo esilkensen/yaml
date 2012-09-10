@@ -17,16 +17,14 @@
  make-parser)
 
 (define (parse-file filename)
-  (with-input-from-file filename
-    (λ () (parse filename))))
+  (with-input-from-file filename parse))
 
 (define (parse-string string)
-  (with-input-from-string string
-    (λ () (parse "<string>"))))
+  (with-input-from-string string parse))
 
-(define (parse [name "<input>"] [in (current-input-port)])
+(define (parse [in (current-input-port)])
   (define-values (check-event? peek-event get-event)
-    (make-parser name in))
+    (make-parser in))
   (let loop ([events '()])
     (if (event? (peek-event))
         (loop (cons (get-event) events))
@@ -34,9 +32,9 @@
 
 (define parser-error (make-error 'parser))
 
-(define (make-parser [name "<input>"] [in (current-input-port)])
+(define (make-parser [in (current-input-port)])
   (define-values (check-token? peek-token get-token)
-    (make-scanner name in))
+    (make-scanner in))
 
   (define DEFAULT-TAGS #hash(("!" . "!") ("!!" . "tag:yaml.org,2002:")))
 

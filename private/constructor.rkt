@@ -22,29 +22,27 @@
 (define constructor-error (make-error 'constructor))
 
 (define (construct-file filename)
-  (with-input-from-file filename
-    (λ () (construct-all filename))))
+  (with-input-from-file filename construct-all))
 
 (define (construct-string string)
-  (with-input-from-string string
-    (λ () (construct-all "<string>"))))
+  (with-input-from-string string construct-all))
 
-(define (construct [name "<input>"] [in (current-input-port)])
+(define (construct [in (current-input-port)])
   (define-values (check-data? get-data get-single-data)
-    (make-constructor name in))
+    (make-constructor in))
   (get-single-data))
 
-(define (construct-all [name "<input>"] [in (current-input-port)])
+(define (construct-all [in (current-input-port)])
   (define-values (check-data? get-data get-single-data)
-    (make-constructor name in))
+    (make-constructor in))
   (let loop ([data '()])
     (if (check-data?)
         (loop (cons (get-data) data))
         (reverse data))))
 
-(define (make-constructor [name "<input>"] [in (current-input-port)])
+(define (make-constructor [in (current-input-port)])
   (define-values (check-node? get-node get-single-node)
-    (make-composer name in))
+    (make-composer in))
   
   (define yaml-constructors (make-hash))
   (define yaml-multi-constructors (make-hash))
