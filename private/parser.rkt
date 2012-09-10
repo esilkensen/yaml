@@ -117,6 +117,7 @@
         (match-let ([(cons version tags) (process-directives)])
           (unless (check-token? document-start-token?)
             (parser-error
+             #f
              (format "expected '<document start>', but found ~a"
                      (token->string (peek-token)))
              (token-start (peek-token))))

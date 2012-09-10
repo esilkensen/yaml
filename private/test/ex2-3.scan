@@ -1,8 +1,8 @@
-stream-start-token()
+'<stream start>'
 block-mapping-start-token()
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="american")
-value-token()
+':'
 block-sequence-start-token()
 block-entry-token()
 scalar-token(plain=#t, style=#f, value="Boston Red Sox")
@@ -11,9 +11,9 @@ scalar-token(plain=#t, style=#f, value="Detroit Tigers")
 block-entry-token()
 scalar-token(plain=#t, style=#f, value="New York Yankees")
 block-end-token()
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="national")
-value-token()
+':'
 block-sequence-start-token()
 block-entry-token()
 scalar-token(plain=#t, style=#f, value="New York Mets")
@@ -23,4 +23,4 @@ block-entry-token()
 scalar-token(plain=#t, style=#f, value="Atlanta Braves")
 block-end-token()
 block-end-token()
-stream-end-token()
+'<stream end>'

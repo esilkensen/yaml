@@ -1,27 +1,27 @@
-stream-start-token()
+'<stream start>'
 document-start-token()
 tag-token(value=("!!" . "omap"))
 block-sequence-start-token()
 block-entry-token()
 block-mapping-start-token()
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="Mark McGwire")
-value-token()
+':'
 scalar-token(plain=#t, style=#f, value="65")
 block-end-token()
 block-entry-token()
 block-mapping-start-token()
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="Sammy Sosa")
-value-token()
+':'
 scalar-token(plain=#t, style=#f, value="63")
 block-end-token()
 block-entry-token()
 block-mapping-start-token()
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="Ken Griffy")
-value-token()
+':'
 scalar-token(plain=#t, style=#f, value="58")
 block-end-token()
 block-end-token()
-stream-end-token()
+'<stream end>'

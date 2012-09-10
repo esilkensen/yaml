@@ -1,30 +1,30 @@
-stream-start-token()
+'<stream start>'
 block-mapping-start-token()
-key-token()
+'?'
 block-sequence-start-token()
 block-entry-token()
 scalar-token(plain=#t, style=#f, value="Detroit Tigers")
 block-entry-token()
 scalar-token(plain=#t, style=#f, value="Chicago cubs")
 block-end-token()
-value-token()
+':'
 block-sequence-start-token()
 block-entry-token()
 scalar-token(plain=#t, style=#f, value="2001-07-23")
 block-end-token()
-key-token()
-flow-sequence-start-token()
+'?'
+'['
 scalar-token(plain=#t, style=#f, value="New York Yankees")
-flow-entry-token()
+','
 scalar-token(plain=#t, style=#f, value="Atlanta Braves")
-flow-sequence-end-token()
-value-token()
-flow-sequence-start-token()
+']'
+':'
+'['
 scalar-token(plain=#t, style=#f, value="2001-07-02")
-flow-entry-token()
+','
 scalar-token(plain=#t, style=#f, value="2001-08-12")
-flow-entry-token()
+','
 scalar-token(plain=#t, style=#f, value="2001-08-14")
-flow-sequence-end-token()
+']'
 block-end-token()
-stream-end-token()
+'<stream end>'

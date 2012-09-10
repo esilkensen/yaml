@@ -1,4 +1,4 @@
-stream-start-token()
+'<stream start>'
 document-start-token()
 block-sequence-start-token()
 block-entry-token()
@@ -15,4 +15,4 @@ scalar-token(plain=#t, style=#f, value="Chicago Cubs")
 block-entry-token()
 scalar-token(plain=#t, style=#f, value="St Louis Cardinals")
 block-end-token()
-stream-end-token()
+'<stream end>'

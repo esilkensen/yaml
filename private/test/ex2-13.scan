@@ -1,4 +1,4 @@
-stream-start-token()
+'<stream start>'
 document-start-token()
 scalar-token(plain=#f, style=#\|, value="\\//||\\/||\n// ||  ||__\n")
-stream-end-token()
+'<stream end>'

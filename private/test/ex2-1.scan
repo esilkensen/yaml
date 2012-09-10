@@ -1,4 +1,4 @@
-stream-start-token()
+'<stream start>'
 block-sequence-start-token()
 block-entry-token()
 scalar-token(plain=#t, style=#f, value="Mark McGwire")
@@ -7,4 +7,4 @@ scalar-token(plain=#t, style=#f, value="Sammy Sosa")
 block-entry-token()
 scalar-token(plain=#t, style=#f, value="Ken Griffey")
 block-end-token()
-stream-end-token()
+'<stream end>'

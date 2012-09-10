@@ -1,28 +1,28 @@
-stream-start-token()
+'<stream start>'
 block-mapping-start-token()
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="unicode")
-value-token()
+':'
 scalar-token(plain=#f, style=#\", value="Sosa did fine.☺")
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="control")
-value-token()
+':'
 scalar-token(plain=#f, style=#\", value="\b1998\t1999\t2000\n")
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="hex esc")
-value-token()
+':'
 scalar-token(plain=#f, style=#\", value="\r\n is \r\n")
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="single")
-value-token()
+':'
 scalar-token(plain=#f, style=#\', value="\"Howdy!\" he cried.")
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="quoted")
-value-token()
+':'
 scalar-token(plain=#f, style=#\', value=" # Not a 'comment'.")
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="tie-fighter")
-value-token()
+':'
 scalar-token(plain=#f, style=#\', value="|\\-*-/|")
 block-end-token()
-stream-end-token()
+'<stream end>'

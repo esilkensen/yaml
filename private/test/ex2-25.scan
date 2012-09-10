@@ -1,12 +1,12 @@
-stream-start-token()
+'<stream start>'
 document-start-token()
 tag-token(value=("!!" . "set"))
 block-mapping-start-token()
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="Mark McGwire")
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="Sammy Sosa")
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="Ken Griff")
 block-end-token()
-stream-end-token()
+'<stream end>'

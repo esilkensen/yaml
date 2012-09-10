@@ -1,16 +1,16 @@
-stream-start-token()
+'<stream start>'
 block-mapping-start-token()
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="hr")
-value-token()
+':'
 scalar-token(plain=#t, style=#f, value="65")
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="avg")
-value-token()
+':'
 scalar-token(plain=#t, style=#f, value="0.278")
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="rbi")
-value-token()
+':'
 scalar-token(plain=#t, style=#f, value="147")
 block-end-token()
-stream-end-token()
+'<stream end>'

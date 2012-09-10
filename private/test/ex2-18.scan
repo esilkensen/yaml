@@ -1,12 +1,12 @@
-stream-start-token()
+'<stream start>'
 block-mapping-start-token()
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="plain")
-value-token()
+':'
 scalar-token(plain=#t, style=#f, value="This unquoted scalar spans many lines.")
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="quoted")
-value-token()
+':'
 scalar-token(plain=#f, style=#\", value="So does this quoted scalar.\n")
 block-end-token()
-stream-end-token()
+'<stream end>'

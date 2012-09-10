@@ -37,7 +37,8 @@
              (fprintf out "~a\n" (s->string name)))
            (define-syntax (s: stx)
              (syntax-case stx (:)
-               [(_ in ([in-field : in-type] (... ...)) in-options (... ...))
+               [(_ in in-value ([in-field : in-type] (... ...))
+                   in-options (... ...))
                 (with-syntax
                     ([t-s (build-name #'in #'in "-" #'name)]
                      [t-s? (build-name #'in #'in "-" #'name "?")]
@@ -61,10 +62,17 @@
                                       (λ: ([p : (Pairof String (t-s -> Any))])
                                         (format "~a=~s" (car p) ((cdr p) t)))]
                                      [fields (map attr->string (list #,@fs))])
-                                (format "~a(~a)"
-                                        't-s (string-join fields ", ")))
+                                (if (string? in-value)
+                                    (format "'~a'" in-value)
+                                    (format "~a(~a)"
+                                            't-s (string-join fields ", "))))
                               (let ([msg "unexpected ~a type"])
                                 (error 't-s->string msg 'name))))
                         (hash-set! s-strings t-s? t-s->string))))]
+               [(_ in ([in-field : in-type] (... ...)) in-options (... ...))
+                #'(s: in #f ([in-field : in-type] (... ...))
+                      in-options (... ...))]
+               [(_ in in-value in-options (... ...))
+                #'(s: in in-value () in-options (... ...))]
                [(_ in in-options (... ...))
-                #`(s: in () in-options (... ...))]))))]))
+                #'(s: in #f () in-options (... ...))]))))]))

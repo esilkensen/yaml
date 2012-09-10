@@ -1,16 +1,16 @@
-stream-start-token()
+'<stream start>'
 block-mapping-start-token()
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="name")
-value-token()
+':'
 scalar-token(plain=#t, style=#f, value="Mark McGwire")
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="accomplishment")
-value-token()
+':'
 scalar-token(plain=#f, style=#\>, value="Mark set a major league home run record in 1998.\n")
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="stats")
-value-token()
+':'
 scalar-token(plain=#f, style=#\|, value="65 Home Runs\n0.278 Batting Average\n")
 block-end-token()
-stream-end-token()
+'<stream end>'

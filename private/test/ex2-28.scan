@@ -1,82 +1,82 @@
-stream-start-token()
+'<stream start>'
 document-start-token()
 block-mapping-start-token()
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="Time")
-value-token()
+':'
 scalar-token(plain=#t, style=#f, value="2001-11-23 15:01:42 -5")
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="User")
-value-token()
+':'
 scalar-token(plain=#t, style=#f, value="ed")
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="Warning")
-value-token()
+':'
 scalar-token(plain=#t, style=#f, value="This is an error message for the log file")
 block-end-token()
 document-start-token()
 block-mapping-start-token()
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="Time")
-value-token()
+':'
 scalar-token(plain=#t, style=#f, value="2001-11-23 15:02:31 -5")
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="User")
-value-token()
+':'
 scalar-token(plain=#t, style=#f, value="ed")
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="Warning")
-value-token()
+':'
 scalar-token(plain=#t, style=#f, value="A slightly different error message.")
 block-end-token()
 document-start-token()
 block-mapping-start-token()
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="Date")
-value-token()
+':'
 scalar-token(plain=#t, style=#f, value="2001-11-23 15:03:17 -5")
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="User")
-value-token()
+':'
 scalar-token(plain=#t, style=#f, value="ed")
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="Fatal")
-value-token()
+':'
 scalar-token(plain=#t, style=#f, value="Unknown variable \"bar\"")
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="Stack")
-value-token()
+':'
 block-sequence-start-token()
 block-entry-token()
 block-mapping-start-token()
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="file")
-value-token()
+':'
 scalar-token(plain=#t, style=#f, value="TopClass.py")
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="line")
-value-token()
+':'
 scalar-token(plain=#t, style=#f, value="23")
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="code")
-value-token()
+':'
 scalar-token(plain=#f, style=#\|, value="x = MoreObject(\"345\\n\")\n")
 block-end-token()
 block-entry-token()
 block-mapping-start-token()
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="file")
-value-token()
+':'
 scalar-token(plain=#t, style=#f, value="MoreClass.py")
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="line")
-value-token()
+':'
 scalar-token(plain=#t, style=#f, value="58")
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="code")
-value-token()
+':'
 scalar-token(plain=#f, style=#\|, value="foo = bar")
 block-end-token()
 block-end-token()
 block-end-token()
-stream-end-token()
+'<stream end>'

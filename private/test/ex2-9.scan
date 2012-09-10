@@ -1,18 +1,18 @@
-stream-start-token()
+'<stream start>'
 document-start-token()
 block-mapping-start-token()
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="hr")
-value-token()
+':'
 block-sequence-start-token()
 block-entry-token()
 scalar-token(plain=#t, style=#f, value="Mark McGwire")
 block-entry-token()
 scalar-token(plain=#t, style=#f, value="Sammy Sosa")
 block-end-token()
-key-token()
+'?'
 scalar-token(plain=#t, style=#f, value="rbi")
-value-token()
+':'
 block-sequence-start-token()
 block-entry-token()
 scalar-token(plain=#t, style=#f, value="Sammy Sosa")
@@ -20,4 +20,4 @@ block-entry-token()
 scalar-token(plain=#t, style=#f, value="Ken Griffey")
 block-end-token()
 block-end-token()
-stream-end-token()
+'<stream end>'
