@@ -71,13 +71,13 @@
                 'yaml-struct
                 (format "parent not a yaml-struct\n  at: ~a" 'super-id))))
            (struct id super-id (field ...) struct-option ...
-                   #:methods gen:yaml-struct
-                   [(define (gen->yaml id)
-                      (map (λ (p) `(,(car p) . ,((cdr p) id)))
-                           (let ([sid (symbol->string 'super-id)])
-                             (append
-                              (cdr (hash-ref yaml-struct-constructors sid))
-                              (list #,@fs)))))])
+             #:methods gen:yaml-struct
+             [(define (gen->yaml id)
+                (map (λ (p) `(,(car p) . ,((cdr p) id)))
+                     (let ([sid (symbol->string 'super-id)])
+                       (append
+                        (cdr (hash-ref yaml-struct-constructors sid))
+                        (list #,@fs)))))])
            (let* ([sid (symbol->string 'super-id)]
                   [sfs (cdr (hash-ref yaml-struct-constructors sid))])
              (hash-set!
@@ -93,10 +93,10 @@
        (quasisyntax/loc stx
          (begin
            (struct id (field ...) struct-option ...
-                   #:methods gen:yaml-struct
-                   [(define (gen->yaml id)
-                      (map (λ (p)  `(,(car p) . ,((cdr p) id)))
-                           (list #,@fs)))])
+             #:methods gen:yaml-struct
+             [(define (gen->yaml id)
+                (map (λ (p)  `(,(car p) . ,((cdr p) id)))
+                     (list #,@fs)))])
            (hash-set!
             yaml-struct-constructors
             (symbol->string 'id)

@@ -9,7 +9,7 @@
 (define DEFAULT-MAPPING-TAG "tag:yaml.org,2002:map")
 (define yaml-implicit-resolvers (make-hash))
 (define yaml-path-resolvers (make-hash))
-  
+
 (define (resolve kind value implicit)
   (call/cc
    (λ (return)

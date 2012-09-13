@@ -49,25 +49,25 @@
   (define constructed-objects (make-hash))
   (define recursive-objects (make-hash))
   (define deep-construct #f)
-
+  
   (define (check-data?)
     (check-node?))
   
   (define (get-data)
     (when (check-node?)
       (construct-document (get-node))))
-
+  
   (define (get-single-data)
     (let ([node (get-single-node)])
       (and node (construct-document node))))
-
+  
   (define (construct-document node)
     (let ([data (construct-object node)])
       (set! constructed-objects (make-hash))
       (set! recursive-objects (make-hash))
       (set! deep-construct #f)
       data))
-
+  
   (define (construct-object node [deep #f])
     (if (hash-has-key? constructed-objects node)
         (hash-ref constructed-objects node)
@@ -85,34 +85,34 @@
           (let ([tag (node-tag node)]
                 [break #f])
             (cond
-             [(hash-has-key? yaml-multi-constructors tag)
-              (set! constructor (hash-ref yaml-multi-constructors tag))]
-             [(hash-has-key? yaml-constructors tag)
-              (set! constructor (hash-ref yaml-constructors tag))]
-             [else
-              (let loop ([ts (hash-keys yaml-multi-constructors)])
-                (unless (null? ts)
-                  (cond
-                   [(string-prefix? (car ts) tag)
-                    (set! tag-suffix
-                          (substring tag (string-length (car ts))))
-                    (set! constructor
-                          (hash-ref yaml-multi-constructors (car ts)))
-                    (set! break #t)]
-                   [else (loop (cdr ts))])))
-              (unless break
-                (cond
-                 [(hash-has-key? yaml-multi-constructors #f)
-                  (set! tag-suffix tag)
-                  (set! constructor (hash-ref yaml-multi-constructors #f))]
-                 [(hash-has-key? yaml-constructors #f)
-                  (set! constructor (hash-ref yaml-constructors #f))]
-                 [(scalar-node? node)
-                  (set! constructor construct-scalar)]
-                 [(sequence-node? node)
-                  (set! constructor construct-sequence)]
-                 [(mapping-node? node)
-                  (set! constructor construct-mapping)]))]))
+              [(hash-has-key? yaml-multi-constructors tag)
+               (set! constructor (hash-ref yaml-multi-constructors tag))]
+              [(hash-has-key? yaml-constructors tag)
+               (set! constructor (hash-ref yaml-constructors tag))]
+              [else
+               (let loop ([ts (hash-keys yaml-multi-constructors)])
+                 (unless (null? ts)
+                   (cond
+                     [(string-prefix? (car ts) tag)
+                      (set! tag-suffix
+                            (substring tag (string-length (car ts))))
+                      (set! constructor
+                            (hash-ref yaml-multi-constructors (car ts)))
+                      (set! break #t)]
+                     [else (loop (cdr ts))])))
+               (unless break
+                 (cond
+                   [(hash-has-key? yaml-multi-constructors #f)
+                    (set! tag-suffix tag)
+                    (set! constructor (hash-ref yaml-multi-constructors #f))]
+                   [(hash-has-key? yaml-constructors #f)
+                    (set! constructor (hash-ref yaml-constructors #f))]
+                   [(scalar-node? node)
+                    (set! constructor construct-scalar)]
+                   [(sequence-node? node)
+                    (set! constructor construct-sequence)]
+                   [(mapping-node? node)
+                    (set! constructor construct-mapping)]))]))
           (let ([data (if (not tag-suffix)
                           (constructor node)
                           (constructor tag-suffix node))])
@@ -121,7 +121,7 @@
             (when deep
               (set! deep-construct old-deep))
             data))))
-
+  
   (define (construct-scalar node)
     (unless (scalar-node? node)
       (constructor-error
@@ -129,7 +129,7 @@
                   (node->string-rec node))
        (node-start node)))
     (scalar-node-value node))
-
+  
   (define (construct-sequence node [deep #f])
     (unless (sequence-node? node)
       (constructor-error
@@ -140,7 +140,7 @@
      (λ (child)
        (construct-object child deep))
      (sequence-node-value node)))
-
+  
   (define (construct-mapping node [deep #f])
     (unless (mapping-node? node)
       (constructor-error
@@ -154,7 +154,7 @@
                  [value (construct-object value-node deep)])
             (hash-set! mapping key value))))
       mapping))
-
+  
   (define (construct-pairs node [deep #f])
     (unless (mapping-node? node)
       (constructor-error
@@ -166,20 +166,20 @@
         (let* ([key (construct-object key-node deep)]
                [value (construct-object value-node deep)])
           (cons key value)))))
-
+  
   (define (construct-yaml-null node)
     (construct-scalar node)
     (yaml-null))
-
+  
   (define (construct-yaml-bool node)
     (let ([bool (string-downcase (construct-scalar node))])
       (cond
-       [(member bool '("yes" "true" "on")) #t]
-       [(member bool '("no" "false" "off")) #f]
-       [else (constructor-error
-              #f (format "expected a boolean, but got ~a" bool)
-              (node-start node))])))
-
+        [(member bool '("yes" "true" "on")) #t]
+        [(member bool '("no" "false" "off")) #f]
+        [else (constructor-error
+               #f (format "expected a boolean, but got ~a" bool)
+               (node-start node))])))
+  
   (define (construct-yaml-int node)
     (let ([value (string-replace
                   (format "~a" (construct-scalar node)) "_" "")]
@@ -190,24 +190,24 @@
         (when (or (char=? #\- ch) (char=? #\+ ch))
           (set! value (substring value 1))))
       (cond
-       [(string=? "0" value) 0]
-       [(string-prefix? "0b" value)
-        (* sign (string->number (substring value 2) 2))]
-       [(string-prefix? "0x" value)
-        (* sign (string->number (substring value 2) 16))]
-       [(char=? #\0 (string-ref value 0))
-        (* sign (string->number value) 8)]
-       [(string-index value #\:)
-        (let ([base 1]
-              [int-value 0]
-              [parts (string-split value ":")])
-          (for ([digit (reverse (map string->number parts))])
-            (set! int-value (+ int-value (* digit base)))
-            (set! base (* base 60)))
-          (* sign int-value))]
-       [else
-        (* sign (string->number value))])))
-
+        [(string=? "0" value) 0]
+        [(string-prefix? "0b" value)
+         (* sign (string->number (substring value 2) 2))]
+        [(string-prefix? "0x" value)
+         (* sign (string->number (substring value 2) 16))]
+        [(char=? #\0 (string-ref value 0))
+         (* sign (string->number value) 8)]
+        [(string-index value #\:)
+         (let ([base 1]
+               [int-value 0]
+               [parts (string-split value ":")])
+           (for ([digit (reverse (map string->number parts))])
+             (set! int-value (+ int-value (* digit base)))
+             (set! base (* base 60)))
+           (* sign int-value))]
+        [else
+         (* sign (string->number value))])))
+  
   (define (construct-yaml-float node)
     (let ([value (string-replace
                   (string-downcase
@@ -219,26 +219,26 @@
         (when (or (char=? #\- ch) (char=? #\+ ch))
           (set! value (substring value 1))))
       (cond
-       [(string=? ".inf" value)
-        (* sign +inf.0)]
-       [(string=? ".nan" value)
-        +nan.0]
-       [(string-index value #\:)
-        (let ([base 1]
-              [float-value 0.0]
-              [parts (string-split value ":")])
-          (for ([digit (reverse (map string->number parts))])
-            (set! float-value (* digit base))
-            (set! base (* base 60)))
-          (* sign float-value))]
-       [else
-        (* 1.0 sign (string->number value))])))
-
+        [(string=? ".inf" value)
+         (* sign +inf.0)]
+        [(string=? ".nan" value)
+         +nan.0]
+        [(string-index value #\:)
+         (let ([base 1]
+               [float-value 0.0]
+               [parts (string-split value ":")])
+           (for ([digit (reverse (map string->number parts))])
+             (set! float-value (* digit base))
+             (set! base (* base 60)))
+           (* sign float-value))]
+        [else
+         (* 1.0 sign (string->number value))])))
+  
   (define (construct-yaml-binary node)
     (base64-decode
      (string->bytes/utf-8
       (format "~a" (construct-scalar node)))))
-
+  
   (define (construct-yaml-timestamp node)
     (define timestamp-regexp
       (regexp
@@ -281,7 +281,7 @@
           (when (get-fraction)
             (set! fraction (get-fraction))
             (while (< (string-length fraction) 6)
-              (set! fraction (string-append fraction "0")))
+                   (set! fraction (string-append fraction "0")))
             (set! fraction (* 1000 (string->number fraction))))
           (if (get-tz-sign)
               (let* ([tz-hour (get-tz-hour)]
@@ -329,34 +329,34 @@
         (let* ([key (construct-object key-node)]
                [value (construct-object value-node)])
           (cons key value)))))
-
+  
   (define (construct-yaml-pairs node)
     (construct-yaml-omap node))
-
+  
   (define (construct-yaml-set node)
     (list->set (hash-keys (construct-mapping node))))
-
+  
   (define (construct-yaml-str node)
     (construct-scalar node))
-
+  
   (define (construct-yaml-seq node)
     (construct-sequence node))
-
+  
   (define (construct-yaml-map node)
     (construct-mapping node))
-
+  
   (define (construct-yaml-pair node)
     (let ([value (sequence-node-value node)])
       (cons (construct-object (first value))
             (construct-object (second value)))))
-
+  
   (define (construct-undefined node)
     (constructor-error
      #f
      (format "could not determine a constructor for the tag ~a"
              (node-tag node))
      (node-start node)))
-
+  
   (define (construct-yaml-struct id node)
     (unless (hash-has-key? yaml-struct-constructors id)
       (constructor-error
@@ -381,10 +381,10 @@
            (format "  field: ~a" (pretty-format f))
            (node-start node))))
       (apply make-struct (map (λ (f) (hash-ref state f)) fields))))
-
+  
   (define (add-constructor! tag constructor)
     (hash-set! yaml-constructors tag constructor))
-
+  
   (define (add-multi-constructor! tag-prefix multi-constructor)
     (hash-set! yaml-multi-constructors tag-prefix multi-constructor))
   
@@ -402,7 +402,7 @@
   (add-constructor! "tag:yaml.org,2002:map" construct-yaml-map)
   (add-constructor! "tag:yaml.org,2002:pair" construct-yaml-pair)
   (add-constructor! #f construct-undefined)
-
+  
   (add-multi-constructor! "tag:yaml.org,2002:struct:" construct-yaml-struct)
-
+  
   (values check-data? get-data get-single-data))

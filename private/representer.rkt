@@ -19,13 +19,13 @@
   (define represented-objects (make-hash))
   (define object-keeper '())
   (define alias-key #f)
-
+  
   (define (represent data)
     (serialize (represent-data data))
     (set! represented-objects (make-hash))
     (set! object-keeper '())
     (set! alias-key #f))
-
+  
   (define (represent-data data)
     (call/cc
      (λ (return)
@@ -43,7 +43,7 @@
                (if (type? data)
                    (repr data)
                    (loop (cdr kvs)))))))))
-
+  
   (define (represent-scalar tag value [style #f])
     (unless style
       (set! style default-style))
@@ -51,7 +51,7 @@
       (when alias-key
         (hash-set! represented-objects alias-key node))
       node))
-
+  
   (define (represent-sequence tag sequence [flow-style #f])
     (let ([value '()]
           [best-style #t])
@@ -69,7 +69,7 @@
         (when alias-key
           (hash-set! represented-objects alias-key node))
         node)))
-
+  
   (define (represent-mapping tag mapping [flow-style #f])
     (let ([value '()]
           [best-style #t])
@@ -91,51 +91,51 @@
         (when alias-key
           (hash-set! represented-objects alias-key node))
         node)))
-
+  
   (define (ignore-aliases? data)
     (or (equal? (yaml-null) data)
         (boolean? data)
         (string? data)
         (number? data)))
-
+  
   (define (represent-null data)
     (represent-scalar "tag:yaml.org,2002:null" "null"))
-
+  
   (define (represent-str data)
     (represent-scalar "tag:yaml.org,2002:str" data))
-
+  
   (define (represent-bool data)
     (represent-scalar "tag:yaml.org,2002:bool" (if data "true" "false")))
-
+  
   (define (represent-int data)
     (represent-scalar "tag:yaml.org,2002:int" (number->string data)))
-
+  
   (define (represent-float data)
     (represent-scalar
      "tag:yaml.org,2002:float"
      (cond
-      [(nan? data) ".nan"]
-      [(infinite? data)
-       (if (equal? data +inf.0) ".inf" "-.inf")]
-      [else
-       (let ([value (number->string data)])
-         (if (and (not (string-index value #\.))
-                  (string-index value #\e))
-             (string-replace value "e" ".0e" #:all? #f)
-             value))])))
-
+       [(nan? data) ".nan"]
+       [(infinite? data)
+        (if (equal? data +inf.0) ".inf" "-.inf")]
+       [else
+        (let ([value (number->string data)])
+          (if (and (not (string-index value #\.))
+                   (string-index value #\e))
+              (string-replace value "e" ".0e" #:all? #f)
+              value))])))
+  
   (define (represent-list data)
     (represent-sequence "tag:yaml.org,2002:seq" data))
-
+  
   (define (represent-hash data)
     (represent-mapping "tag:yaml.org,2002:map" data))
-
+  
   (define (represent-set data)
     (let ([value (make-hash)])
       (for ([key data])
         (hash-set! value key (yaml-null)))
       (represent-mapping "tag:yaml.org,2002:set" value)))
-
+  
   (define (represent-date data)
     (parameterize ([date-display-format 'iso-8601])
       ;; this isn't perfect, but it'll have to do...
@@ -148,11 +148,11 @@
           (let ([microsecond (/ (date*-nanosecond data) 1000)])
             (set! value (format "~a.~a" value microsecond))))
         (represent-scalar "tag:yaml.org,2002:timestamp" value))))
-
+  
   (define (represent-pair data)
     (let ([value (list (car data) (cdr data))])
       (represent-sequence "tag:yaml.org,2002:pair" value)))
-
+  
   (define (represent-struct data)
     (define-values (struct-type skipped?)
       (struct-info data))
@@ -164,7 +164,7 @@
   
   (define (add-representer! type? representer)
     (append! yaml-representers (list (cons type? representer))))
-
+  
   (add-representer! (λ (x) (equal? x (yaml-null))) represent-null)
   (add-representer! string? represent-str)
   (add-representer! boolean? represent-bool)
@@ -176,5 +176,5 @@
   (add-representer! date? represent-date)
   (add-representer! pair? represent-pair)
   (add-representer! yaml-struct? represent-struct)
-
+  
   (values represent))

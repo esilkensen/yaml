@@ -39,22 +39,22 @@
   [yaml->string
    ((yaml?)
     (#:canonical boolean?
-     #:indent exact-positive-integer?
-     #:width exact-positive-integer?
-     #:explicit-start boolean?
-     #:explicit-end boolean?
-     #:scalar-style (or/c #\" #\' #\| #\> 'plain)
-     #:style (or/c 'block 'flow 'best))
+                 #:indent exact-positive-integer?
+                 #:width exact-positive-integer?
+                 #:explicit-start boolean?
+                 #:explicit-end boolean?
+                 #:scalar-style (or/c #\" #\' #\| #\> 'plain)
+                 #:style (or/c 'block 'flow 'best))
     . ->* . string?)]
   [yaml*->string
    (((listof yaml?))
     (#:canonical boolean?
-     #:indent exact-positive-integer?
-     #:width exact-positive-integer?
-     #:explicit-start boolean?
-     #:explicit-end boolean?
-     #:scalar-style (or/c #\" #\' #\| #\> 'plain)
-     #:style (or/c 'block 'flow 'best))
+                 #:indent exact-positive-integer?
+                 #:width exact-positive-integer?
+                 #:explicit-start boolean?
+                 #:explicit-end boolean?
+                 #:scalar-style (or/c #\" #\' #\| #\> 'plain)
+                 #:style (or/c 'block 'flow 'best))
     . ->* . string?)])
  (except-out
   (all-from-out "private/yaml.rkt")
@@ -75,12 +75,10 @@
         (reverse docs))))
 
 (define (string->yaml str)
-  (with-input-from-string str
-    (λ () (read-yaml))))
+  (with-input-from-string str read-yaml))
 
 (define (string->yaml* str)
-  (with-input-from-string str
-    (λ () (read-yaml*))))
+  (with-input-from-string str read-yaml*))
 
 (define (write-yaml document [out (current-output-port)]
                     #:canonical [canonical #f]
@@ -132,14 +130,14 @@
                       #:scalar-style [scalar-style 'plain]
                       #:style [style 'best])
   (with-output-to-string
-    (λ () (write-yaml document
-                      #:canonical canonical
-                      #:indent indent
-                      #:width width
-                      #:explicit-start explicit-start
-                      #:explicit-end explicit-end
-                      #:scalar-style scalar-style
-                      #:style style))))
+   (λ () (write-yaml document
+                     #:canonical canonical
+                     #:indent indent
+                     #:width width
+                     #:explicit-start explicit-start
+                     #:explicit-end explicit-end
+                     #:scalar-style scalar-style
+                     #:style style))))
 
 (define (yaml*->string documents
                        #:canonical [canonical #f]
@@ -150,11 +148,11 @@
                        #:scalar-style [scalar-style 'plain]
                        #:style [style 'best])
   (with-output-to-string
-    (λ () (write-yaml* documents
-                       #:canonical canonical
-                       #:indent indent
-                       #:width width
-                       #:explicit-start explicit-start
-                       #:explicit-end explicit-end
-                       #:scalar-style scalar-style
-                       #:style style))))
+   (λ () (write-yaml* documents
+                      #:canonical canonical
+                      #:indent indent
+                      #:width width
+                      #:explicit-start explicit-start
+                      #:explicit-end explicit-end
+                      #:scalar-style scalar-style
+                      #:style style))))

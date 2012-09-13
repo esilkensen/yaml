@@ -54,7 +54,7 @@
                                       (format "~a" (syntax->datum t))))))])
                     #`(begin
                         (struct: t-s name ([in-field : in-type] (... ...))
-                                 in-options (... ...))
+                          in-options (... ...))
                         (: t-s->string (name -> String))
                         (define (t-s->string t)
                           (if (t-s? t)

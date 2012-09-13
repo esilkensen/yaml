@@ -9,32 +9,39 @@
 (yaml-struct: event ([start : (Option mark)] [end : (Option mark)]))
 
 (event: stream-start)
+
 (event: stream-end)
+
 (event: document-start
-  ([explicit : Boolean]
-   [version : (Option (Pairof Integer Integer))]
-   [tags : (Option (HashTable String String))]))
-(event: document-end
-  ([explicit : Boolean]))
-(event: alias
-  ([anchor : (Option String)]))
+        ([explicit : Boolean]
+         [version : (Option (Pairof Integer Integer))]
+         [tags : (Option (HashTable String String))]))
+
+(event: document-end ([explicit : Boolean]))
+
+(event: alias ([anchor : (Option String)]))
+
 (event: scalar
-  ([anchor : (Option String)]
-   [tag : (Option String)]
-   [implicit : (Pairof Boolean Boolean)]
-   [value : String]
-   [style : (Option Char)]))
+        ([anchor : (Option String)]
+         [tag : (Option String)]
+         [implicit : (Pairof Boolean Boolean)]
+         [value : String]
+         [style : (Option Char)]))
+
 (event: sequence-start
-  ([anchor : (Option String)]
-   [tag : (Option String)]
-   [implicit : Boolean]
-   [flow-style : Boolean]))
+        ([anchor : (Option String)]
+         [tag : (Option String)]
+         [implicit : Boolean]
+         [flow-style : Boolean]))
+
 (event: sequence-end)
+
 (event: mapping-start
-  ([anchor : (Option String)]
-   [tag : (Option String)]
-   [implicit : Boolean]
-   [flow-style : Boolean]))
+        ([anchor : (Option String)]
+         [tag : (Option String)]
+         [implicit : Boolean]
+         [flow-style : Boolean]))
+
 (event: mapping-end)
 
 (define-type node-event
@@ -98,8 +105,8 @@
       (collection-start-event-anchor event)))
 
 (: any-event-implicit
-   ((U scalar-event collection-start-event) ->
-    (U (Pairof Boolean Boolean) Boolean)))
+   ((U scalar-event collection-start-event) 
+    -> (U (Pairof Boolean Boolean) Boolean)))
 (define (any-event-implicit event)
   (if (scalar-event? event)
       (scalar-event-implicit event)

@@ -9,9 +9,9 @@
 (yaml-struct: token ([start : mark] [end : mark]))
 
 (token: directive
-  ([name : String]
-   [value : (Option (U (Pairof String String)
-                       (Pairof Integer Integer)))]))
+        ([name : String]
+         [value : (Option (U (Pairof String String)
+                             (Pairof Integer Integer)))]))
 (token: document-start)
 (token: document-end)
 (token: stream-start "<stream start>")
@@ -27,13 +27,10 @@
 (token: value ":")
 (token: block-entry)
 (token: flow-entry ",")
-(token: alias
-  ([value : String]))
-(token: anchor
-  ([value : String]))
-(token: tag
-  ([value : (Pairof (Option String) (Option String))]))
+(token: alias ([value : String]))
+(token: anchor ([value : String]))
+(token: tag ([value : (Pairof (Option String) (Option String))]))
 (token: scalar
-  ([value : String]
-   [plain : Boolean]
-   [style : (Option Char)]))
+        ([value : String]
+         [plain : Boolean]
+         [style : (Option Char)]))
