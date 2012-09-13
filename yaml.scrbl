@@ -112,18 +112,13 @@ in Racket.}
 @defproc[(string->yaml
            [str string?])
          yaml?]{
-Equivalent to
-@racketblock[
-(with-input-from-string str
-  (λ () (read-yaml 'string)))]}
+Equivalent to @racketblock[(with-input-from-string str read-yaml)]}
 
 @defproc[(string->yaml*
            [str string?])
          (listof yaml?)]{
 Equivalent to
-@racketblock[
-(with-input-from-string str
-  (λ () (read-yaml* 'string)))]}
+@racketblock[(with-input-from-string str read-yaml*)]}
 
 @section{Writing YAML}
 
