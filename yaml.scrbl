@@ -6,7 +6,7 @@
     (lambda ()
       (parameterize ([sandbox-output 'string]
                      [sandbox-error-output 'string])
-        (make-evaluator 'racket #:requires '("yaml/main.rkt"))))))
+        (make-evaluator 'racket #:requires '("main.rkt"))))))
 @(interaction-eval
   #:eval yaml-evaluator
   (current-print pretty-print-handler))
