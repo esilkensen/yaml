@@ -1,3 +1,4 @@
 #lang setup/infotab
-(define name "YAML")
+(define collection 'multi)
+(define deps '("base"))
 (define scribblings '(("yaml.scrbl" (user-doc) (parsing-library))))
