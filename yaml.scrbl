@@ -13,7 +13,7 @@
 
 @title{YAML}
 @author{@(author+email "Erik Silkensen" "ejs@ccs.neu.edu")}
-@defmodule/this-package[main]
+@defmodule[yaml]
 
 This module provides utilities for parsing and emitting data in the YAML
 data serialization format to and from Racket values. See the 
