@@ -1,9 +1,7 @@
 yaml
 ====
 
-A YAML parser and emitter for Racket ported from [PyYAML](http://pyyaml.org). See
-[PLaneT](http://planet.racket-lang.org/package-source/esilkensen/yaml.plt/2/1/planet-docs/yaml/index.html)
-for documentation.
+A YAML parser and emitter for Racket ported from [PyYAML](http://pyyaml.org). 
 
 To install, do `raco pkg install yaml`.
 
