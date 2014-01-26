@@ -3,10 +3,10 @@
 #lang racket
 
 (require
- "private/constructor.rkt"
- "private/representer.rkt"
- "private/serializer.rkt"
- "private/yaml.rkt")
+ "constructor.rkt"
+ "representer.rkt"
+ "serializer.rkt"
+ "yaml.rkt")
 
 (provide
  (contract-out
@@ -57,7 +57,7 @@
                  #:style (or/c 'block 'flow 'best))
     . ->* . string?)])
  (except-out
-  (all-from-out "private/yaml.rkt")
+  (all-from-out "yaml.rkt")
   gen->yaml
   yaml-struct-constructors))
 
