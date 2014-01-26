@@ -1,5 +1,5 @@
 #lang scribble/manual
-@(require planet/scribble racket/sandbox scribble/eval
+@(require racket/sandbox scribble/eval
           (for-label (except-in racket load) (this-package-in main)))
 @(define yaml-evaluator
    (call-with-trusted-sandbox-configuration 
