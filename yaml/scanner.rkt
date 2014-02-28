@@ -1328,4 +1328,13 @@
       (check-equal? (token->string token) line)))
   (test-begin
    (for ([(test-file check-file) (test-files #"scan")])
-     (check-scanner test-file check-file))))
+     (check-scanner test-file check-file))
+   (check-equal?
+    (map token->string (scan-string "a:"))
+    '("'<stream start>'"
+      "block-mapping-start-token()"
+      "'?'"
+      "scalar-token(plain=#t, style=#f, value=\"a\")"
+      "':'"
+      "block-end-token()"
+      "'<stream end>'"))))
