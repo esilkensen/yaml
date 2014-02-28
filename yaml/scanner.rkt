@@ -11,10 +11,14 @@
 (provide scan-file scan-string scan make-scanner)
 
 (define (scan-file filename)
-  (with-input-from-file filename scan))
+  (let ([in (open-input-file filename)])
+    (begin0 (scan in)
+      (close-input-port in))))
 
 (define (scan-string string)
-  (with-input-from-string string scan))
+  (let ([in (open-input-string string)])
+    (begin0 (scan in)
+      (close-input-port in))))
 
 (define (scan [in (current-input-port)])
   (define-values (check-token? peek-token get-token)
@@ -64,7 +68,8 @@
         (when (char? (peek i))
           (set! tmp-index (add1 tmp-index))
           (cond
-            [(or (string-index "\n\x85\u2028\u2029" (peek i))
+            [(or (and (char? (peek i))
+                      (string-index "\n\x85\u2028\u2029" (peek i)))
                  (and (equal? #\return (peek i))
                       (not (equal? #\newline (peek (add1 i))))))
              (set! line (add1 line))
@@ -474,29 +479,34 @@
     ;; DOCUMENT-START: ^ '---' (' '|'\n')
     (and (zero? column)
          (string=? "---" (prefix 3))
-         (string-index "\0 \t\r\n\x85\u2028\u2029" (peek 3))))
+         (or (eof-object? (peek 3))
+             (string-index " \t\r\n\x85\u2028\u2029" (peek 3)))))
   
   (define (check-document-end?)
     ;; DOCUMENT-END: ^ '...' (' '|'\n')
     (and (zero? column)
          (string=? "..." (prefix 3))
-         (string-index "\0 \t\r\n\x85\u2028\u2029" (peek 3))))
+         (or (eof-object? (peek 3))
+             (string-index " \t\r\n\x85\u2028\u2029" (peek 3)))))
   
   (define (check-block-entry?)
     ;; BLOCK-ENTRY: '-' (' '|'\n')
-    (string-index "\0 \t\r\n\x85\u2028\u2029" (peek 1)))
+    (or (eof-object? (peek 1))
+        (string-index " \t\r\n\x85\u2028\u2029" (peek 1))))
   
   (define (check-key?)
     ;; KEY(flow context): '?'
     ;; KEY(block context): '?' (' '|'\n')
     (or (not (zero? flow-level))
-        (string-index "\0 \t\r\n\x85\u2028\u2029" (peek 1))))
+        (or (eof-object? (peek 1))
+            (string-index " \t\r\n\x85\u2028\u2029" (peek 1)))))
   
   (define (check-value?)
     ;; VALUE(flow context): ':'
     ;; VALUE(block context): ':' (' '|'\n')
     (or (not (zero? flow-level))
-        (string-index "\0 \t\r\n\x85\u2028\u2029" (peek 1))))
+        (or (eof-object? (peek 1))
+            (string-index " \t\r\n\x85\u2028\u2029" (peek 1)))))
   
   (define (check-plain?)
     ;; A plain scalar may start with any non-space character except:
@@ -513,10 +523,10 @@
     ;; independent.
     (or (and (not (eof-object? (peek)))
              (not (string-index
-                   "\0 \t\r\n\x85\u2028\u2029-?:,[]{}#&*!|>'\"%@"
+                   " \t\r\n\x85\u2028\u2029-?:,[]{}#&*!|>'\"%@"
                    (peek))))
         (and (not (eof-object? (peek)))
-             (and (not (string-index "\0 \t\r\n\x85\u2028\u2029" (peek 1)))
+             (and (not (string-index " \t\r\n\x85\u2028\u2029" (peek)))
                   (or (equal? #\- (peek))
                       (and (zero? flow-level)
                            (string-index "?:" (peek))))))))
@@ -535,7 +545,7 @@
                     (forward))
              (when (equal? #\# (peek))
                (while (and (not (eof-object? (peek)))
-                           (not (string-index "\0\r\n\x85\u2028\u2029" (peek))))
+                           (not (string-index "\r\n\x85\u2028\u2029" (peek))))
                       (forward)))
              (if (> (string-length (scan-line-break)) 0)
                  (when (zero? flow-level)
@@ -561,7 +571,7 @@
                  (begin0 (get-mark)
                          (while (and (not (eof-object? (peek)))
                                      (not (string-index
-                                           "\0\r\n\x85\u2028\u2029" (peek))))
+                                           "\r\n\x85\u2028\u2029" (peek))))
                                 (forward)))])])
         (scan-directive-ignored-line)
         (directive-token start-mark end-mark name value))))
@@ -580,7 +590,7 @@
       (let ([value (prefix len)])
         (forward len)
         (unless (or (eof-object? (peek))
-                    (string-index "\0 \r\n\x85\u2028\u2029" (peek)))
+                    (string-index " \r\n\x85\u2028\u2029" (peek)))
           (scanner-error
            "while scanning a directive"
            (format "expected alphanumeric character, but found ~a" (peek))
@@ -601,7 +611,7 @@
       (forward)
       (let ([minor (scan-yaml-directive-number)])
         (unless (or (eof-object? (peek))
-                    (string-index "\0 \r\n\x85\u2028\u2029" (peek)))
+                    (string-index " \r\n\x85\u2028\u2029" (peek)))
           (scanner-error
            "while scanning a directive"
            (format "expected a diit or ' ', but found ~a" (peek))
@@ -651,7 +661,7 @@
     ;; See the specification for details.
     (let ([value (scan-tag-uri "directive")])
       (unless (or (eof-object? (peek))
-                  (string-index "\0 \r\n\x85\u2028\u2029" (peek)))
+                  (string-index " \r\n\x85\u2028\u2029" (peek)))
         (scanner-error
          "while scanning a directive"
          (format "expected ' ', but found ~a" (peek))
@@ -665,10 +675,10 @@
            (forward))
     (when (equal? #\# (peek))
       (while (and (not (eof-object? (peek)))
-                  (not (string-index "\0 \r\n\x85\u2028\u2029" (peek))))
+                  (not (string-index " \r\n\x85\u2028\u2029" (peek))))
              (forward)))
     (unless (or (eof-object? (peek))
-                (string-index "\0\r\n\x85\u2028\u2029" (peek)))
+                (string-index "\r\n\x85\u2028\u2029" (peek)))
       (scanner-error
        "while scanning a directive"
        (format "expected a comment or a line break, but found ~a" (peek))
@@ -702,7 +712,7 @@
           (forward len)
           (unless (or (eof-object? (peek))
                       (string-index
-                       "\0 \t\r\n\x85\u2028\u2029?:,]}%@`"
+                       " \t\r\n\x85\u2028\u2029?:,]}%@`"
                        (peek)))
             (scanner-error
              (format "while scanning an ~a" name)
@@ -727,7 +737,7 @@
             (get-mark)))
          (forward)]
         [(or (eof-object? (peek 1))
-             (string-index "\0 \t\r\n\x85\u2028\u2029" (peek 1)))
+             (string-index " \t\r\n\x85\u2028\u2029" (peek 1)))
          (set! suffix "!")
          (forward)]
         [else
@@ -736,7 +746,7 @@
             (λ (break)
               (while (and (not (eof-object? (peek len)))
                           (not (string-index
-                                "\0 \t\r\n\x85\u2028\u2029"
+                                " \t\r\n\x85\u2028\u2029"
                                 (peek len))))
                      (when (equal? #\! (peek len))
                        (break (set! use-handle #t)))
@@ -747,7 +757,7 @@
                (forward))
            (set! suffix (scan-tag-uri "tag")))])
       (unless (or (eof-object? (peek))
-                  (string-index "\0 \r\n\x85\u2028\u2029" (peek)))
+                  (string-index " \r\n\x85\u2028\u2029" (peek)))
         (scanner-error
          "while scanning a tag"
          (format "expected ' ', but found ~a" (peek))
@@ -792,7 +802,7 @@
                         [len 0])
                     (while (and (not (eof-object? (peek len)))
                                 (not (string-index
-                                      "\0\r\n\x85\u2028\u2029"
+                                      "\r\n\x85\u2028\u2029"
                                       (peek len))))
                            (set! len (+ len 1)))
                     (set! chunks (append chunks (string->list (prefix len))))
@@ -840,7 +850,7 @@
                 "expected indentation indicator (1-9), but found 0"
                 (get-mark)))
              (forward)))]
-        [(string-index "0123456789" (peek))
+        [(and (char? (peek)) (string-index "0123456789" (peek)))
          (let ([c (peek)])
            (when (char? c)
              (set! increment (string->number (string c)))))
@@ -854,7 +864,7 @@
            (set! chomping (equal? #\+ (peek)))
            (forward))])
       (unless (or (eof-object? (peek))
-                  (string-index "\0 \r\n\x85\u2028\u2029" (peek)))
+                  (string-index " \r\n\x85\u2028\u2029" (peek)))
         (scanner-error
          "while scanning a block scalar"
          (format "expected chomping or indentation indicators, but found ~a"
@@ -869,10 +879,10 @@
            (forward))
     (when (equal? #\# (peek))
       (while (and (not (eof-object? (peek)))
-                  (not (string-index "\0\r\n\x85\u2028\u2029" (peek))))
+                  (not (string-index "\r\n\x85\u2028\u2029" (peek))))
              (forward)))
     (unless (or (eof-object? (peek))
-                (string-index "\0\r\n\x85\u2028\u2029" (peek)))
+                (string-index "\r\n\x85\u2028\u2029" (peek)))
       (scanner-error
        "while scanning a block scalar"
        (format "expected a comment or a line break, but found ~a" (peek))
@@ -1014,7 +1024,8 @@
                               (set! chunks
                                     (append chunks (list (integer->char code))))
                               (forward len)))]
-                         [(string-index "\r\n\x85\u2028\u2029" (peek))
+                         [(and (char? (peek))
+                               (string-index "\r\n\x85\u2028\u2029" (peek)))
                           (scan-line-break)
                           (set! chunks (append chunks (scan-flow-scalar-breaks)))]
                          [else
@@ -1040,7 +1051,7 @@
             "while scanning a quoted scalar"
             "found unexpected end of stream"
             (get-mark))]
-          [(string-index "\r\n\x85\u2028\u2029" (peek))
+          [(and (char? (peek)) (string-index "\r\n\x85\u2028\u2029" (peek)))
            (let* ([line-break (scan-line-break)]
                   [breaks (scan-flow-scalar-breaks)])
              (cond
@@ -1065,8 +1076,9 @@
                 (let ([pre (prefix 3)])
                   (when (and (or (equal? "---" pre)
                                  (equal? "..." pre))
-                             (char? (peek 3))
-                             (string-index "\0 \t\r\n\x85\u2028\u2029" (peek 3)))
+                             (or (eof-object? (peek 3))
+                                 (string-index "\t\r\n\x85\u2028\u2029"
+                                               (peek 3))))
                     (scanner-error
                      "while scanning a quoted scalar"
                      "found unexpected document separator"
@@ -1102,20 +1114,23 @@
                             (set! ch (peek len))
                             (when (or (eof-object? ch)
                                       (and (or (string-index
-                                                "\0 \t\r\n\x85\u2028\u2029" ch)
-                                               (and (zero? flow-level) (equal? #\: ch)
-                                                    (string-index
-                                                     "\0 \t\r\n\x85\u2028\u2029"
-                                                     (peek (add1 len))))
+                                                " \t\r\n\x85\u2028\u2029" ch)
+                                               (and (zero? flow-level)
+                                                    (equal? #\: ch)
+                                                    (or (eof-object?
+                                                         (peek (add1 len)))
+                                                        (string-index
+                                                         " \t\r\n\x85\u2028\u2029"
+                                                         (peek (add1 len)))))
                                                (and (> flow-level 0)
                                                     (string-index ",:?[]{}" ch)))))
                               (break (void)))
                             (set! len (add1 len)))))
                   (when (and (> flow-level 0) (equal? #\: ch)
-                             (or (eof-object? (peek (add1 len)))
-                                 (not (string-index
-                                       "\0 \t\r\n\x85\u2028\u2029,[]{}"
-                                       (peek (add1 len))))))
+                             (and (char? (peek (add1 len)))
+                                  (not (string-index
+                                        " \t\r\n\x85\u2028\u2029,[]{}"
+                                        (peek (add1 len))))))
                     (forward len)
                     (scanner-error
                      "while scanning a plain scalar"
@@ -1152,10 +1167,10 @@
              (let ([pre (prefix 3)])
                (if (and (or (equal? "---" pre)
                             (equal? "..." pre))
-                        (and (char? (peek 3))
-                             (string-index
-                              "\0 \t\r\n\x85\u2028\u2029"
-                              (peek 3))))
+                        (or (eof-object? (peek 3))
+                            (string-index
+                             " \t\r\n\x85\u2028\u2029"
+                             (peek 3))))
                    '()
                    (let ([breaks '()]
                          [ret #f])
@@ -1175,10 +1190,10 @@
                                   (let ([pre (prefix 3)])
                                     (when (and (or (equal? "---" pre)
                                                    (equal? "..." pre))
-                                               (char? (peek 3))
-                                               (string-index
-                                                "\0 \t\r\n\x85\u2028\u2029"
-                                                (peek 3)))
+                                               (or (eof-object? (peek 3))
+                                                   (string-index
+                                                    "\t\r\n\x85\u2028\u2029"
+                                                    (peek 3))))
                                       (set! ret '())
                                       (break (void))))]))))
                      (cond
@@ -1303,7 +1318,6 @@
   
   ;; Add the STREAM-START token.
   (fetch-stream-start)
-  
   (values check-token? peek-token get-token))
 
 (module+ test
