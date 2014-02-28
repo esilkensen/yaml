@@ -196,7 +196,7 @@
         [(string-prefix? "0x" value)
          (* sign (string->number (substring value 2) 16))]
         [(char=? #\0 (string-ref value 0))
-         (* sign (string->number value) 8)]
+         (* sign (string->number value 8))]
         [(string-index value #\:)
          (let ([base 1]
                [int-value 0]
