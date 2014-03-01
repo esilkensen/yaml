@@ -23,6 +23,7 @@
       (exact-integer? v)
       (inexact-real? v)
       (date? v)
+      (bytes? v)
       (yaml-struct? v)
       (and (list? v)
            (not (null? v))
