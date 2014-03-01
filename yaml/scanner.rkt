@@ -701,8 +701,9 @@
           [name (if (equal? #\* (peek)) "alias" "anchor")])
       (forward)
       (let ([len 0])
-        (while (regexp-match? #rx"[0-9A-Za-z_-]" (string (peek len)))
-               (set! len (add1 len)))
+        (while (and (char? (peek len))
+                    (regexp-match? #rx"[0-9A-Za-z_-]" (string (peek len))))
+          (set! len (add1 len)))
         (when (zero? len)
           (scanner-error
            (format "while scanning an ~a" name)
