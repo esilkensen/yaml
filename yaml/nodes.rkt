@@ -11,8 +11,8 @@
 (node: scalar
        ([tag : (Option String)]
         [value : String]
-        [style : (Option Char)]))
-
+        [style : (Option Char)])
+       #:mutable)
 
 (node: sequence
        ([tag : (Option String)]
@@ -32,6 +32,14 @@
     [(scalar-node? node) (scalar-node-tag node)]
     [(sequence-node? node) (sequence-node-tag node)]
     [(mapping-node? node) (mapping-node-tag node)]
+    [else (error 'node-tag "unexpected node: ~a" (node->string node))]))
+
+(: set-node-tag! (node (Option String) -> Void))
+(define (set-node-tag! node tag)
+  (cond
+    [(scalar-node? node) (set-scalar-node-tag! node tag)]
+    [(sequence-node? node) (set-sequence-node-tag! node tag)]
+    [(mapping-node? node) (set-mapping-node-tag! node tag)]
     [else (error 'node-tag "unexpected node: ~a" (node->string node))]))
 
 (: node->string-rec (node -> String))

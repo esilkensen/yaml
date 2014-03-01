@@ -147,6 +147,7 @@
        #f (format "expected a mapping node, but found ~a"
                   (node->string-rec node))
        (node-start node)))
+    (flatten-mapping! node)
     (let ([mapping (make-hash)])
       (for ([kv (mapping-node-value node)])
         (match-let ([(cons key-node value-node) kv])
@@ -154,6 +155,47 @@
                  [value (construct-object value-node deep)])
             (hash-set! mapping key value))))
       mapping))
+
+  (define (flatten-mapping! node)
+    (let ([merge '()] [index 0])
+      (while (< index (length (mapping-node-value node)))
+        (let ([value (mapping-node-value node)])
+          (match-let ([(cons key-node value-node) (list-ref value index)])
+            (cond [(equal? "tag:yaml.org,2002:merge" (node-tag key-node))
+                   (set! value (remove (list-ref value index) value))
+                   (cond [(mapping-node? value-node)
+                          (flatten-mapping! value-node)
+                          (append! merge (mapping-node-value value-node))]
+                         [(sequence-node? value-node)
+                          (let ([submerge '()])
+                            (for ([subnode (sequence-node-value value-node)])
+                              (unless (mapping-node? subnode)
+                                (constructor-error
+                                 "while constructing a mapping"
+                                 (format (string-append
+                                          "expected a mapping for merging,"
+                                          "but found ~a")
+                                         (node->string subnode))))
+                              (flatten-mapping! subnode)
+                              (append! submerge (sequence-node-value subnode)))
+                            (for ([value (reverse submerge)])
+                              (append! merge value)))]
+                         [else
+                          (constructor-error
+                           "while constructing a mapping"
+                           (format (string-append
+                                    "expected a mapping or list of mappings"
+                                    "for merging, but found ~a")
+                                   (node->string node)))])
+                   (set-mapping-node-value! node value)]
+                  [(equal? "tag:yaml.org,2002:value" (node-tag key-node))
+                   (set-node-tag! key-node "tag:yaml.org,2002:str")
+                   (set! index (add1 index))]
+                  [else
+                   (set! index (add1 index))]))))
+      (unless (null? merge)
+        (let ([value (mapping-node-value node)])
+          (set-mapping-node-value! node (append merge value))))))
   
   (define (construct-pairs node [deep #f])
     (unless (mapping-node? node)
