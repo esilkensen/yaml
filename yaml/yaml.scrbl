@@ -20,6 +20,9 @@ data serialization format to and from Racket values. See the
 @link["http://yaml.org"]{YAML web site} for more information about YAML.
 The implementation is ported from @link["http://pyyaml.org"]{PyYAML}.
 
+See the @link["https://github.com/esilkensen/yaml"]{GitHub repository} for
+more information.
+
 @section{Examples}
 
 As a quick introduction, this section shows an example of using the module
@@ -70,7 +73,7 @@ YAML strings, and this predicate checks for such values.
 A @deftech{YAML expression} is one of:
 @itemize[
   @item{the value of @racket[(yaml-null)]}
-  @item{@racket[(or/c boolean? string? exact-integer? inexact-real? date?)]}
+  @item{@racket[(or/c boolean? string? exact-integer? inexact-real? bytes? date?)]}
   @item{@racket[(cons/c yaml? yaml?)]}
   @item{a nonempty @racket[(listof yaml?)]}
   @item{a nonempty @racket[(hash/c yaml? yaml?)]}
