@@ -12,6 +12,9 @@
 
 (provide make-representer)
 
+(define (representer-error message)
+  (error 'representer message))
+
 (define (make-representer serialize
                           #:scalar-style [default-style #f]
                           #:style [default-flow-style #f])
@@ -157,7 +160,12 @@
     (define-values (struct-type skipped?)
       (struct-info data))
     (define-values (name a b c d e f g)
-      (struct-type-info struct-type))
+      (if skipped?
+          (begin
+            (pretty-print yaml-struct-constructors)
+            (representer-error
+             (format "~a not a transparent struct" (pretty-format data))))
+          (struct-type-info struct-type)))
     (represent-mapping
      (format "tag:yaml.org,2002:struct:~a" name)
      (make-hash (gen->yaml data))))
