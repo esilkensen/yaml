@@ -161,10 +161,8 @@
       (struct-info data))
     (define-values (name a b c d e f g)
       (if skipped?
-          (begin
-            (pretty-print yaml-struct-constructors)
-            (representer-error
-             (format "~a not a transparent struct" (pretty-format data))))
+          (representer-error
+           (format "~a not a transparent struct" (pretty-format data)))
           (struct-type-info struct-type)))
     (represent-mapping
      (format "tag:yaml.org,2002:struct:~a" name)
