@@ -252,7 +252,7 @@
     ;;   ALIAS, ANCHOR, TAG, SCALAR(flow), '[', and '{'.
     (define required? (and (zero? flow-level) (= indent column)))
     (unless (or allow-simple-key (not required?))
-      (error 'scanner "required simple key not allowed"))
+      (scanner-error #f "required simple key not allowed" (get-mark)))
     (when allow-simple-key
       (remove-possible-simple-key!)
       (let ([token-number (+ tokens-taken (length tokens))])
@@ -369,9 +369,7 @@
   (define (fetch-block-entry)
     (when (zero? flow-level)
       (unless allow-simple-key
-        (let ([problem "sequence entries are not allowed here"]
-              [problem-mark (get-mark)])
-          (error 'scanner "~a\n~a" problem problem-mark)))
+        (scanner-error #f "sequence entries are not allowed here" (get-mark)))
       (when (add-indent! column)
         (let ([mark (get-mark)])
           (add-token! (block-sequence-start-token mark mark)))))
@@ -385,9 +383,7 @@
   (define (fetch-key)
     (when (zero? flow-level)
       (unless allow-simple-key
-        (let ([problem "mapping keys are not allowed here"]
-              [problem-mark (get-mark)])
-          (error 'scanner "~a\n~a" problem problem-mark)))
+        (scanner-error #f "mapping keys are not allowed here" (get-mark)))
       (when (add-indent! column)
         (let ([mark (get-mark)])
           (add-token! (block-mapping-start-token mark mark)))))
@@ -413,9 +409,7 @@
       [else
        (when (zero? flow-level)
          (unless allow-simple-key
-           (let ([problem "mapping values are not allowed here"]
-                 [problem-mark (get-mark)])
-             (error 'scanner "~a\n~a" problem problem-mark)))
+           (scanner-error #f "mapping values are not allowed here" (get-mark)))
          (when (add-indent! column)
            (let ([mark (get-mark)])
              (add-token! (block-mapping-start-token mark mark)))))
