@@ -543,4 +543,4 @@
       (check-equal? (event->string event) line)))
   (test-begin
    (for ([(test-file check-file) (test-files #"parse")])
-     (check-parser test-file check-file))))
+     (check-parser test-file check-file test-file))))

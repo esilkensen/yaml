@@ -1138,4 +1138,4 @@
       (close-input-port in)))
   (test-begin
    (for ([(test-file check-file) (test-files #"emit")])
-     (check-emitter test-file check-file))))
+     (check-emitter test-file check-file test-file))))

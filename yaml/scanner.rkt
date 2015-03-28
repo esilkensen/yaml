@@ -1323,7 +1323,7 @@
       (check-equal? (token->string token) line)))
   (test-begin
    (for ([(test-file check-file) (test-files #"scan")])
-     (check-scanner test-file check-file))
+     (check-scanner test-file check-file test-file))
    (check-equal?
     (map token->string (scan-string "a:"))
     '("'<stream start>'"

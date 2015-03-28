@@ -166,4 +166,4 @@
       (check-equal? (node->string-rec node) line)))
   (test-begin
    (for ([(test-file check-file) (test-files #"compose")])
-     (check-composer test-file check-file))))
+     (check-composer test-file check-file test-file))))
