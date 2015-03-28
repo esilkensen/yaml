@@ -41,15 +41,20 @@
                                            (add1 (bytes-length ext))))
                     fn)])
       (if (string? file) str (string->path str))))
+  (define (set-extension file extension)
+    (let* ([fn (if (string? file) file (path->string file))]
+           [str (format "~a.~a" (remove-extension fn) extension)])
+      (if (string? file) str (string->path str))))
+  (define test-extension "yaml")
   (make-hash
    (map
     (λ (p)
       (let ([path (format "~a/~a" directory (path->string p))])
-        (cons (remove-extension path) path)))
+        (cons (set-extension path test-extension) path)))
     (filter
      (λ (p)
        (let ([path (string->path
                     (format "~a/~a" directory (path->string p)))])
          (and (equal? extension (filename-extension path))
-              (file-exists? (remove-extension path)))))
+              (file-exists? (set-extension path test-extension)))))
      (directory-list directory)))))
