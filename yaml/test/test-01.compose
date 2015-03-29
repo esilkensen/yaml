@@ -1,0 +1,1 @@
+mapping-node(flow-style=#f, tag="tag:yaml.org,2002:map", value=((scalar-node(style=#f, tag="tag:yaml.org,2002:str", value="a") . scalar-node(style=#f, tag="tag:yaml.org,2002:null", value=""))))
