@@ -177,9 +177,9 @@
                                           "but found ~a")
                                          (node->string subnode))))
                               (flatten-mapping! subnode)
-                              (append! submerge (sequence-node-value subnode)))
+                              (append! submerge (mapping-node-value subnode)))
                             (for ([value (reverse submerge)])
-                              (append! merge value)))]
+                              (append! merge (list value))))]
                          [else
                           (constructor-error
                            "while constructing a mapping"
