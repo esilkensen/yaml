@@ -1,0 +1,117 @@
+'<stream start>'
+document-start-token()
+block-sequence-start-token()
+block-entry-token()
+anchor-token(value="CENTER")
+'{'
+'?'
+scalar-token(plain=#t, style=#f, value="x")
+':'
+scalar-token(plain=#t, style=#f, value="1")
+','
+'?'
+scalar-token(plain=#t, style=#f, value="y")
+':'
+scalar-token(plain=#t, style=#f, value="2")
+'}'
+block-entry-token()
+anchor-token(value="LEFT")
+'{'
+'?'
+scalar-token(plain=#t, style=#f, value="x")
+':'
+scalar-token(plain=#t, style=#f, value="0")
+','
+'?'
+scalar-token(plain=#t, style=#f, value="y")
+':'
+scalar-token(plain=#t, style=#f, value="2")
+'}'
+block-entry-token()
+anchor-token(value="BIG")
+'{'
+'?'
+scalar-token(plain=#t, style=#f, value="r")
+':'
+scalar-token(plain=#t, style=#f, value="10")
+'}'
+block-entry-token()
+anchor-token(value="SMALL")
+'{'
+'?'
+scalar-token(plain=#t, style=#f, value="r")
+':'
+scalar-token(plain=#t, style=#f, value="1")
+'}'
+block-entry-token()
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="x")
+':'
+scalar-token(plain=#t, style=#f, value="1")
+'?'
+scalar-token(plain=#t, style=#f, value="y")
+':'
+scalar-token(plain=#t, style=#f, value="2")
+'?'
+scalar-token(plain=#t, style=#f, value="r")
+':'
+scalar-token(plain=#t, style=#f, value="10")
+'?'
+scalar-token(plain=#t, style=#f, value="label")
+':'
+scalar-token(plain=#t, style=#f, value="center/big")
+block-end-token()
+block-entry-token()
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="<<")
+':'
+alias-token(value="CENTER")
+'?'
+scalar-token(plain=#t, style=#f, value="r")
+':'
+scalar-token(plain=#t, style=#f, value="10")
+'?'
+scalar-token(plain=#t, style=#f, value="label")
+':'
+scalar-token(plain=#t, style=#f, value="center/big")
+block-end-token()
+block-entry-token()
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="<<")
+':'
+'['
+alias-token(value="CENTER")
+','
+alias-token(value="BIG")
+']'
+'?'
+scalar-token(plain=#t, style=#f, value="label")
+':'
+scalar-token(plain=#t, style=#f, value="center/big")
+block-end-token()
+block-entry-token()
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="<<")
+':'
+'['
+alias-token(value="BIG")
+','
+alias-token(value="LEFT")
+','
+alias-token(value="SMALL")
+']'
+'?'
+scalar-token(plain=#t, style=#f, value="x")
+':'
+scalar-token(plain=#t, style=#f, value="1")
+'?'
+scalar-token(plain=#t, style=#f, value="label")
+':'
+scalar-token(plain=#t, style=#f, value="center/big")
+block-end-token()
+block-end-token()
+'<stream end>'
