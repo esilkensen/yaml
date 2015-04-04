@@ -1,0 +1,1 @@
+`(,(make-hash '(("booleans" . (#t #f)) ("string" . "012345") (null . null))))

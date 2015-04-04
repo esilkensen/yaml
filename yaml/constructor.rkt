@@ -448,3 +448,19 @@
   (add-multi-constructor! "tag:yaml.org,2002:struct:" construct-yaml-struct)
   
   (values check-data? get-data get-single-data))
+
+(module+ test
+  (require rackunit racket/sandbox)
+  (define racket-eval
+    (parameterize
+        ([sandbox-namespace-specs
+          (append (sandbox-namespace-specs)
+                  '(racket/set))])
+      (make-evaluator 'racket)))
+  (define-simple-check (check-constructor test-file check-file)
+    (check-equal?
+     (construct-file test-file)
+     (racket-eval (file->string check-file))))
+  (test-begin
+   (for ([(test-file check-file) (test-files #"construct")])
+     (check-constructor test-file check-file test-file))))

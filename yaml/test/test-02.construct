@@ -1,0 +1,8 @@
+`((,(make-hash '(("x" . 1) ("y" . 2)))
+   ,(make-hash '(("x" . 0) ("y" . 2)))
+   ,(make-hash '(("r" . 10)))
+   ,(make-hash '(("r" . 1)))
+   ,(make-hash '(("x" . 1) ("label" . "center/big") ("r" . 10) ("y" . 2)))
+   ,(make-hash '(("x" . 1) ("label" . "center/big") ("r" . 10) ("y" . 2)))
+   ,(make-hash '(("x" . 1) ("label" . "center/big") ("r" . 10) ("y" . 2)))
+   ,(make-hash '(("x" . 1) ("label" . "center/big") ("r" . 10) ("y" . 2)))))

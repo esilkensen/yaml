@@ -1,0 +1,6 @@
+`(,(make-hash '(("unicode" . "Sosa did fine.☺")
+                ("control" . "\b1998\t1999\t2000\n")
+                ("quoted" . " # Not a 'comment'.")
+                ("tie-fighter" . "|\\-*-/|")
+                ("hex esc" . "\r\n is \r\n")
+                ("single" . "\"Howdy!\" he cried."))))

@@ -1,0 +1,2 @@
+`((,(make-hash '(("hr" . 65) ("avg" . 0.278) ("name" . "Mark McGwire")))
+   ,(make-hash '(("hr" . 63) ("avg" . 0.288) ("name" . "Sammy Sosa")))))

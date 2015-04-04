@@ -1,0 +1,7 @@
+`(,(make-hash
+    `((("Detroit Tigers" "Chicago cubs") .
+       (,(date* 0 0 0 23 7 2001 1 203 #f 0 0 "UTC")))
+      (("New York Yankees" "Atlanta Braves") .
+       (,(date* 0 0 0 2 7 2001 1 182 #f 0 0 "UTC")
+        ,(date* 0 0 0 12 8 2001 0 223 #f 0 0 "UTC")
+        ,(date* 0 0 0 14 8 2001 2 225 #f 0 0 "UTC"))))))

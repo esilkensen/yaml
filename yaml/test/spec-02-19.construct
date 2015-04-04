@@ -1,0 +1,4 @@
+`(,(make-hash '(("decimal" . 12345)
+                ("canonical" . 12345)
+                ("octal" . "0o14")
+                ("hexadecimal" . 12))))

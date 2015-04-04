@@ -1,0 +1,6 @@
+`(,(make-hash '(("player" . "Sammy Sosa")
+                ("action" . "strike (miss)")
+                ("time" . 72200)))
+  ,(make-hash '(("player" . "Sammy Sosa")
+                ("action" . "grand slam")
+                ("time" . 72227))))

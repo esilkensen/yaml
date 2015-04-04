@@ -1,0 +1,30 @@
+`(,(make-hash
+    `(("User" .
+       "ed")
+      ("Time" .
+       ,(date* 42 1 18 23 11 2001 0 0 #f 0 0 "UTC"))
+      ("Warning" .
+       "This is an error message for the log file")))
+  ,(make-hash
+    `(("User" .
+       "ed")
+      ("Time" .
+       ,(date* 31 2 18 23 11 2001 0 0 #f 0 0 "UTC"))
+      ("Warning" .
+       "A slightly different error message.")))
+  ,(make-hash
+    `(("User" .
+       "ed")
+      ("Fatal" .
+       "Unknown variable \"bar\"")
+      ("Date" .
+       ,(date* 17 3 18 23 11 2001 0 0 #f 0 0 "UTC"))
+      ("Stack" .
+       (,(make-hash
+          '(("line" . 23)
+            ("file" . "TopClass.py")
+            ("code" . "x = MoreObject(\"345\\n\")\n")))
+        ,(make-hash
+          '(("line" . 58)
+            ("file" . "MoreClass.py")
+            ("code" . "foo = bar"))))))))

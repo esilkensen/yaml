@@ -1,0 +1,5 @@
+`(,(make-hash '(("not a number" . +nan.0)
+                ("fixed" . 1230.15)
+                ("canonical" . 1230.15)
+                ("negative infinity" . -inf.0)
+                ("exponential" . 1230.15))))
