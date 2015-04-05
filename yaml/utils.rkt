@@ -24,15 +24,6 @@
 (define-syntax-rule (while test body ...)
   (let loop () (when test body ... (loop))))
 
-(define (read-file filename)
-  (with-input-from-file filename
-    (λ ()
-      (let loop ([lines '()])
-        (let ([line (read-line)])
-          (if (string? line)
-              (loop (cons line lines))
-              (reverse lines)))))))
-
 (define (test-files extension [directory "test"])
   (define (remove-extension file)
     (let* ([fn (if (string? file) file (path->string file))]

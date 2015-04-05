@@ -1319,7 +1319,7 @@
   (require rackunit)
   (define-simple-check (check-scanner test-file check-file)
     (for ([token (scan-file test-file)]
-          [line (read-file check-file)])
+          [line (file->lines check-file)])
       (check-equal? (token->string token) line)))
   (test-begin
    (for ([(test-file check-file) (test-files #"scan")])
