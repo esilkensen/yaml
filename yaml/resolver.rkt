@@ -2,7 +2,26 @@
 
 #lang racket
 
-(provide resolve add-implicit-resolver!)
+(require "nodes.rkt")
+
+(provide
+ (contract-out
+  [resolve
+   ((or/c 'scalar 'sequence 'mapping)
+    (or/c
+     ;; scalar-node-value, scalar-event-value
+     string?
+     ;; sequence-node-value
+     (listof node?)
+     ;; mapping-node-value
+     (listof (cons/c node? node?))
+     #f)
+    ;; any-event-implicit
+    (or/c (cons/c boolean? boolean?) boolean?)
+    . -> .
+    (or/c string? #f))]
+  [add-implicit-resolver!
+   (string? regexp? (listof (or/c char? "")) . -> . void?)]))
 
 (define DEFAULT-SCALAR-TAG "tag:yaml.org,2002:str")
 (define DEFAULT-SEQUENCE-TAG "tag:yaml.org,2002:seq")
@@ -53,7 +72,6 @@
    "|[-+]?\\.(?:inf|Inf|INF)"
    "|\\.(?:nan|NaN|NAN))$"))
  (string->list "-+0123456789."))
-
 
 (add-implicit-resolver!
  "tag:yaml.org,2002:int"

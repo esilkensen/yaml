@@ -8,7 +8,18 @@
  "events.rkt"
  "utils.rkt")
 
-(provide make-emitter)
+(provide
+ (contract-out
+  [make-emitter
+   (()
+    (output-port?
+     #:canonical boolean?
+     #:indent (or/c exact-positive-integer? #f)
+     #:width (or/c exact-positive-integer? #f)
+     #:allow-unicode boolean?
+     #:line-break (or/c "\n" "\r" "\r\n" #f))
+    . ->* .
+    (event? . -> . void?))]))
 
 (define (emitter-error message)
   (error 'emitter message))

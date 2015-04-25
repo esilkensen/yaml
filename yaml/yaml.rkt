@@ -6,11 +6,10 @@
 
 (provide
  (contract-out
-  [yaml? (-> any/c boolean?)]
-  [yaml-null (case-> (-> any/c) (-> any/c void?))]
-  [yaml-struct? (-> any/c boolean?)]
-  [gen->yaml (-> yaml-struct?
-                 (listof (cons/c string? yaml?)))])
+  [yaml? (any/c . -> . boolean?)]
+  [yaml-null (case-> (-> any/c) (any/c . -> . void?))]
+  [yaml-struct? (any/c . -> . boolean?)]
+  [gen->yaml (yaml-struct? . -> . (listof (cons/c string? yaml?)))])
  yaml-struct
  yaml-struct-constructors)
 

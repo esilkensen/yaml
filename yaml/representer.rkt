@@ -10,7 +10,14 @@
  "utils.rkt"
  "yaml.rkt")
 
-(provide make-representer)
+(provide
+ (contract-out
+  [make-representer
+   (((node? . -> . void?))
+    (#:scalar-style (or/c #\" #\' #\| #\> 'plain #f)
+     #:style (or/c 'block 'flow 'best #f))
+    . ->* .
+    (yaml? . -> . void?))]))
 
 (define (representer-error message)
   (error 'representer message))

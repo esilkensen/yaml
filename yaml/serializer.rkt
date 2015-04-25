@@ -10,7 +10,22 @@
  "resolver.rkt"
  "utils.rkt")
 
-(provide make-serializer)
+(provide
+ (contract-out
+  [make-serializer
+   (()
+    (output-port?
+     #:canonical boolean?
+     #:indent (or/c exact-positive-integer? #f)
+     #:width (or/c exact-positive-integer? #f)
+     #:allow-unicode boolean?
+     #:line-break (or/c "\n" "\r" "\r\n" #f)
+     #:explicit-start boolean?
+     #:explicit-end boolean?
+     #:version (or/c (cons/c exact-integer? exact-integer?) #f)
+     #:tags (or/c (hash/c string? string?) #f))
+    . ->* .
+    (node? . -> . void?))]))
 
 (define ANCHOR-TEMPLATE "id~a")
 
