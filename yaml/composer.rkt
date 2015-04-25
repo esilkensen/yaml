@@ -11,11 +11,22 @@
  "utils.rkt")
 
 (provide
- compose-file
- compose-string
- compose-all
- compose
- make-composer)
+ (contract-out
+  [compose-file (path-string? . -> . (listof node?))]
+  [compose-string (string? . -> . (listof node?))]
+  [compose-all (() (input-port?) . ->* . (listof node?))]
+  [compose (() (input-port?) . ->* . (or/c node? #f))]
+  [make-composer
+   (()
+    (input-port?)
+    . ->* .
+    (values
+     ;; check-node?
+     (-> boolean?)
+     ;; get-node
+     (-> (or/c node? void?))
+     ;; get-single-node
+     (-> (or/c node? #f))))]))
 
 (define composer-error (make-error 'composer))
 
@@ -50,21 +61,23 @@
     (not (check-event? stream-end-event?)))
   
   (define (get-node)
-    (unless (check-event? stream-end-event?)
-      (compose-document)))
+    (when (check-event?)
+      (unless (check-event? stream-end-event?)
+        (compose-document))))
   
   (define (get-single-node)
-    (let ([document #f])
-      (get-event)
-      (unless (check-event? stream-end-event?)
-        (set! document (compose-document)))
-      (unless (check-event? stream-end-event?)
-        (composer-error
-         "expected a single document in the stream"
-         "but found another document"
-         (event-start (get-event))))
-      (get-event)
-      document))
+    (and (check-event?)
+         (let ([document #f])
+           (get-event)
+           (unless (check-event? stream-end-event?)
+             (set! document (compose-document)))
+           (unless (check-event? stream-end-event?)
+             (composer-error
+              "expected a single document in the stream"
+              "but found another document"
+              (event-start (get-event))))
+           (get-event)
+           document)))
   
   (define (compose-document)
     (get-event)

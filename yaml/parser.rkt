@@ -11,10 +11,21 @@
  "utils.rkt")
 
 (provide
- parse-file
- parse-string
- parse
- make-parser)
+ (contract-out
+  [parse-file (path-string? . -> . (listof event?))]
+  [parse-string (string? . -> . (listof event?))]
+  [parse (() (input-port?) . ->* . (listof event?))]
+  [make-parser
+   (()
+    (input-port?)
+    . ->* .
+    (values
+     ;; check-event?
+     (() #:rest (listof (any/c . -> . boolean?)) . ->* . boolean?)
+     ;; peek-event?
+     (-> (or/c event? #f))
+     ;; get-event
+     (-> (or/c event? #f))))]))
 
 (define (parse-file filename)
   (with-input-from-file filename parse))
@@ -157,12 +168,15 @@
                   (let ([start (token-start token)])
                     (when yaml-version
                       (parser-error #f "found duplicate YAML directive" start))
-                    (match-let ([(cons major minor) (directive-token-value token)])
+                    (match-let ([(cons major minor)
+                                 (directive-token-value token)])
                       (unless (= 1 major)
-                        (parser-error #f "found incompatible YAML document" start))
+                        (parser-error
+                         #f "found incompatible YAML document" start))
                       (set! yaml-version (directive-token-value token))))]
                  [(string=? "TAG" (directive-token-name token))
-                  (match-let ([(cons handle prefix) (directive-token-value token)])
+                  (match-let ([(cons handle prefix)
+                               (directive-token-value token)])
                     (when (char? handle)
                       (set! handle (string handle)))
                     (when (hash-has-key? tag-handles handle)

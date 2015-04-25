@@ -13,11 +13,22 @@
  "yaml.rkt")
 
 (provide
- construct-file
- construct-string
- construct-all
- construct
- make-constructor)
+ (contract-out
+  [construct-file (path-string? . -> . (listof yaml?))]
+  [construct-string (string? . -> . (listof yaml?))]
+  [construct-all (() (input-port?) . ->* . (listof yaml?))]
+  [construct (() (input-port?) . ->* . (or/c yaml? #f))]
+  [make-constructor
+   (()
+    (input-port?)
+    . ->* .
+    (values
+     ;; check-data?
+     (-> boolean?)
+     ;; get-data
+     (-> (or/c yaml? void?))
+     ;; get-single-data
+     (-> (or/c yaml? #f))))]))
 
 (define constructor-error (make-error 'constructor))
 

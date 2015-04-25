@@ -8,7 +8,22 @@
  "tokens.rkt"
  "utils.rkt")
 
-(provide scan-file scan-string scan make-scanner)
+(provide
+ (contract-out
+  [scan-file (path-string? . -> . (listof token?))]
+  [scan-string (string? . -> . (listof token?))]
+  [scan (() (input-port?) . ->* . (listof token?))]
+  [make-scanner
+   (()
+    (input-port?)
+    . ->* .
+    (values
+     ;; check-token?
+     (() #:rest (listof (any/c . -> . boolean?)) . ->* . boolean?)
+     ;; peek-token
+     (-> (or/c token? #f))
+     ;; get-token
+     (-> (or/c token? #f))))]))
 
 (define (scan-file filename)
   (let ([in (open-input-file filename)])
