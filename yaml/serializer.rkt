@@ -25,6 +25,7 @@
      #:version (or/c (cons/c exact-integer? exact-integer?) #f)
      #:tags (or/c (hash/c string? string?) #f))
     . ->* .
+    ;; serialize
     (node? . -> . void?))]))
 
 (define ANCHOR-TEMPLATE "id~a")
@@ -50,31 +51,31 @@
   (define serialized-nodes (make-hasheq))
   (define anchors (make-hasheq))
   (define last-anchor-id 0)
-  (define closed 'None)
+  (define closed '())
   
   (define (open)
     (cond
-      [(eq? 'None closed)
+      [(null? closed)
        (emit (stream-start-event #f #f))
        (set! closed #f)]
-      [(eq? #t closed)
+      [closed
        (serializer-error "serializer is closed")]
       [else
        (serializer-error "serializer is already opened")]))
   
   (define (close)
     (cond
-      [(eq? 'None closed)
+      [(null? closed)
        (serializer-error "serializer is not opened")]
-      [(eq? #f closed)
+      [(not closed)
        (emit (stream-end-event #f #f))
        (set! closed #t)]))
   
   (define (serialize node)
     (cond
-      [(eq? 'None closed)
+      [(null? closed)
        (serializer-error "serializer is not opened")]
-      [(eq? #t closed)
+      [closed
        (serializer-error "serializer is closed")])
     (emit (document-start-event #f #f explicit-start version tags))
     (anchor-node node)
