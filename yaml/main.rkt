@@ -14,6 +14,8 @@
   [read-yaml* (() (input-port?) . ->* . (listof yaml?))]
   [string->yaml (string? . -> . yaml?)]
   [string->yaml* (string? . -> . (listof yaml?))]
+  [file->yaml (path-string? . -> . yaml?)]
+  [file->yaml* (path-string? . -> . (listof yaml?))]
   [write-yaml
    ((yaml?)
     (output-port?
@@ -79,6 +81,12 @@
 
 (define (string->yaml* str)
   (with-input-from-string str read-yaml*))
+
+(define (file->yaml path)
+  (with-input-from-file path read-yaml))
+
+(define (file->yaml* path)
+  (with-input-from-file path read-yaml*))
 
 (define (write-yaml document [out (current-output-port)]
                     #:canonical [canonical #f]
