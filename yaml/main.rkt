@@ -14,8 +14,14 @@
   [read-yaml* (() (input-port?) . ->* . (listof yaml?))]
   [string->yaml (string? . -> . yaml?)]
   [string->yaml* (string? . -> . (listof yaml?))]
-  [file->yaml (path-string? . -> . yaml?)]
-  [file->yaml* (path-string? . -> . (listof yaml?))]
+  [file->yaml
+   ((path-string?)
+    (#:mode (or/c 'binary 'text))
+    . ->* . yaml?)]
+  [file->yaml*
+   ((path-string?)
+    (#:mode (or/c 'binary 'text))
+    . ->* . (listof yaml?))]
   [write-yaml
    ((yaml?)
     (output-port?
@@ -41,23 +47,50 @@
   [yaml->string
    ((yaml?)
     (#:canonical boolean?
-                 #:indent exact-positive-integer?
-                 #:width exact-positive-integer?
-                 #:explicit-start boolean?
-                 #:explicit-end boolean?
-                 #:scalar-style (or/c #\" #\' #\| #\> 'plain)
-                 #:style (or/c 'block 'flow 'best))
+     #:indent exact-positive-integer?
+     #:width exact-positive-integer?
+     #:explicit-start boolean?
+     #:explicit-end boolean?
+     #:scalar-style (or/c #\" #\' #\| #\> 'plain)
+     #:style (or/c 'block 'flow 'best))
     . ->* . string?)]
   [yaml*->string
    (((listof yaml?))
     (#:canonical boolean?
-                 #:indent exact-positive-integer?
-                 #:width exact-positive-integer?
-                 #:explicit-start boolean?
-                 #:explicit-end boolean?
-                 #:scalar-style (or/c #\" #\' #\| #\> 'plain)
-                 #:style (or/c 'block 'flow 'best))
+     #:indent exact-positive-integer?
+     #:width exact-positive-integer?
+     #:explicit-start boolean?
+     #:explicit-end boolean?
+     #:scalar-style (or/c #\" #\' #\| #\> 'plain)
+     #:style (or/c 'block 'flow 'best))
+    . ->* . string?)]
+  [yaml->file
+   ((yaml? path-string?)
+    (#:mode (or/c 'binary 'text)
+     #:exists (or/c 'error 'append 'update 'replace
+                    'truncate 'truncate/replace)
+     #:canonical boolean?
+     #:indent exact-positive-integer?
+     #:width exact-positive-integer?
+     #:explicit-start boolean?
+     #:explicit-end boolean?
+     #:scalar-style (or/c #\" #\' #\| #\> 'plain)
+     #:style (or/c 'block 'flow 'best))
+    . ->* . string?)]
+  [yaml*->file
+   (((listof yaml?) path-string?)
+    (#:mode (or/c 'binary 'text)
+     #:exists (or/c 'error 'append 'update 'replace
+                    'truncate 'truncate/replace)
+     #:canonical boolean?
+     #:indent exact-positive-integer?
+     #:width exact-positive-integer?
+     #:explicit-start boolean?
+     #:explicit-end boolean?
+     #:scalar-style (or/c #\" #\' #\| #\> 'plain)
+     #:style (or/c 'block 'flow 'best))
     . ->* . string?)])
+ 
  (except-out
   (all-from-out "yaml.rkt")
   gen->yaml
@@ -82,11 +115,11 @@
 (define (string->yaml* str)
   (with-input-from-string str read-yaml*))
 
-(define (file->yaml path)
-  (with-input-from-file path read-yaml))
+(define (file->yaml path #:mode [mode-flag 'binary])
+  (with-input-from-file path read-yaml #:mode mode-flag))
 
-(define (file->yaml* path)
-  (with-input-from-file path read-yaml*))
+(define (file->yaml* path #:mode [mode-flag 'binary])
+  (with-input-from-file path read-yaml* #:mode mode-flag))
 
 (define (write-yaml document [out (current-output-port)]
                     #:canonical [canonical #f]
@@ -138,14 +171,14 @@
                       #:scalar-style [scalar-style 'plain]
                       #:style [style 'best])
   (with-output-to-string
-   (λ () (write-yaml document
-                     #:canonical canonical
-                     #:indent indent
-                     #:width width
-                     #:explicit-start explicit-start
-                     #:explicit-end explicit-end
-                     #:scalar-style scalar-style
-                     #:style style))))
+    (λ () (write-yaml document
+                      #:canonical canonical
+                      #:indent indent
+                      #:width width
+                      #:explicit-start explicit-start
+                      #:explicit-end explicit-end
+                      #:scalar-style scalar-style
+                      #:style style))))
 
 (define (yaml*->string documents
                        #:canonical [canonical #f]
@@ -156,11 +189,57 @@
                        #:scalar-style [scalar-style 'plain]
                        #:style [style 'best])
   (with-output-to-string
-   (λ () (write-yaml* documents
+    (λ () (write-yaml* documents
+                       #:canonical canonical
+                       #:indent indent
+                       #:width width
+                       #:explicit-start explicit-start
+                       #:explicit-end explicit-end
+                       #:scalar-style scalar-style
+                       #:style style))))
+
+(define (yaml->file document path
+                    #:mode [mode-flag 'binary]
+                    #:exists [exists-flag 'error]
+                    #:canonical [canonical #f]
+                    #:indent [indent 2]
+                    #:width [width 80]
+                    #:explicit-start [explicit-start #f]
+                    #:explicit-end [explicit-end #f]
+                    #:scalar-style [scalar-style 'plain]
+                    #:style [style 'best])
+  (with-output-to-file
+    path
+    (λ () (write-yaml document
                       #:canonical canonical
                       #:indent indent
                       #:width width
                       #:explicit-start explicit-start
                       #:explicit-end explicit-end
                       #:scalar-style scalar-style
-                      #:style style))))
+                      #:style style))
+    #:mode mode-flag
+    #:exists exists-flag))
+
+(define (yaml*->file documents path
+                     #:mode [mode-flag 'binary]
+                     #:exists [exists-flag 'error]
+                     #:canonical [canonical #f]
+                     #:indent [indent 2]
+                     #:width [width 80]
+                     #:explicit-start [explicit-start #f]
+                     #:explicit-end [explicit-end #f]
+                     #:scalar-style [scalar-style 'plain]
+                     #:style [style 'best])
+  (with-output-to-file
+    path
+    (λ () (write-yaml* documents
+                       #:canonical canonical
+                       #:indent indent
+                       #:width width
+                       #:explicit-start explicit-start
+                       #:explicit-end explicit-end
+                       #:scalar-style scalar-style
+                       #:style style))
+    #:mode mode-flag
+    #:exists exists-flag))

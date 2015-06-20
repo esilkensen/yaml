@@ -125,16 +125,18 @@ Equivalent to
 @racketblock[(with-input-from-string str read-yaml*)]}
 
 @defproc[(file->yaml
-           [path path-string?])
+           [path path-string?]
+           [#:mode mode-flag (or/c 'binary 'text) 'binary])
          yaml?]{
 Equivalent to
-@racketblock[(with-input-from-file path read-yaml)]}
+@racketblock[(with-input-from-file path read-yaml #:mode mode-flag)]}
 
 @defproc[(file->yaml*
-           [path path-string?])
+           [path path-string?]
+           [#:mode mode-flag (or/c 'binary 'text) 'binary])
          (listof yaml?)]{
 Equivalent to
-@racketblock[(with-input-from-file path read-yaml*)]}
+@racketblock[(with-input-from-file path read-yaml* #:mode mode-flag)]}
 
 @section{Writing YAML}
 
@@ -180,5 +182,41 @@ Equivalent to
 @racketblock[
 (with-output-to-string
   (λ () (write-yaml* documents ....)))]
+Accepts the same keyword arguments as @racket[write-yaml*]
+(represented above by @racket[....]).}
+
+@defproc[(yaml->file
+           [document yaml?]
+           [path path-string?]
+           [#:mode mode-flag (or/c 'binary 'text) 'binary]
+           [#:exists exists-flag (or/c 'error 'append 'update
+                                       'replace 'truncate 'truncate/replace)
+                     'error])
+         string?]{
+Equivalent to
+@racketblock[
+(with-output-to-file
+  path
+  (λ () (write-yaml document ....))
+  #:mode mode-flag
+  #:exists exists-flag)]
+Accepts the same keyword arguments as @racket[write-yaml]
+(represented above by @racket[....]).}
+
+@defproc[(yaml*->file
+           [documents (listof yaml?)]
+           [path path-string?]
+           [#:mode mode-flag (or/c 'binary 'text) 'binary]
+           [#:exists exists-flag (or/c 'error 'append 'update
+                                       'replace 'truncate 'truncate/replace)
+                     'error])
+         string?]{
+Equivalent to
+@racketblock[
+(with-output-to-file
+  path
+  (λ () (write-yaml* documents ....))
+  #:mode mode-flag
+  #:exists exists-flag)]
 Accepts the same keyword arguments as @racket[write-yaml*]
 (represented above by @racket[....]).}
