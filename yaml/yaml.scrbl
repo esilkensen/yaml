@@ -12,7 +12,7 @@
   (current-print pretty-print-handler))
 
 @title{YAML}
-@author{@(author+email "Erik Silkensen" "ejs@ccs.neu.edu")}
+@author{@(author+email "Erik Silkensen" "eriksilkensen@gmail.com")}
 @defmodule[yaml]
 
 This module provides utilities for parsing and emitting data in the YAML
