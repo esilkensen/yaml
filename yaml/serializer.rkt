@@ -25,8 +25,13 @@
      #:version (or/c (cons/c exact-integer? exact-integer?) #f)
      #:tags (or/c (hash/c string? string?) #f))
     . ->* .
-    ;; serialize
-    (node? . -> . void?))]))
+    (values
+     ;; open
+     (-> void?)
+     ;; close
+     (-> void?)
+     ;; serialize
+     (node? . -> . void?)))]))
 
 (define ANCHOR-TEMPLATE "id~a")
 
