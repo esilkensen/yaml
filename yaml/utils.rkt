@@ -19,7 +19,7 @@
 
 (define-syntax-rule (pop! lst)
   (begin0 (last lst)
-          (set! lst (drop-right lst 1))))
+    (set! lst (drop-right lst 1))))
 
 (define-syntax-rule (while test body ...)
   (let loop () (when test body ... (loop))))

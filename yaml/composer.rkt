@@ -143,10 +143,10 @@
         (when anchor
           (hash-set! anchors anchor node))
         (while (not (check-event? sequence-end-event?))
-               (let ([value (sequence-node-value node)]
-                     [new (compose-node node index)])
-                 (set-sequence-node-value! node (append value (list new)))
-                 (set! index (add1 index))))
+          (let ([value (sequence-node-value node)]
+                [new (compose-node node index)])
+            (set-sequence-node-value! node (append value (list new)))
+            (set! index (add1 index))))
         (set-node-end! node (event-end (get-event)))
         node)))
   
@@ -161,11 +161,11 @@
         (when anchor
           (hash-set! anchors anchor node))
         (while (not (check-event? mapping-end-event?))
-               (let* ([item-key (compose-node node #f)]
-                      [item-value (compose-node node item-key)]
-                      [value (mapping-node-value node)]
-                      [new (cons item-key item-value)])
-                 (set-mapping-node-value! node (append value (list new)))))
+          (let* ([item-key (compose-node node #f)]
+                 [item-value (compose-node node item-key)]
+                 [value (mapping-node-value node)]
+                 [new (cons item-key item-value)])
+            (set-mapping-node-value! node (append value (list new)))))
         (set-node-end! node (event-end (get-event)))
         node)))
   
@@ -178,5 +178,5 @@
           [line (file->lines check-file)])
       (check-equal? (node->string-rec node) line)))
   (test-begin
-   (for ([(test-file check-file) (test-files #"compose")])
-     (check-composer test-file check-file test-file))))
+    (for ([(test-file check-file) (test-files #"compose")])
+      (check-composer test-file check-file test-file))))

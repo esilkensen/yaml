@@ -40,9 +40,9 @@
                [(_ in in-value ([in-field : in-type] (... ...))
                    in-options (... ...))
                 (with-syntax
-                    ([t-s (build-name #'in #'in "-" #'name)]
-                     [t-s? (build-name #'in #'in "-" #'name "?")]
-                     [t-s->string (build-name #'in #'in "-" #'name "->string")])
+                  ([t-s (build-name #'in #'in "-" #'name)]
+                   [t-s? (build-name #'in #'in "-" #'name "?")]
+                   [t-s->string (build-name #'in #'in "-" #'name "->string")])
                   (let ([fs (map
                              (λ (f)
                                `(cons ,(format "~a" (syntax->datum f))

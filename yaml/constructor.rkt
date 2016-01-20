@@ -334,7 +334,7 @@
           (when (get-fraction)
             (set! fraction (get-fraction))
             (while (< (string-length fraction) 6)
-                   (set! fraction (string-append fraction "0")))
+              (set! fraction (string-append fraction "0")))
             (set! fraction (* 1000 (string->number fraction))))
           (if (get-tz-sign)
               (let* ([tz-hour (get-tz-hour)]
@@ -473,5 +473,5 @@
      (construct-file test-file)
      (racket-eval (file->string check-file))))
   (test-begin
-   (for ([(test-file check-file) (test-files #"construct")])
-     (check-constructor test-file check-file test-file))))
+    (for ([(test-file check-file) (test-files #"construct")])
+      (check-constructor test-file check-file test-file))))

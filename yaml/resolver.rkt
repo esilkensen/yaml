@@ -120,36 +120,36 @@
 (module+ test
   (require rackunit)
   (test-begin
-   (check-equal?
-    (resolve 'scalar "\"str\"" '(#t . #t))
-    "tag:yaml.org,2002:str")
-   (check-equal?
-    (resolve 'scalar "true" '(#t . #t))
-    "tag:yaml.org,2002:bool")
-   (check-equal?
-    (resolve 'scalar "1.1" '(#t . #t))
-    "tag:yaml.org,2002:float")
-   (check-equal?
-    (resolve 'scalar "1" '(#t . #t))
-    "tag:yaml.org,2002:int")
-   (check-equal?
-    (resolve 'scalar "<<" '(#t . #t))
-    "tag:yaml.org,2002:merge")
-   (check-equal?
-    (resolve 'scalar "null" '(#t . #t))
-    "tag:yaml.org,2002:null")
-   (check-equal?
-    (resolve 'scalar "2002-01-01" '(#t . #t))
-    "tag:yaml.org,2002:timestamp")
-   (check-equal?
-    (resolve 'scalar "=" '(#t . #t))
-    "tag:yaml.org,2002:value")
-   (check-equal?
-    (resolve 'scalar #f '(#f . #t))
-    DEFAULT-SCALAR-TAG)
-   (check-equal?
-    (resolve 'sequence #f #f)
-    DEFAULT-SEQUENCE-TAG)
-   (check-equal?
-    (resolve 'mapping #f #f)
-    DEFAULT-MAPPING-TAG)))
+    (check-equal?
+     (resolve 'scalar "\"str\"" '(#t . #t))
+     "tag:yaml.org,2002:str")
+    (check-equal?
+     (resolve 'scalar "true" '(#t . #t))
+     "tag:yaml.org,2002:bool")
+    (check-equal?
+     (resolve 'scalar "1.1" '(#t . #t))
+     "tag:yaml.org,2002:float")
+    (check-equal?
+     (resolve 'scalar "1" '(#t . #t))
+     "tag:yaml.org,2002:int")
+    (check-equal?
+     (resolve 'scalar "<<" '(#t . #t))
+     "tag:yaml.org,2002:merge")
+    (check-equal?
+     (resolve 'scalar "null" '(#t . #t))
+     "tag:yaml.org,2002:null")
+    (check-equal?
+     (resolve 'scalar "2002-01-01" '(#t . #t))
+     "tag:yaml.org,2002:timestamp")
+    (check-equal?
+     (resolve 'scalar "=" '(#t . #t))
+     "tag:yaml.org,2002:value")
+    (check-equal?
+     (resolve 'scalar #f '(#f . #t))
+     DEFAULT-SCALAR-TAG)
+    (check-equal?
+     (resolve 'sequence #f #f)
+     DEFAULT-SEQUENCE-TAG)
+    (check-equal?
+     (resolve 'mapping #f #f)
+     DEFAULT-MAPPING-TAG)))

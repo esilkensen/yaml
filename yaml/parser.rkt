@@ -85,14 +85,14 @@
       (when (procedure? state)
         (set! current-event (state))))
     (begin0 current-event
-            (set! current-event #f)))
+      (set! current-event #f)))
   
   ;; stream ::= STREAM-START implicit_document? explicit_document* STREAM-END
   
   (define (parse-stream-start)
     (let ([token (get-token)])
       (begin0 (stream-start-event (token-start token) (token-end token))
-              (set! state parse-implicit-document-start))))
+        (set! state parse-implicit-document-start))))
   
   ;; implicit_document ::= block_node DOCUMENT-END*
   ;; explicit_document ::= DIRECTIVE* DOCUMENT-START block_node? DOCUMENT-END*
@@ -108,20 +108,20 @@
        (set! tag-handles DEFAULT-TAGS)
        (let ([mark (token-start (peek-token))])
          (begin0 (document-start-event mark mark #f #f #f)
-                 (append! states (list parse-document-end))
-                 (set! state parse-block-node)))]))
+           (append! states (list parse-document-end))
+           (set! state parse-block-node)))]))
   
   (define (parse-document-start)
     (while (check-token? document-end-token?)
-           (get-token))
+      (get-token))
     (cond
       [(check-token? stream-end-token?)
        (let ([token (get-token)])
          (begin0 (stream-end-event (token-start token) (token-end token))
-                 (unless (and (null? states) (null? marks))
-                   (error 'parser "assertion error (non-null ~a)"
-                          (if (null? states) 'states 'marks)))
-                 (set! state #f)))]
+           (unless (and (null? states) (null? marks))
+             (error 'parser "assertion error (non-null ~a)"
+                    (if (null? states) 'states 'marks)))
+           (set! state #f)))]
       [else
        (let* ([token (peek-token)]
               [start (token-start token)])
@@ -134,8 +134,8 @@
               (token-start (peek-token))))
            (let ([end (token-end (get-token))])
              (begin0 (document-start-event start end #t version tags)
-                     (append! states (list parse-document-end))
-                     (set! state parse-document-content)))))]))
+               (append! states (list parse-document-end))
+               (set! state parse-document-content)))))]))
   
   (define (parse-document-end)
     (let ([start (token-start (peek-token))]
@@ -145,7 +145,7 @@
         (set! end (token-end (get-token)))
         (set! explicit #t))
       (begin0 (document-end-event start end explicit)
-              (set! state parse-document-start))))
+        (set! state parse-document-start))))
   
   (define (parse-document-content)
     (if (check-token?
@@ -154,7 +154,7 @@
          document-end-token?
          stream-end-token?)
         (begin0 (process-empty-scalar (token-start (peek-token)))
-                (set! state (pop! states)))
+          (set! state (pop! states)))
         (parse-block-node)))
   
   (define (process-directives)
@@ -162,27 +162,27 @@
     (set! tag-handles (make-hash))
     (let ([value #f])
       (while (check-token? directive-token?)
-             (let ([token (get-token)])
-               (cond
-                 [(string=? "YAML" (directive-token-name token))
-                  (let ([start (token-start token)])
-                    (when yaml-version
-                      (parser-error #f "found duplicate YAML directive" start))
-                    (match-let ([(cons major minor)
-                                 (directive-token-value token)])
-                      (unless (= 1 major)
-                        (parser-error
-                         #f "found incompatible YAML document" start))
-                      (set! yaml-version (directive-token-value token))))]
-                 [(string=? "TAG" (directive-token-name token))
-                  (match-let ([(cons handle prefix)
-                               (directive-token-value token)])
-                    (when (char? handle)
-                      (set! handle (string handle)))
-                    (when (hash-has-key? tag-handles handle)
-                      (let ([msg (format "duplicate tag handle ~a" handle)])
-                        (parser-error #f msg (token-start token))))
-                    (hash-set! tag-handles handle prefix))])))
+        (let ([token (get-token)])
+          (cond
+            [(string=? "YAML" (directive-token-name token))
+             (let ([start (token-start token)])
+               (when yaml-version
+                 (parser-error #f "found duplicate YAML directive" start))
+               (match-let ([(cons major minor)
+                            (directive-token-value token)])
+                 (unless (= 1 major)
+                   (parser-error
+                    #f "found incompatible YAML document" start))
+                 (set! yaml-version (directive-token-value token))))]
+            [(string=? "TAG" (directive-token-name token))
+             (match-let ([(cons handle prefix)
+                          (directive-token-value token)])
+               (when (char? handle)
+                 (set! handle (string handle)))
+               (when (hash-has-key? tag-handles handle)
+                 (let ([msg (format "duplicate tag handle ~a" handle)])
+                   (parser-error #f msg (token-start token))))
+               (hash-set! tag-handles handle prefix))])))
       (if (null? (hash-keys tag-handles))
           (set! value (cons yaml-version #f))
           (set! value (cons yaml-version (hash-copy tag-handles))))
@@ -216,7 +216,7 @@
                   (token-start token)
                   (token-end token)
                   (alias-token-value token))
-                 (set! state (pop! states))))]
+           (set! state (pop! states))))]
       [else
        (let ([anchor #f] [tag #f] [start #f] [end #f] [tag-mark #f])
          (cond
@@ -260,7 +260,7 @@
          (let ([implicit (or (not tag) (equal? #\! tag))])
            (if (and indentless-sequence (check-token? block-entry-token?))
                (begin0 (sequence-start-event start end anchor tag implicit #f)
-                       (set! state parse-indentless-sequence-entry))
+                 (set! state parse-indentless-sequence-entry))
                (cond
                  [(check-token? scalar-token?)
                   (let ([token (get-token)])
@@ -277,27 +277,32 @@
                                    [else (cons #f #f)])
                              (scalar-token-value token)
                              (scalar-token-style token))
-                            (set! state (pop! states))))]
+                      (set! state (pop! states))))]
                  [(check-token? flow-sequence-start-token?)
-                  (begin0 (sequence-start-event
-                           start (token-end (peek-token)) anchor tag implicit #t)
-                          (set! state parse-flow-sequence-first-entry))]
+                  (begin0
+                      (sequence-start-event
+                       start (token-end (peek-token)) anchor tag implicit #t)
+                    (set! state parse-flow-sequence-first-entry))]
                  [(check-token? flow-mapping-start-token?)
-                  (begin0 (mapping-start-event
-                           start (token-end (peek-token)) anchor tag implicit #t)
-                          (set! state parse-flow-mapping-first-key))]
+                  (begin0
+                      (mapping-start-event
+                       start (token-end (peek-token)) anchor tag implicit #t)
+                    (set! state parse-flow-mapping-first-key))]
                  [(and block (check-token? block-sequence-start-token?))
-                  (begin0 (sequence-start-event
-                           start (token-end (peek-token)) anchor tag implicit #f)
-                          (set! state parse-block-sequence-first-entry))]
+                  (begin0
+                      (sequence-start-event
+                       start (token-end (peek-token)) anchor tag implicit #f)
+                    (set! state parse-block-sequence-first-entry))]
                  [(and block (check-token? block-mapping-start-token?))
-                  (begin0 (mapping-start-event
-                           start (token-end (peek-token)) anchor tag implicit #f)
-                          (set! state parse-block-mapping-first-key))]
+                  (begin0
+                      (mapping-start-event
+                       start (token-end (peek-token)) anchor tag implicit #f)
+                    (set! state parse-block-mapping-first-key))]
                  [(or anchor tag)
-                  (begin0 (scalar-event
-                           start end anchor tag (cons implicit #f) "" #f)
-                          (set! state (pop! states)))]
+                  (begin0
+                      (scalar-event
+                       start end anchor tag (cons implicit #f) "" #f)
+                    (set! state (pop! states)))]
                  [else
                   (let ([token (peek-token)])
                     (parser-error
@@ -334,8 +339,8 @@
           (token-start (peek-token))))
        (let ([token (get-token)])
          (begin0 (sequence-end-event (token-start token) (token-end token))
-                 (set! state (pop! states))
-                 (pop! marks)))]))
+           (set! state (pop! states))
+           (pop! marks)))]))
   
   ;; indentless_sequence ::= (BLOCK-ENTRY block_node?)+
   
@@ -357,7 +362,7 @@
       [else
        (let ([token (peek-token)])
          (begin0 (sequence-end-event (token-start token) (token-end token))
-                 (set! state (pop! states))))]))
+           (set! state (pop! states))))]))
   
   ;; block_mapping ::=
   ;;   BLOCK-MAPPING_START ((KEY block_node_or_indentless_sequence?)?
@@ -390,8 +395,8 @@
           (token-start (peek-token))))
        (let ([token (get-token)])
          (begin0 (mapping-end-event (token-start token) (token-end token))
-                 (set! state (pop! states))
-                 (pop! marks)))]))
+           (set! state (pop! states))
+           (pop! marks)))]))
   
   (define (parse-block-mapping-value)
     (cond
@@ -435,15 +440,15 @@
          (let ([start (token-start (peek-token))]
                [end (token-end (peek-token))])
            (begin0 (mapping-start-event start end #f #f #t #t)
-                   (set! state parse-flow-sequence-entry-mapping-key)))]
+             (set! state parse-flow-sequence-entry-mapping-key)))]
         [(and (not flow-seq-end?) (not (check-token? flow-sequence-end-token?)))
          (append! states (list parse-flow-sequence-entry))
          (parse-flow-node)]
         [else
          (let ([token (get-token)])
            (begin0 (sequence-end-event (token-start token) (token-end token))
-                   (set! state (pop! states))
-                   (pop! marks)))])))
+             (set! state (pop! states))
+             (pop! marks)))])))
   
   (define (parse-flow-sequence-entry-mapping-key)
     (let ([token (get-token)])
@@ -520,8 +525,8 @@
         [else
          (let ([token (get-token)])
            (begin0 (mapping-end-event (token-start token) (token-end token))
-                   (set! state (pop! states))
-                   (pop! marks)))])))
+             (set! state (pop! states))
+             (pop! marks)))])))
   
   (define (parse-flow-mapping-value)
     (cond
@@ -556,5 +561,5 @@
           [line (file->lines check-file)])
       (check-equal? (event->string event) line)))
   (test-begin
-   (for ([(test-file check-file) (test-files #"parse")])
-     (check-parser test-file check-file test-file))))
+    (for ([(test-file check-file) (test-files #"parse")])
+      (check-parser test-file check-file test-file))))

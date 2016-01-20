@@ -110,7 +110,7 @@
     (set! last-anchor-id (add1 last-anchor-id))
     (let ([str (number->string last-anchor-id)])
       (while (< (string-length str) 3)
-             (set! str (string-append "0" str)))
+        (set! str (string-append "0" str)))
       (format ANCHOR-TEMPLATE str)))
   
   (define (serialize-node node)
