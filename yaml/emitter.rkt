@@ -19,6 +19,7 @@
      #:allow-unicode boolean?
      #:line-break (or/c "\n" "\r" "\r\n" #f))
     . ->* .
+    ;; emit
     (event? . -> . void?))]))
 
 (define (emitter-error message)

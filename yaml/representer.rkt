@@ -17,6 +17,7 @@
     (#:scalar-style (or/c #\" #\' #\| #\> 'plain #f)
      #:style (or/c 'block 'flow 'best #f))
     . ->* .
+    ;; represent
     (yaml? . -> . void?))]))
 
 (define (representer-error message)
