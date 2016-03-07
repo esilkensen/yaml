@@ -75,9 +75,9 @@ A @deftech{YAML expression} is one of:
   @item{the value of @racket[(yaml-null)]}
   @item{@racket[(or/c boolean? string? exact-integer? inexact-real? bytes? date?)]}
   @item{@racket[(cons/c yaml? yaml?)]}
-  @item{a nonempty @racket[(listof yaml?)]}
-  @item{a nonempty @racket[(hash/c yaml? yaml?)]}
-  @item{a nonempty @racket[(set/c yaml?)]}
+  @item{a @racket[(listof yaml?)]}
+  @item{a @racket[(hash/c yaml? yaml?)]}
+  @item{a @racket[(set/c yaml?)]}
   @item{a @racket[yaml-struct?] whose fields are all @racket[yaml?]}]}
 
 @defparam[yaml-null null any/c]{
