@@ -73,12 +73,12 @@ YAML strings, and this predicate checks for such values.
 A @deftech{YAML expression} is one of:
 @itemize[
   @item{the value of @racket[(yaml-null)]}
-  @item{@racket[(or/c boolean? string? exact-integer? inexact-real? bytes? date?)]}
+  @item{a @racket[(or/c boolean? string? exact-integer? inexact-real? bytes? date?)]}
   @item{@racket[(cons/c yaml? yaml?)]}
-  @item{a @racket[(listof yaml?)]}
-  @item{a @racket[(hash/c yaml? yaml?)]}
-  @item{a @racket[(set/c yaml?)]}
-  @item{a @racket[yaml-struct?] whose fields are all @racket[yaml?]}]}
+  @item{@racket[(listof yaml?)]}
+  @item{@racket[(hash/c yaml? yaml?)]}
+  @item{@racket[(set/c yaml?)]}
+  @item{a @racket[yaml-struct?] whose fields are all @racket[yaml?] expressions}]}
 
 @defparam[yaml-null null any/c]{
 A parameter that determines the Racket value that corresponds to a YAML
