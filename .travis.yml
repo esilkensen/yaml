@@ -3,7 +3,7 @@ sudo: false
 env:
   global:
     - RACKET_DIR=~/racket
-  matric:
+  matrix:
     - RACKET_VERSION=HEAD
 
 before_install:
