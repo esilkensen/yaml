@@ -293,6 +293,7 @@
       (format "~a" (construct-scalar node)))))
   
   (define (construct-yaml-timestamp node)
+    (log-debug "construct-yaml-timestamp [node=~a]" (node->string node))
     (define timestamp-regexp
       (regexp
        (string-append
@@ -343,12 +344,10 @@
                      [offset (* tz-sign
                                 (+ (* tz-hour 60 60)
                                    (* tz-minute 60)))]
-                     ;; subtract offset to get to UTC time without tz
-                     [base (- (find-seconds
-                               second minute hour day month year #f)
-                              offset)]
-                     ;; subtract offset again to count tz
-                     [d0 (seconds->date (- base offset))])
+                     [base (find-seconds
+                            second minute hour day month year #f)]
+                     ;; subtract offset to count tz
+                     [d0 (seconds->date (- base offset) #f)])
                 (date*
                  (date-second d0) (date-minute d0) (date-hour d0)
                  (date-day d0) (date-month d0) (date-year d0)
@@ -474,4 +473,4 @@
      (racket-eval (file->string check-file))))
   (test-begin
     (for ([(test-file check-file) (test-files #"construct")])
-      (check-constructor test-file check-file test-file))))
+        (check-constructor test-file check-file test-file))))
