@@ -293,6 +293,7 @@
       (format "~a" (construct-scalar node)))))
   
   (define (construct-yaml-timestamp node)
+    (log-error "\nconstruct-yaml-timestamp [node ~a]" (node->string node))
     (define timestamp-regexp
       (regexp
        (string-append
@@ -325,6 +326,7 @@
       (and (list-ref values 10) (string->number (list-ref values 10))))
     (define (get-tz-minute)
       (and (list-ref values 11) (string->number (list-ref values 11))))
+    (log-error "- hour: ~a" (get-hour))
     (if (not (get-hour))
         (seconds->date (find-seconds 0 0 0 day month year #f) #f)
         (let ([hour (get-hour)]
@@ -336,6 +338,8 @@
             (while (< (string-length fraction) 6)
               (set! fraction (string-append fraction "0")))
             (set! fraction (* 1000 (string->number fraction))))
+          (log-error "- fraction: ~a" (get-fraction))
+          (log-error "- tz-sign: ~a" (get-tz-sign))
           (if (get-tz-sign)
               (let* ([tz-hour (get-tz-hour)]
                      [tz-minute (or (get-tz-minute) 0)]
@@ -349,6 +353,7 @@
                               offset)]
                      ;; subtract offset again to count tz
                      [d0 (seconds->date (- base offset))])
+                (log-error "(seconds->date ~a)" (- base offset))
                 (date*
                  (date-second d0) (date-minute d0) (date-hour d0)
                  (date-day d0) (date-month d0) (date-year d0)
