@@ -18,4 +18,5 @@ script:
   - raco test $TRAVIS_BUILD_DIR/yaml
 
 after_success:
-  - raco cover -f coveralls -d $TRAVIS_BUILD_DIR/yaml/coverage .
+  - cd $TRAVIS_BUILD_DIR/yaml
+  - raco cover -f coveralls .
