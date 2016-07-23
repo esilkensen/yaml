@@ -293,7 +293,7 @@
       (format "~a" (construct-scalar node)))))
   
   (define (construct-yaml-timestamp node)
-    (log-error "\nconstruct-yaml-timestamp [node ~a]" (node->string node))
+    (log-debug "construct-yaml-timestamp [node=~a]" (node->string node))
     (define timestamp-regexp
       (regexp
        (string-append
@@ -326,7 +326,6 @@
       (and (list-ref values 10) (string->number (list-ref values 10))))
     (define (get-tz-minute)
       (and (list-ref values 11) (string->number (list-ref values 11))))
-    (log-error "- hour: ~a" (get-hour))
     (if (not (get-hour))
         (seconds->date (find-seconds 0 0 0 day month year #f) #f)
         (let ([hour (get-hour)]
@@ -338,8 +337,6 @@
             (while (< (string-length fraction) 6)
               (set! fraction (string-append fraction "0")))
             (set! fraction (* 1000 (string->number fraction))))
-          (log-error "- fraction: ~a" (get-fraction))
-          (log-error "- tz-sign: ~a" (get-tz-sign))
           (if (get-tz-sign)
               (let* ([tz-hour (get-tz-hour)]
                      [tz-minute (or (get-tz-minute) 0)]
@@ -347,14 +344,10 @@
                      [offset (* tz-sign
                                 (+ (* tz-hour 60 60)
                                    (* tz-minute 60)))]
-                     ;; subtract offset to get to UTC time without tz
-                     [base (- (find-seconds
-                               second minute hour day month year #f)
-                              offset)]
-                     ;; subtract offset again to count tz
-                     [d0 (seconds->date (- base offset))])
-                (log-error "- (seconds->date ~a)" (- base offset))
-                (log-error "- date-hour: ~a" (date-hour d0))
+                     [base (find-seconds
+                            second minute hour day month year #f)]
+                     ;; subtract offset to count tz
+                     [d0 (seconds->date (- base offset) #f)])
                 (date*
                  (date-second d0) (date-minute d0) (date-hour d0)
                  (date-day d0) (date-month d0) (date-year d0)
@@ -480,6 +473,4 @@
      (racket-eval (file->string check-file))))
   (test-begin
     (for ([(test-file check-file) (test-files #"construct")])
-      (when (equal? "test/spec-02-22a.yaml" test-file)
-        (log-error "test-file: ~a\ncheck-file: ~a" test-file check-file)
-        (check-constructor test-file check-file test-file)))))
+        (check-constructor test-file check-file test-file))))

@@ -2,14 +2,14 @@
     `(("User" .
        "ed")
       ("Time" .
-       ,(date* 42 1 18 23 11 2001 0 0 #f 0 0 "UTC"))
+       ,(date* 42 1 20 23 11 2001 0 0 #f 0 0 "UTC"))
       ("Warning" .
        "This is an error message for the log file")))
   ,(make-hash
     `(("User" .
        "ed")
       ("Time" .
-       ,(date* 31 2 18 23 11 2001 0 0 #f 0 0 "UTC"))
+       ,(date* 31 2 20 23 11 2001 0 0 #f 0 0 "UTC"))
       ("Warning" .
        "A slightly different error message.")))
   ,(make-hash
@@ -18,7 +18,7 @@
       ("Fatal" .
        "Unknown variable \"bar\"")
       ("Date" .
-       ,(date* 17 3 18 23 11 2001 0 0 #f 0 0 "UTC"))
+       ,(date* 17 3 20 23 11 2001 0 0 #f 0 0 "UTC"))
       ("Stack" .
        (,(make-hash
           '(("line" . 23)
