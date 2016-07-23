@@ -474,4 +474,6 @@
      (racket-eval (file->string check-file))))
   (test-begin
     (for ([(test-file check-file) (test-files #"construct")])
-      (check-constructor test-file check-file test-file))))
+      (when (equal? "test/spec-02-22a.yaml" test-file)
+        (log-error "test-file: ~a\ncheck-file: ~a" test-file check-file)
+        (check-constructor test-file check-file test-file)))))

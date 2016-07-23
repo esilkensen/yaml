@@ -15,7 +15,7 @@ install: raco pkg install --deps search-auto $TRAVIS_BUILD_DIR
 
 script:
   - raco make $TRAVIS_BUILD_DIR/yaml/main.rkt
-  - raco test $TRAVIS_BUILD_DIR/yaml
+  - raco test $TRAVIS_BUILD_DIR/yaml/constructor.rkt
 
 after_success:
   - raco cover -f coveralls -d $TRAVIS_BUILD_DIR/yaml/coverage .
