@@ -8,7 +8,7 @@
  "errors.rkt"
  "nodes.rkt"
  "utils.rkt"
- "yaml.rkt")
+ "yaml-expr.rkt")
 
 (provide
  (contract-out

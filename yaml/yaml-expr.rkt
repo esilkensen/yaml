@@ -1,4 +1,4 @@
-;;;;;; yaml.rkt - YAML expressions.    -*- Mode: Racket -*-
+;;;;;; yaml-expr.rkt - YAML expressions.    -*- Mode: Racket -*-
 
 #lang racket
 
@@ -12,6 +12,8 @@
   [gen->yaml (yaml-struct? . -> . (listof (cons/c string? yaml?)))])
  yaml-struct
  yaml-struct-constructors)
+
+(module+ test (require rackunit))
 
 (define yaml-null (make-parameter 'null))
 
@@ -36,6 +38,18 @@
       (and (pair? v)
            (yaml? (car v))
            (yaml? (cdr v)))))
+
+(module+ test
+  (require racket/date)
+  (test-case "yaml?"
+    (check-true (yaml? (yaml-null)))
+    (check-true (yaml? ""))
+    (check-true (yaml? "string?"))
+    (check-true (yaml? #t))
+    (check-true (yaml? 1))
+    (check-true (yaml? 1.0))
+    (check-true (yaml? (current-date)))
+    (check-true (yaml? #"bytes"))))
 
 (define-generics yaml-struct
   (gen->yaml yaml-struct)

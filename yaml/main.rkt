@@ -6,7 +6,7 @@
  "constructor.rkt"
  "representer.rkt"
  "serializer.rkt"
- "yaml.rkt")
+ "yaml-expr.rkt")
 
 (provide
  (contract-out
@@ -92,7 +92,7 @@
     . ->* . string?)])
  
  (except-out
-  (all-from-out "yaml.rkt")
+  (all-from-out "yaml-expr.rkt")
   gen->yaml
   yaml-struct-constructors))
 
