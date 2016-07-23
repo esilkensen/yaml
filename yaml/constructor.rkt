@@ -353,7 +353,8 @@
                               offset)]
                      ;; subtract offset again to count tz
                      [d0 (seconds->date (- base offset))])
-                (log-error "(seconds->date ~a)" (- base offset))
+                (log-error "- (seconds->date ~a)" (- base offset))
+                (log-error "- date-hour: ~a" (date-hour d0))
                 (date*
                  (date-second d0) (date-minute d0) (date-hour d0)
                  (date-day d0) (date-month d0) (date-year d0)
