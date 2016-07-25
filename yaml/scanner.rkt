@@ -1332,10 +1332,8 @@
 
 (module+ test
   (require rackunit)
-  (define-simple-check (check-scanner test-file check-file)
-    (for ([token (scan-file test-file)]
-          [line (file->lines check-file)])
-      (check-equal? (token->string token) line)))
-  (test-begin
-    (for ([(test-file check-file) (test-files #"scan")])
-      (check-scanner test-file check-file test-file))))
+  (for ([(test-file check-file) (test-files #"scan")])
+    (test-case check-file
+      (for ([token (scan-file test-file)]
+            [line (file->lines check-file)])
+        (check-equal? (token->string token) line)))))

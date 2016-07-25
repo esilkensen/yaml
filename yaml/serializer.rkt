@@ -66,20 +66,22 @@
       [closed
        (serializer-error "serializer is closed")]
       [else
-       (serializer-error "serializer is already opened")]))
+       (serializer-error "serializer is open")]))
   
   (define (close)
     (cond
       [(null? closed)
-       (serializer-error "serializer is not opened")]
+       (serializer-error "serializer has not been opened")]
       [(not closed)
        (emit (stream-end-event #f #f))
-       (set! closed #t)]))
+       (set! closed #t)]
+      [else
+       (serializer-error "serializer is closed")]))
   
   (define (serialize node)
     (cond
       [(null? closed)
-       (serializer-error "serializer is not opened")]
+       (serializer-error "serializer has not been opened")]
       [closed
        (serializer-error "serializer is closed")])
     (emit (document-start-event #f #f explicit-start version tags))
@@ -154,3 +156,20 @@
               (emit (mapping-end-event #f #f)))])])))
   
   (values open close serialize))
+
+(module+ test
+  (require rackunit)
+  (test-case "open"
+    (define-values (open close serialize) (make-serializer))
+    (open)
+    (check-exn #rx"serializer is open" open)
+    (close)
+    (check-exn #rx"serializer is closed" open))
+  (test-case "close"
+    (define-values (open close serialize) (make-serializer))
+    (check-exn #rx"serializer has not been opened" close)
+    (check-exn #rx"serializer has not been opened" (λ () (serialize #f)))
+    (open)
+    (close)
+    (check-exn #rx"serializer is closed" close)
+    (check-exn #rx"serializer is closed" (λ () (serialize #f)))))

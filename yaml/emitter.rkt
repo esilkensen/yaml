@@ -1139,15 +1139,13 @@
 
 (module+ test
   (require rackunit racket/generator "parser.rkt")
-  (define-simple-check (check-emitter test-file check-file)
-    (let* ([out (open-output-string)]
-           [in (open-input-file check-file)]
-           [emit (make-emitter out)])
-      (for ([event (parse-file test-file)])
-        (emit event))
-      (check-equal? (get-output-string out) (port->string in))
-      (close-output-port out)
-      (close-input-port in)))
-  (test-begin
-    (for ([(test-file check-file) (test-files #"emit")])
-      (check-emitter test-file check-file test-file))))
+  (for ([(test-file check-file) (test-files #"emit")])
+    (test-case check-file
+      (let* ([out (open-output-string)]
+             [in (open-input-file check-file)]
+             [emit (make-emitter out)])
+        (for ([event (parse-file test-file)])
+          (emit event))
+        (check-equal? (get-output-string out) (port->string in))
+        (close-output-port out)
+        (close-input-port in)))))

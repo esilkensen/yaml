@@ -13,7 +13,7 @@
  yaml-struct
  yaml-struct-constructors)
 
-(module+ test (require rackunit))
+(module+ test (require rackunit racket/date))
 
 (define yaml-null (make-parameter 'null))
 
@@ -40,16 +40,16 @@
            (yaml? (cdr v)))))
 
 (module+ test
-  (require racket/date)
   (test-case "yaml?"
-    (check-true (yaml? (yaml-null)))
-    (check-true (yaml? ""))
-    (check-true (yaml? "string?"))
-    (check-true (yaml? #t))
-    (check-true (yaml? 1))
-    (check-true (yaml? 1.0))
-    (check-true (yaml? (current-date)))
-    (check-true (yaml? #"bytes"))))
+    (define exprs (list (yaml-null) "string" #t 1 1.0 (current-date) #"bytes"))
+    (check-true (yaml? '()))
+    (check-true (yaml? (set)))
+    (check-true (yaml? exprs))
+    (check-true (yaml? (set exprs)))
+    (check-true (yaml? (cons "first" "second")))
+    (check-true (yaml? (make-hash)))
+    (check-true (yaml? #hash(("key" . "value"))))
+    (check-false (yaml? 'yaml?))))
 
 (define-generics yaml-struct
   (gen->yaml yaml-struct)
@@ -115,3 +115,12 @@
     [(_ thing . _)
      (raise-syntax-error
       #f "expected an identifier for the structure type name" stx #'thing)]))
+
+(module+ test
+  (test-case "yaml-struct"
+    (yaml-struct player (name hr avg) #:transparent)
+    (define p1 (player "Mark McGwire" 65 0.278))
+    (check-equal? (player-name p1) "Mark McGwire")
+    (check-equal? (player-hr p1) 65)
+    (check-equal? (player-avg p1) 0.278)
+    (check-true (yaml? p1))))

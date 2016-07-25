@@ -467,10 +467,8 @@
           (append (sandbox-namespace-specs)
                   '(racket/set))])
       (make-evaluator 'racket)))
-  (define-simple-check (check-constructor test-file check-file)
-    (check-equal?
-     (construct-file test-file)
-     (racket-eval (file->string check-file))))
-  (test-begin
-    (for ([(test-file check-file) (test-files #"construct")])
-        (check-constructor test-file check-file test-file))))
+  (for ([(test-file check-file) (test-files #"construct")])
+    (test-case check-file
+      (check-equal?
+       (construct-file test-file)
+       (racket-eval (file->string check-file))))))

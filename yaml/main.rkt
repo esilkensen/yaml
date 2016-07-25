@@ -243,3 +243,16 @@
                        #:style style))
     #:mode mode-flag
     #:exists exists-flag))
+
+(module+ test
+  (require rackunit "utils.rkt")
+  (for ([(test-file check-file) (test-files #"write")])
+    (test-case check-file
+      (define docs (file->yaml* test-file))
+      (define (docs->string docs)
+        (if (= (length docs) 1)
+            (yaml->string (first docs))
+            (yaml*->string docs)))
+      (define in (open-input-file check-file))
+      (check-equal? (docs->string docs) (port->string in))
+      (close-input-port in))))

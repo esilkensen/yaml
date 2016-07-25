@@ -556,10 +556,8 @@
 
 (module+ test
   (require rackunit)
-  (define-simple-check (check-parser test-file check-file)
-    (for ([event (parse-file test-file)]
-          [line (file->lines check-file)])
-      (check-equal? (event->string event) line)))
-  (test-begin
-    (for ([(test-file check-file) (test-files #"parse")])
-      (check-parser test-file check-file test-file))))
+  (for ([(test-file check-file) (test-files #"parse")])
+    (test-case check-file
+      (for ([event (parse-file test-file)]
+            [line (file->lines check-file)])
+        (check-equal? (event->string event) line)))))

@@ -173,10 +173,8 @@
 
 (module+ test
   (require rackunit)
-  (define-simple-check (check-composer test-file check-file)
-    (for ([node (compose-file test-file)]
-          [line (file->lines check-file)])
-      (check-equal? (node->string-rec node) line)))
-  (test-begin
-    (for ([(test-file check-file) (test-files #"compose")])
-      (check-composer test-file check-file test-file))))
+  (for ([(test-file check-file) (test-files #"compose")])
+    (test-case check-file
+      (for ([node (compose-file test-file)]
+            [line (file->lines check-file)])
+        (check-equal? (node->string-rec node) line)))))
