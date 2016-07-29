@@ -1,0 +1,5 @@
+stream-start-event()
+document-start-event(explicit=#t, tags=#f, version=(1 . 1))
+scalar-event(anchor=#f, implicit=(#f . #f), style=#\", tag="tag:yaml.org,2002:str", value="text")
+document-end-event(explicit=#f)
+stream-end-event()

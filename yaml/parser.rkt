@@ -556,8 +556,13 @@
 
 (module+ test
   (require rackunit)
+  
   (for ([(test-file check-file) (test-files #"parse")])
     (test-case check-file
       (for ([event (parse-file test-file)]
             [line (file->lines check-file)])
-        (check-equal? (event->string event) line)))))
+        (check-equal? (event->string event) line))))
+
+  (test-case "parse-flow-errors"
+    (define no-end "{key: value")
+    (check-exn #rx"expected ',' or '}'" (λ () (parse-string no-end)))))

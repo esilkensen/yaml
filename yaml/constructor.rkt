@@ -471,4 +471,25 @@
     (test-case check-file
       (check-equal?
        (construct-file test-file)
-       (racket-eval (file->string check-file))))))
+       (racket-eval (file->string check-file)))))
+
+  (test-case "yaml-struct-errors"
+    (yaml-struct player (avg hr name))
+    
+    (define unrecognized-field
+      "!!struct:player {avg: 0.278, hr: 65, name: Mark McGwire, obp: 0.470}")
+    (check-exn
+     #rx"unrecognized field for struct"
+     (λ () (construct-string unrecognized-field)))
+    
+    (define missing-field
+      "!!struct:player {avg: 0.278, hr: 65}")
+    (check-exn
+     #rx"missing expected field for struct"
+     (λ () (construct-string missing-field)))
+    
+    (define missing-struct
+      "!!struct:baseball-player {avg: 0.278, hr: 65, name: Mark McGwire}")
+    (check-exn
+     #rx"unrecognized struct"
+     (λ () (construct-string missing-struct)))))

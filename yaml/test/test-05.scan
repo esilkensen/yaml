@@ -1,0 +1,20 @@
+'<stream start>'
+'['
+'?'
+'['
+scalar-token(plain=#t, style=#f, value="A")
+','
+scalar-token(plain=#t, style=#f, value="B")
+','
+scalar-token(plain=#t, style=#f, value="C")
+']'
+':'
+'['
+scalar-token(plain=#t, style=#f, value="1")
+','
+scalar-token(plain=#t, style=#f, value="2")
+','
+scalar-token(plain=#t, style=#f, value="3")
+']'
+']'
+'<stream end>'

@@ -115,12 +115,3 @@
     [(_ thing . _)
      (raise-syntax-error
       #f "expected an identifier for the structure type name" stx #'thing)]))
-
-(module+ test
-  (test-case "yaml-struct"
-    (yaml-struct player (name hr avg) #:transparent)
-    (define p1 (player "Mark McGwire" 65 0.278))
-    (check-equal? (player-name p1) "Mark McGwire")
-    (check-equal? (player-hr p1) 65)
-    (check-equal? (player-avg p1) 0.278)
-    (check-true (yaml? p1))))

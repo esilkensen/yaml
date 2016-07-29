@@ -246,6 +246,7 @@
 
 (module+ test
   (require rackunit "utils.rkt")
+  
   (for ([(test-file check-file) (test-files #"construct")])
     (test-case test-file
       (define docs (file->yaml* test-file))
@@ -257,4 +258,9 @@
         (if (= (length docs) 1)
             (list (string->yaml str))
             (string->yaml* str)))
-      (check-equal? (string->docs (docs->string docs)) docs))))
+      (check-equal? (string->docs (docs->string docs)) docs)))
+
+  (test-case "yaml-struct"
+    (yaml-struct player (name hr avg) #:transparent)
+    (define p1 (player "Mark McGwire" 65 0.278))
+    (check-equal? (string->yaml (yaml->string p1)) p1)))

@@ -4,16 +4,6 @@
 
 (provide (all-defined-out))
 
-(define DEBUG #f)
-
-(define-syntax-rule (debug s ...)
-  (when DEBUG s ...))
-
-(define (debug-continue?)
-  (fprintf (current-error-port) "continue? ")
-  (unless (eq? 'y (read))
-    (exit)))
-
 (define-syntax-rule (append! dst lst ...)
   (set! dst (append dst lst ...)))
 

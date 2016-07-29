@@ -119,7 +119,8 @@
 
 (module+ test
   (require rackunit)
-  (test-begin
+  
+  (test-case "resolve-scalar"
     (check-equal?
      (resolve 'scalar "\"str\"" '(#t . #t))
      "tag:yaml.org,2002:str")
@@ -146,10 +147,14 @@
      "tag:yaml.org,2002:value")
     (check-equal?
      (resolve 'scalar #f '(#f . #t))
-     DEFAULT-SCALAR-TAG)
+     DEFAULT-SCALAR-TAG))
+  
+  (test-case "resolve-sequence"
     (check-equal?
      (resolve 'sequence #f #f)
-     DEFAULT-SEQUENCE-TAG)
+     DEFAULT-SEQUENCE-TAG))
+  
+  (test-case "resolve-mapping"
     (check-equal?
      (resolve 'mapping #f #f)
      DEFAULT-MAPPING-TAG)))

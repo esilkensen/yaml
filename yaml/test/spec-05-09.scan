@@ -1,0 +1,6 @@
+'<stream start>'
+directive-token(name="YAML", value=(1 . 1))
+document-start-token()
+tag-token(value=("!!" . "str"))
+scalar-token(plain=#f, style=#\", value="text")
+'<stream end>'
