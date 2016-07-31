@@ -11,7 +11,6 @@
     (or/c
      ;; scalar-node-value, scalar-event-value
      string?
-     bytes?
      ;; sequence-node-value
      (listof node?)
      ;; mapping-node-value
@@ -25,7 +24,6 @@
    (string? regexp? (listof (or/c char? "")) . -> . void?)]))
 
 (define DEFAULT-SCALAR-TAG "tag:yaml.org,2002:str")
-(define SCALAR-BINARY-TAG "tag:yaml.org,2002:binary")
 (define DEFAULT-SEQUENCE-TAG "tag:yaml.org,2002:seq")
 (define DEFAULT-MAPPING-TAG "tag:yaml.org,2002:map")
 (define yaml-implicit-resolvers (make-hash))
@@ -46,10 +44,7 @@
                (return tag))))
          (set! implicit (cdr implicit))))
      (case kind
-       [(scalar)
-        (if (bytes? value)
-            SCALAR-BINARY-TAG
-            DEFAULT-SCALAR-TAG)]
+       [(scalar) DEFAULT-SCALAR-TAG]
        [(sequence) DEFAULT-SEQUENCE-TAG]
        [(mapping) DEFAULT-MAPPING-TAG]
        [else #f]))))
@@ -130,9 +125,6 @@
     (check-equal?
      (resolve 'scalar "\"str\"" '(#t . #t))
      "tag:yaml.org,2002:str")
-    (check-equal?
-     (resolve 'scalar #"bytes" '(#t . #t))
-     SCALAR-BINARY-TAG)
     (check-equal?
      (resolve 'scalar "true" '(#t . #t))
      "tag:yaml.org,2002:bool")
