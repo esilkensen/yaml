@@ -808,7 +808,7 @@
       (set! indention (and indention write-indention))
       (set! column (+ column (string-length data)))
       (set! open-ended #f)
-      (fprintf out data)))
+      (display data out)))
   
   (define (write-indent)
     (let ([indent (or indent 0)])
@@ -819,7 +819,7 @@
         (let ([n (- indent column)])
           (set! whitespace #t)
           (set! column indent)
-          (fprintf out (list->string (build-list n (λ _ #\space))))))))
+          (display (list->string (build-list n (λ _ #\space))) out)))))
   
   (define (write-line-break [data #f])
     (when (char? data)
@@ -830,14 +830,14 @@
     (set! indention #t)
     (set! line (add1 line))
     (set! column 0)
-    (fprintf out data))
+    (display data out))
   
   (define (write-version-directive version-text)
-    (fprintf out (format "%YAML ~a" version-text))
+    (display (format "%YAML ~a" version-text) out)
     (write-line-break))
   
   (define (write-tag-directive handle-text prefix-text)
-    (fprintf out (format "%TAG ~a ~a" handle-text prefix-text))
+    (display (format "%TAG ~a ~a" handle-text prefix-text) out)
     (write-line-break))
   
   ;; Scalar streams.
@@ -863,7 +863,7 @@
                    (write-indent)
                    (let ([data (substring text start end)])
                      (set! column (+ column (string-length data)))
-                     (fprintf out data)))
+                     (display data out)))
                (set! start end))]
             [breaks
              (unless (and (char? ch) (string-index "\n\x85\u2028\u2029" ch))
@@ -882,11 +882,11 @@
                (when (< start end)
                  (let ([data (substring text start end)])
                    (set! column (+ column (string-length data)))
-                   (fprintf out data)
+                   (display data out)
                    (set! start end))))])
           (when (equal? #\' ch)
             (set! column (+ column 2))
-            (fprintf out "''")
+            (display "''" out)
             (set! start (add1 end)))
           (when (char? ch)
             (set! spaces (char=? #\space ch))
@@ -926,7 +926,7 @@
             (when (< start end)
               (let ([data (substring text start end)])
                 (set! column (+ column (string-length data)))
-                (fprintf out data)
+                (display data out)
                 (set! start end)))
             (when (char? ch)
               (let ([data ""])
@@ -948,7 +948,7 @@
                          (set! data (format "\\U000000~a" (string-upcase hex)))
                          (set! data (format "\\U0000~a" (string-upcase hex)))))])
                 (set! column (+ column (string-length data)))
-                (fprintf out data)
+                (display data out)
                 (set! start (add1 end)))))
           (when (and (< 0 end (sub1 (string-length text)))
                      (or (equal? #\space ch) (>= start end))
@@ -958,14 +958,14 @@
               (when (< start end)
                 (set! start end))
               (set! column (+ column (string-length data)))
-              (fprintf out data)
+              (display data out)
               (write-indent)
               (set! whitespace #f)
               (set! indention #f)
               (when (char=? #\space (string-ref text start))
                 (let ([data "\\"])
                   (set! column (+ column (string-length data)))
-                  (fprintf out data)))))
+                  (display data out)))))
           (set! end (add1 end))))
       (write-indicator "\"" #f)))
   
@@ -1025,14 +1025,14 @@
                    (write-indent)
                    (let ([data (substring text start end)])
                      (set! column (+ column (string-length data)))
-                     (fprintf out data)))
+                     (display data out)))
                (set! start end))]
             [else
              (when (or (not (char? ch))
                        (string-index "\n\x85\u2028\u2029" ch))
                (let ([data (substring text start end)])
                  (set! column (+ column (string-length data)))
-                 (fprintf out data)
+                 (display data out)
                  (unless (char? ch)
                    (write-line-break))
                  (set! start end)))])
@@ -1069,7 +1069,7 @@
           (unless breaks
             (when (or (not (char? ch))
                       (string-index "\n\x85\u2028\u2029" ch))
-              (fprintf out (substring text start end))
+              (display (substring text start end) out)
               (unless (char? ch)
                 (write-line-break))
               (set! start end)))
@@ -1088,7 +1088,7 @@
         (unless whitespace
           (let ([data " "])
             (set! column (+ column (string-length data)))
-            (fprintf out data)))
+            (display data out)))
         (set! whitespace #f)
         (set! indention #f)
         (while (<= end (string-length text))
@@ -1108,7 +1108,7 @@
                    [else
                     (let ([data (substring text start end)])
                       (set! column (+ column (string-length data)))
-                      (fprintf out data))])
+                      (display data out))])
                  (set! start end))]
               [breaks
                (unless (and (char? ch)
@@ -1128,7 +1128,7 @@
                             (string-index "\n\x85\u2028\u2029" ch))
                  (let ([data (substring text start end)])
                    (set! column (+ column (string-length data)))
-                   (fprintf out data)
+                   (display data out)
                    (set! start end)))])
             (when (char? ch)
               (set! spaces (char=? #\space ch))

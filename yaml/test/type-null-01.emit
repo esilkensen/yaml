@@ -1,0 +1,13 @@
+---
+---
+empty:
+canonical: ~
+english: null
+~: null key
+---
+sparse:
+- ~
+- 2nd entry
+-
+- 4th entry
+- Null

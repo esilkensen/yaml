@@ -1,0 +1,49 @@
+'<stream start>'
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="Block style")
+':'
+tag-token(value=("!!" . "seq"))
+block-entry-token()
+scalar-token(plain=#t, style=#f, value="Mercury")
+block-entry-token()
+scalar-token(plain=#t, style=#f, value="Venus")
+block-entry-token()
+scalar-token(plain=#t, style=#f, value="Earth")
+block-entry-token()
+scalar-token(plain=#t, style=#f, value="Mars")
+block-entry-token()
+scalar-token(plain=#t, style=#f, value="Jupiter")
+block-entry-token()
+scalar-token(plain=#t, style=#f, value="Saturn")
+block-entry-token()
+scalar-token(plain=#t, style=#f, value="Uranus")
+block-entry-token()
+scalar-token(plain=#t, style=#f, value="Neptune")
+block-entry-token()
+scalar-token(plain=#t, style=#f, value="Pluto")
+'?'
+scalar-token(plain=#t, style=#f, value="Flow style")
+':'
+tag-token(value=("!!" . "seq"))
+'['
+scalar-token(plain=#t, style=#f, value="Mercury")
+','
+scalar-token(plain=#t, style=#f, value="Venus")
+','
+scalar-token(plain=#t, style=#f, value="Earth")
+','
+scalar-token(plain=#t, style=#f, value="Mars")
+','
+scalar-token(plain=#t, style=#f, value="Jupiter")
+','
+scalar-token(plain=#t, style=#f, value="Saturn")
+','
+scalar-token(plain=#t, style=#f, value="Uranus")
+','
+scalar-token(plain=#t, style=#f, value="Neptune")
+','
+scalar-token(plain=#t, style=#f, value="Pluto")
+']'
+block-end-token()
+'<stream end>'

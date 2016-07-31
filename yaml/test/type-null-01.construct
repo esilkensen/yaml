@@ -1,0 +1,8 @@
+`(null
+  ,(make-hash
+    `((null . "null key")
+      ("canonical" . null)
+      ("empty" . null)
+      ("english" . null)))
+  ,(make-hash
+    `(("sparse" . (null "2nd entry" null "4th entry" null)))))

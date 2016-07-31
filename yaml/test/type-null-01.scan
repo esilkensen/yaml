@@ -1,0 +1,38 @@
+'<stream start>'
+document-start-token()
+document-start-token()
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="empty")
+':'
+'?'
+scalar-token(plain=#t, style=#f, value="canonical")
+':'
+scalar-token(plain=#t, style=#f, value="~")
+'?'
+scalar-token(plain=#t, style=#f, value="english")
+':'
+scalar-token(plain=#t, style=#f, value="null")
+'?'
+scalar-token(plain=#t, style=#f, value="~")
+':'
+scalar-token(plain=#t, style=#f, value="null key")
+block-end-token()
+document-start-token()
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="sparse")
+':'
+block-sequence-start-token()
+block-entry-token()
+scalar-token(plain=#t, style=#f, value="~")
+block-entry-token()
+scalar-token(plain=#t, style=#f, value="2nd entry")
+block-entry-token()
+block-entry-token()
+scalar-token(plain=#t, style=#f, value="4th entry")
+block-entry-token()
+scalar-token(plain=#t, style=#f, value="Null")
+block-end-token()
+block-end-token()
+'<stream end>'

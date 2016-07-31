@@ -1,0 +1,7 @@
+`(,(make-hash
+    `(("baseball teams"
+       .
+       ,(set "Detroit Tigers" "Boston Red Sox" "New York Yankees"))
+      ("baseball players"
+       .
+       ,(set "Mark McGwire" "Ken Griffey" "Sammy Sosa")))))

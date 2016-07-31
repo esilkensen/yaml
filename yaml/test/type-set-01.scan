@@ -1,0 +1,27 @@
+'<stream start>'
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="baseball players")
+':'
+tag-token(value=("!!" . "set"))
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="Mark McGwire")
+'?'
+scalar-token(plain=#t, style=#f, value="Sammy Sosa")
+'?'
+scalar-token(plain=#t, style=#f, value="Ken Griffey")
+block-end-token()
+'?'
+scalar-token(plain=#t, style=#f, value="baseball teams")
+':'
+tag-token(value=("!!" . "set"))
+'{'
+scalar-token(plain=#t, style=#f, value="Boston Red Sox")
+','
+scalar-token(plain=#t, style=#f, value="Detroit Tigers")
+','
+scalar-token(plain=#t, style=#f, value="New York Yankees")
+'}'
+block-end-token()
+'<stream end>'
