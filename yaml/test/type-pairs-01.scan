@@ -1,0 +1,53 @@
+'<stream start>'
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="Block tasks")
+':'
+tag-token(value=("!!" . "pairs"))
+block-sequence-start-token()
+block-entry-token()
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="meeting")
+':'
+scalar-token(plain=#t, style=#f, value="with team.")
+block-end-token()
+block-entry-token()
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="meeting")
+':'
+scalar-token(plain=#t, style=#f, value="with boss.")
+block-end-token()
+block-entry-token()
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="break")
+':'
+scalar-token(plain=#t, style=#f, value="lunch.")
+block-end-token()
+block-entry-token()
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="meeting")
+':'
+scalar-token(plain=#t, style=#f, value="with client.")
+block-end-token()
+block-end-token()
+'?'
+scalar-token(plain=#t, style=#f, value="Flow tasks")
+':'
+tag-token(value=("!!" . "pairs"))
+'['
+'?'
+scalar-token(plain=#t, style=#f, value="meeting")
+':'
+scalar-token(plain=#t, style=#f, value="with team")
+','
+'?'
+scalar-token(plain=#t, style=#f, value="meeting")
+':'
+scalar-token(plain=#t, style=#f, value="with boss")
+']'
+block-end-token()
+'<stream end>'

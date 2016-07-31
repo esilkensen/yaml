@@ -97,17 +97,10 @@
   yaml-struct-constructors))
 
 (define (read-yaml [in (current-input-port)])
-  (define-values (check-data? get-data get-single-data)
-    (make-constructor in))
-  (get-single-data))
+  (construct in))
 
 (define (read-yaml* [in (current-input-port)])
-  (define-values (check-data? get-data get-single-data)
-    (make-constructor in))
-  (let loop ([docs '()])
-    (if (check-data?)
-        (loop (cons (get-data) docs))
-        (reverse docs))))
+  (construct-all in))
 
 (define (string->yaml str)
   (with-input-from-string str read-yaml))

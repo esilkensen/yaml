@@ -114,6 +114,9 @@
   
   (define (represent-str data)
     (represent-scalar "tag:yaml.org,2002:str" data))
+
+  (define (represent-binary data)
+    (represent-scalar "tag:yaml.org,2002:binary" (bytes->string/utf-8 data)))
   
   (define (represent-bool data)
     (represent-scalar "tag:yaml.org,2002:bool" (if data "true" "false")))
@@ -181,6 +184,7 @@
   
   (add-representer! (λ (x) (equal? x (yaml-null))) represent-null)
   (add-representer! string? represent-str)
+  (add-representer! bytes? represent-binary)
   (add-representer! boolean? represent-bool)
   (add-representer! integer? represent-int)
   (add-representer! real? represent-float)

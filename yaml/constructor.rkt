@@ -208,18 +208,6 @@
         (let ([value (mapping-node-value node)])
           (set-mapping-node-value! node (append merge value))))))
   
-  (define (construct-pairs node [deep #f])
-    (unless (mapping-node? node)
-      (constructor-error
-       #f (format "expected a mapping node, but found ~a"
-                  (node->string-rec node))
-       (node-start node)))
-    (for/list ([kv (mapping-node-value node)])
-      (match-let ([(cons key-node value-node) kv])
-        (let* ([key (construct-object key-node deep)]
-               [value (construct-object value-node deep)])
-          (cons key value)))))
-  
   (define (construct-yaml-null node)
     (construct-scalar node)
     (yaml-null))
@@ -288,9 +276,8 @@
          (* 1.0 sign (string->number value))])))
   
   (define (construct-yaml-binary node)
-    (base64-decode
-     (string->bytes/utf-8
-      (format "~a" (construct-scalar node)))))
+    (string->bytes/utf-8
+     (format "~a" (construct-scalar node))))
   
   (define (construct-yaml-timestamp node)
     (log-debug "construct-yaml-timestamp [node=~a]" (node->string node))
@@ -356,12 +343,19 @@
                second minute hour day month year 0 0 #f 0 fraction "UTC")))))
   
   (define (construct-yaml-omap node)
+    (construct-yaml-omap/pairs node #f))
+  
+  (define (construct-yaml-pairs node)
+    (construct-yaml-omap/pairs node #t))
+
+  (define (construct-yaml-omap/pairs node dups?)
     (unless (sequence-node? node)
       (constructor-error
        "while constructing an ordered map"
        (format "expected a sequence, but found ~a"
                (node->string node))
        (node-start node)))
+    (define keys (mutable-set))
     (for/list ([subnode (sequence-node-value node)])
       (unless (mapping-node? subnode)
         (constructor-error
@@ -380,10 +374,13 @@
                    (car (mapping-node-value subnode))])
         (let* ([key (construct-object key-node)]
                [value (construct-object value-node)])
+          (when (and (not dups?) (set-member? keys key))
+            (constructor-error
+             "while constructing an ordered map"
+             (format "found a duplicate key: ~a" key)
+             (node-start key-node)))
+          (set-add! keys key)
           (cons key value)))))
-  
-  (define (construct-yaml-pairs node)
-    (construct-yaml-omap node))
   
   (define (construct-yaml-set node)
     (list->set (hash-keys (construct-mapping node))))

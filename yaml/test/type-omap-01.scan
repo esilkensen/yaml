@@ -1,0 +1,51 @@
+'<stream start>'
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="Bestiary")
+':'
+tag-token(value=("!!" . "omap"))
+block-sequence-start-token()
+block-entry-token()
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="aardvark")
+':'
+scalar-token(plain=#t, style=#f, value="African pig-like ant eater. Ugly.")
+block-end-token()
+block-entry-token()
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="anteater")
+':'
+scalar-token(plain=#t, style=#f, value="South-American ant eater. Two species.")
+block-end-token()
+block-entry-token()
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="anaconda")
+':'
+scalar-token(plain=#t, style=#f, value="South-American constrictor snake. Scaly.")
+block-end-token()
+block-end-token()
+'?'
+scalar-token(plain=#t, style=#f, value="Numbers")
+':'
+tag-token(value=("!!" . "omap"))
+'['
+'?'
+scalar-token(plain=#t, style=#f, value="one")
+':'
+scalar-token(plain=#t, style=#f, value="1")
+','
+'?'
+scalar-token(plain=#t, style=#f, value="two")
+':'
+scalar-token(plain=#t, style=#f, value="2")
+','
+'?'
+scalar-token(plain=#t, style=#f, value="three")
+':'
+scalar-token(plain=#t, style=#f, value="3")
+']'
+block-end-token()
+'<stream end>'

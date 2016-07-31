@@ -1,0 +1,42 @@
+'<stream start>'
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="Block style")
+':'
+tag-token(value=("!!" . "map"))
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="Clark")
+':'
+scalar-token(plain=#t, style=#f, value="Evans")
+'?'
+scalar-token(plain=#t, style=#f, value="Brian")
+':'
+scalar-token(plain=#t, style=#f, value="Ingerson")
+'?'
+scalar-token(plain=#t, style=#f, value="Oren")
+':'
+scalar-token(plain=#t, style=#f, value="Ben-Kiki")
+block-end-token()
+'?'
+scalar-token(plain=#t, style=#f, value="Flow style")
+':'
+tag-token(value=("!!" . "map"))
+'{'
+'?'
+scalar-token(plain=#t, style=#f, value="Clark")
+':'
+scalar-token(plain=#t, style=#f, value="Evans")
+','
+'?'
+scalar-token(plain=#t, style=#f, value="Brian")
+':'
+scalar-token(plain=#t, style=#f, value="Ingerson")
+','
+'?'
+scalar-token(plain=#t, style=#f, value="Oren")
+':'
+scalar-token(plain=#t, style=#f, value="Ben-Kiki")
+'}'
+block-end-token()
+'<stream end>'
