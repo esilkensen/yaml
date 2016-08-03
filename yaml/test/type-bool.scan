@@ -1,0 +1,20 @@
+'<stream start>'
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="canonical")
+':'
+scalar-token(plain=#t, style=#f, value="y")
+'?'
+scalar-token(plain=#t, style=#f, value="answer")
+':'
+scalar-token(plain=#t, style=#f, value="NO")
+'?'
+scalar-token(plain=#t, style=#f, value="logical")
+':'
+scalar-token(plain=#t, style=#f, value="True")
+'?'
+scalar-token(plain=#t, style=#f, value="option")
+':'
+scalar-token(plain=#t, style=#f, value="on")
+block-end-token()
+'<stream end>'

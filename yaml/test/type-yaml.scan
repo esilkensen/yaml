@@ -1,0 +1,30 @@
+'<stream start>'
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="encoded YAML node")
+':'
+block-mapping-start-token()
+'?'
+tag-token(value=("!!" . "yaml"))
+scalar-token(plain=#f, style=#\', value="!")
+':'
+scalar-token(plain=#f, style=#\', value="!type")
+'?'
+tag-token(value=("!!" . "yaml"))
+scalar-token(plain=#f, style=#\', value="&")
+':'
+scalar-token(plain=#t, style=#f, value="12")
+'?'
+tag-token(value=("!!" . "value"))
+scalar-token(plain=#t, style=#f, value="=")
+':'
+scalar-token(plain=#t, style=#f, value="value")
+block-end-token()
+'?'
+scalar-token(plain=#t, style=#f, value="node")
+':'
+tag-token(value=("!" . "type"))
+anchor-token(value="12")
+scalar-token(plain=#t, style=#f, value="value")
+block-end-token()
+'<stream end>'

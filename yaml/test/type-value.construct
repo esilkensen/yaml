@@ -1,0 +1,11 @@
+`(,(make-hash
+    `(("link with" . ("library1.dll" "library2.dll"))))
+  ,(make-hash
+    `(("link with"
+       .
+       (,(make-hash
+          `(("version" . 1.2)
+            ("=" . "library1.dll")))
+        ,(make-hash
+          `(("version" . 2.3)
+            ("=" . "library2.dll"))))))))

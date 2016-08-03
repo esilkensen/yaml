@@ -1,0 +1,28 @@
+'<stream start>'
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="canonical")
+':'
+scalar-token(plain=#t, style=#f, value="6.8523015e+5")
+'?'
+scalar-token(plain=#t, style=#f, value="exponentioal")
+':'
+scalar-token(plain=#t, style=#f, value="685.230_15e+03")
+'?'
+scalar-token(plain=#t, style=#f, value="fixed")
+':'
+scalar-token(plain=#t, style=#f, value="685_230.15")
+'?'
+scalar-token(plain=#t, style=#f, value="sexagesimal")
+':'
+scalar-token(plain=#t, style=#f, value="190:20:30.15")
+'?'
+scalar-token(plain=#t, style=#f, value="negative infinity")
+':'
+scalar-token(plain=#t, style=#f, value="-.inf")
+'?'
+scalar-token(plain=#t, style=#f, value="not a number")
+':'
+scalar-token(plain=#t, style=#f, value=".NaN")
+block-end-token()
+'<stream end>'

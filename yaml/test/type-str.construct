@@ -1,0 +1,2 @@
+`(,(make-hash
+    `(("string" . "abcd"))))

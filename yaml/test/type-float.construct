@@ -1,0 +1,7 @@
+`(,(make-hash
+    `(("not a number" . +nan.0)
+      ("fixed" . 685230.15)
+      ("canonical" . 685230.15)
+      ("exponentioal" . 685230.15)
+      ("negative infinity" . -inf.0)
+      ("sexagesimal" . 684000))))

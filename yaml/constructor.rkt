@@ -280,7 +280,6 @@
      (format "~a" (construct-scalar node))))
   
   (define (construct-yaml-timestamp node)
-    (log-debug "construct-yaml-timestamp [node=~a]" (node->string node))
     (define timestamp-regexp
       (regexp
        (string-append

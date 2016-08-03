@@ -1,0 +1,44 @@
+'<stream start>'
+document-start-token()
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="link with")
+':'
+block-sequence-start-token()
+block-entry-token()
+scalar-token(plain=#t, style=#f, value="library1.dll")
+block-entry-token()
+scalar-token(plain=#t, style=#f, value="library2.dll")
+block-end-token()
+block-end-token()
+document-start-token()
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="link with")
+':'
+block-sequence-start-token()
+block-entry-token()
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="=")
+':'
+scalar-token(plain=#t, style=#f, value="library1.dll")
+'?'
+scalar-token(plain=#t, style=#f, value="version")
+':'
+scalar-token(plain=#t, style=#f, value="1.2")
+block-end-token()
+block-entry-token()
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="=")
+':'
+scalar-token(plain=#t, style=#f, value="library2.dll")
+'?'
+scalar-token(plain=#t, style=#f, value="version")
+':'
+scalar-token(plain=#t, style=#f, value="2.3")
+block-end-token()
+block-end-token()
+block-end-token()
+'<stream end>'

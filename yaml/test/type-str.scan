@@ -1,0 +1,8 @@
+'<stream start>'
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="string")
+':'
+scalar-token(plain=#t, style=#f, value="abcd")
+block-end-token()
+'<stream end>'

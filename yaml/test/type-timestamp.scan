@@ -1,0 +1,24 @@
+'<stream start>'
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="canonical")
+':'
+scalar-token(plain=#t, style=#f, value="2001-12-15T02:59:43.1Z")
+'?'
+scalar-token(plain=#t, style=#f, value="valid iso8601")
+':'
+scalar-token(plain=#t, style=#f, value="2001-12-14t21:59:43.10-05:00")
+'?'
+scalar-token(plain=#t, style=#f, value="space separated")
+':'
+scalar-token(plain=#t, style=#f, value="2001-12-14 21:59:43.10 -5")
+'?'
+scalar-token(plain=#t, style=#f, value="no time zone (Z)")
+':'
+scalar-token(plain=#t, style=#f, value="2001-12-15 2:59:43.10")
+'?'
+scalar-token(plain=#t, style=#f, value="date (00:00:00Z)")
+':'
+scalar-token(plain=#t, style=#f, value="2002-12-14")
+block-end-token()
+'<stream end>'

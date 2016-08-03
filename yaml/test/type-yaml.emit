@@ -1,0 +1,5 @@
+encoded YAML node:
+  !!yaml '!': '!type'
+  !!yaml '&': 12
+  !!value '=': value
+node: &12 !type 'value'
