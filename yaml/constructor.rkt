@@ -59,7 +59,6 @@
   (define yaml-multi-constructors (make-hash))
   (define constructed-objects (make-hash))
   (define recursive-objects (make-hash))
-  (define deep-construct #f)
   
   (define (check-data?)
     (check-node?))
@@ -76,18 +75,13 @@
     (let ([data (construct-object node)])
       (set! constructed-objects (make-hash))
       (set! recursive-objects (make-hash))
-      (set! deep-construct #f)
       data))
   
-  (define (construct-object node [deep #f])
+  (define (construct-object node)
     (if (hash-has-key? constructed-objects node)
         (hash-ref constructed-objects node)
-        (let ([old-deep #f]
-              [constructor #f]
+        (let ([constructor #f]
               [tag-suffix #f])
-          (when deep
-            (set! old-deep deep-construct)
-            (set! deep-construct #t))
           (when (hash-has-key? recursive-objects node)
             (constructor-error
              #f "found unconstructable recursive node"
@@ -129,8 +123,6 @@
                           (constructor tag-suffix node))])
             (hash-set! constructed-objects node data)
             (hash-remove! recursive-objects node)
-            (when deep
-              (set! deep-construct old-deep))
             data))))
   
   (define (construct-scalar node)
@@ -141,7 +133,7 @@
        (node-start node)))
     (scalar-node-value node))
   
-  (define (construct-sequence node [deep #f])
+  (define (construct-sequence node)
     (unless (sequence-node? node)
       (constructor-error
        #f (format "expected a sequence node, but found ~a"
@@ -149,10 +141,10 @@
        (node-start node)))
     (map
      (λ (child)
-       (construct-object child deep))
+       (construct-object child))
      (sequence-node-value node)))
   
-  (define (construct-mapping node [deep #f])
+  (define (construct-mapping node)
     (unless (mapping-node? node)
       (constructor-error
        #f (format "expected a mapping node, but found ~a"
@@ -162,8 +154,8 @@
     (let ([mapping (make-hash)])
       (for ([kv (mapping-node-value node)])
         (match-let ([(cons key-node value-node) kv])
-          (let* ([key (construct-object key-node deep)]
-                 [value (construct-object value-node deep)])
+          (let* ([key (construct-object key-node)]
+                 [value (construct-object value-node)])
             (hash-set! mapping key value))))
       mapping))
 

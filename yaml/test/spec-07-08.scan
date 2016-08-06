@@ -1,0 +1,17 @@
+'<stream start>'
+directive-token(name="TAG", value=("!" . "!"))
+directive-token(name="TAG", value=("!!" . "tag:yaml.org,2002:"))
+directive-token(name="TAG", value=("!o!" . "tag:ben-kiki.org,2000:"))
+document-start-token()
+block-sequence-start-token()
+block-entry-token()
+tag-token(value=("!" . "foo"))
+scalar-token(plain=#f, style=#\", value="bar")
+block-entry-token()
+tag-token(value=("!!" . "str"))
+scalar-token(plain=#f, style=#\", value="string")
+block-entry-token()
+tag-token(value=("!o!" . "type"))
+scalar-token(plain=#f, style=#\", value="baz")
+block-end-token()
+'<stream end>'

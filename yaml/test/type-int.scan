@@ -9,6 +9,10 @@ scalar-token(plain=#t, style=#f, value="decimal")
 ':'
 scalar-token(plain=#t, style=#f, value="+685_230")
 '?'
+scalar-token(plain=#t, style=#f, value="neg-decimal")
+':'
+scalar-token(plain=#t, style=#f, value="-685_230")
+'?'
 scalar-token(plain=#t, style=#f, value="octal")
 ':'
 scalar-token(plain=#t, style=#f, value="02472256")

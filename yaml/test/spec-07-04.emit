@@ -1,0 +1,2 @@
+%TAG !yaml! tag:yaml.org,2002:
+--- !yaml!str "foo"

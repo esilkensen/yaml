@@ -1,0 +1,7 @@
+%TAG ! !
+%TAG !! tag:yaml.org,2002:
+%TAG !o! tag:ben-kiki.org,2000:
+---
+- !foo "bar"
+- !!str "string"
+- !o!type "baz"

@@ -75,11 +75,6 @@
   (define analysis #f)
   (define style #f)
   
-  (define (dispose)
-    ;; Reset the state attributes (to clear self-references)
-    (set! states '())
-    (set! state #f))
-  
   (define (emit evt)
     (append! events (list evt))
     (while (not (need-more-events?))

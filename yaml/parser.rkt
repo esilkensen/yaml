@@ -56,11 +56,6 @@
   (define marks '())
   (define (state) (parse-stream-start))
   
-  (define (dispose)
-    ;; Reset the state attributes (to clear self-references).
-    (set! states '())
-    (set! state #f))
-  
   (define (check-event? . choices)
     ;; Check the type of the next event.
     (unless (event? current-event)
@@ -182,7 +177,10 @@
                (when (hash-has-key? tag-handles handle)
                  (let ([msg (format "duplicate tag handle ~a" handle)])
                    (parser-error #f msg (token-start token))))
-               (hash-set! tag-handles handle prefix))])))
+               (hash-set! tag-handles handle prefix))]
+            [else
+             (let ([name (directive-token-name token)])
+               (log-warning "Ignoring unknown directive: ~a" name))])))
       (if (null? (hash-keys tag-handles))
           (set! value (cons yaml-version #f))
           (set! value (cons yaml-version (hash-copy tag-handles))))

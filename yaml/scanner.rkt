@@ -587,7 +587,7 @@
   
   ;; (: scan-directive-name (-> String))
   (define (scan-directive-name)
-    ;; See the specification fro details.
+    ;; See the specification for details.
     (let ([len 0])
       (while (regexp-match? #rx"[0-9A-Za-z_-]" (string (peek len)))
         (set! len (add1 len)))
@@ -623,7 +623,7 @@
                     (string-index " \r\n\x85\u2028\u2029" (peek)))
           (scanner-error
            "while scanning a directive"
-           (format "expected a diit or ' ', but found ~a" (peek))
+           (format "expected a digit or ' ', but found ~a" (peek))
            (get-mark)))
         (cons major minor))))
   
@@ -684,7 +684,7 @@
       (forward))
     (when (equal? #\# (peek))
       (while (and (not (eof-object? (peek)))
-                  (not (string-index " \r\n\x85\u2028\u2029" (peek))))
+                  (not (string-index "\r\n\x85\u2028\u2029" (peek))))
         (forward)))
     (unless (or (eof-object? (peek))
                 (string-index "\r\n\x85\u2028\u2029" (peek)))
@@ -1241,7 +1241,7 @@
           (forward len)
           (scanner-error
            (format "while scanning a ~a" name)
-           (format "expected '!', but found !a" (peek))
+           (format "expected '!', but found ~a" (peek))
            (get-mark)))
         (set! len (add1 len)))
       (let ([value (prefix len)])
@@ -1332,8 +1332,41 @@
 
 (module+ test
   (require rackunit)
+  
   (for ([(test-file check-file) (test-files #"scan")])
     (test-case check-file
       (for ([token (scan-file test-file)]
             [line (file->lines check-file)])
-        (check-equal? (token->string token) line)))))
+        (check-equal? (token->string token) line))))
+
+  (test-case "scan-directive-name"
+    (check-exn
+     #rx"expected alphanumeric character"
+     (λ () (scan-string "%! bar baz")))
+    (check-exn
+     #rx"expected alphanumeric character"
+     (λ () (scan-string "%FOO! bar baz"))))
+
+  (test-case "scan-yaml-directive"
+    (check-exn
+     #rx"expected a digit, but found x"
+     (λ () (scan-string "%YAML 1.x")))
+    (check-exn
+     #rx"expected a digit or '.', but found -"
+     (λ () (scan-string "%YAML 1-1")))
+    (check-exn
+     #rx"expected a digit or ' ', but found x"
+     (λ () (scan-string "%YAML 1.1x"))))
+
+  (test-case "scan-tag-directive-value"
+    (check-exn
+     #rx"expected ' ', but found #<eof>"
+     (λ () (scan-string "%TAG !")))
+    (check-exn
+     #rx"expected ' ', but found >"
+     (λ () (scan-string "%TAG ! !>"))))
+
+  (test-case "scan-directive-ignored-line"
+    (check-exn
+     #rx"expected a comment or a line break"
+     (λ () (scan-string "%TAG ! ! !")))))

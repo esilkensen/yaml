@@ -1,0 +1,7 @@
+'<stream start>'
+'{'
+'?'
+scalar-token(plain=#t, style=#f, value="a")
+':'
+'}'
+'<stream end>'

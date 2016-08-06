@@ -1,5 +1,6 @@
 `(,(make-hash
     `(("decimal" . 685230)
+      ("neg-decimal" . -685230)
       ("canonical" . 685230)
       ("hexadecimal" . 685230)
       ("octal" . 685230)

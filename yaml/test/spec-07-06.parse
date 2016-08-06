@@ -1,0 +1,8 @@
+stream-start-event()
+document-start-event(explicit=#t, tags=#hash(("!yaml!" . "tag:yaml.org,2002:") ("!" . "!foo")), version=#f)
+sequence-start-event(anchor=#f, flow-style=#f, implicit=#t, tag=#f)
+scalar-event(anchor=#f, implicit=(#f . #f), style=#\", tag="!foobar", value="baz")
+scalar-event(anchor=#f, implicit=(#f . #f), style=#\", tag="tag:yaml.org,2002:str", value="string")
+sequence-end-event()
+document-end-event(explicit=#f)
+stream-end-event()

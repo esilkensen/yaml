@@ -1,0 +1,5 @@
+'<stream start>'
+directive-token(name="FOO", value=#f)
+document-start-token()
+scalar-token(plain=#f, style=#\", value="foo")
+'<stream end>'

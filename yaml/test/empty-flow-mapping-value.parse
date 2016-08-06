@@ -1,0 +1,8 @@
+stream-start-event()
+document-start-event(explicit=#f, tags=#f, version=#f)
+mapping-start-event(anchor=#f, flow-style=#t, implicit=#t, tag=#f)
+scalar-event(anchor=#f, implicit=(#t . #f), style=#f, tag=#f, value="a")
+scalar-event(anchor=#f, implicit=(#t . #f), style=#f, tag=#f, value="")
+mapping-end-event()
+document-end-event(explicit=#f)
+stream-end-event()

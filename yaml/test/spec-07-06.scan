@@ -1,0 +1,13 @@
+'<stream start>'
+directive-token(name="TAG", value=("!" . "!foo"))
+directive-token(name="TAG", value=("!yaml!" . "tag:yaml.org,2002:"))
+document-start-token()
+block-sequence-start-token()
+block-entry-token()
+tag-token(value=("!" . "bar"))
+scalar-token(plain=#f, style=#\", value="baz")
+block-entry-token()
+tag-token(value=("!yaml!" . "str"))
+scalar-token(plain=#f, style=#\", value="string")
+block-end-token()
+'<stream end>'

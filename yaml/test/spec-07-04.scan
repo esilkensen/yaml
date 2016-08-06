@@ -1,0 +1,6 @@
+'<stream start>'
+directive-token(name="TAG", value=("!yaml!" . "tag:yaml.org,2002:"))
+document-start-token()
+tag-token(value=("!yaml!" . "str"))
+scalar-token(plain=#f, style=#\", value="foo")
+'<stream end>'
