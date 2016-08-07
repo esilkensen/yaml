@@ -1,0 +1,9 @@
+'<stream start>'
+directive-token(name="TAG", value=("!!" . "tag:yaml.org,2002:"))
+document-start-token()
+block-sequence-start-token()
+block-entry-token()
+tag-token(value=("!!" . "str"))
+scalar-token(plain=#f, style=#\", value="string")
+block-end-token()
+'<stream end>'

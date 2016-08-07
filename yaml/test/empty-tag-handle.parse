@@ -1,0 +1,5 @@
+stream-start-event()
+document-start-event(explicit=#f, tags=#f, version=#f)
+scalar-event(anchor=#f, implicit=(#f . #f), style=#f, tag="!", value="foo")
+document-end-event(explicit=#f)
+stream-end-event()

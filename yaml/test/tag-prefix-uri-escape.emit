@@ -1,0 +1,3 @@
+%TAG !! tag:yaml.org,2002:
+---
+- !!str "string"

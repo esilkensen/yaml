@@ -1,0 +1,10 @@
+'<stream start>'
+block-mapping-start-token()
+'?'
+tag-token(value=(#f . "tag:yaml.org,2002:str"))
+scalar-token(plain=#t, style=#f, value="foo")
+':'
+tag-token(value=(#f . "!bar"))
+scalar-token(plain=#t, style=#f, value="baz")
+block-end-token()
+'<stream end>'

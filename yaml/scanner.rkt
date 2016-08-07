@@ -1369,4 +1369,36 @@
   (test-case "scan-directive-ignored-line"
     (check-exn
      #rx"expected a comment or a line break"
-     (λ () (scan-string "%TAG ! ! !")))))
+     (λ () (scan-string "%TAG ! ! !"))))
+
+  (test-case "scan-tag"
+    (check-exn
+     #rx"expected '>', but found "
+     (λ () (scan-string "!<tag:yaml.org,2002:str foo : bar")))
+    (check-exn
+     #rx"expected ' ', but found f"
+     (λ () (scan-string "!<tag:yaml.org,2002:str>foo : bar"))))
+
+  (test-case "scan-tag-handle"
+    (check-exn
+     #rx"expected '!', but found f"
+     (λ () (scan-string "%TAG foo bar")))
+    (check-exn
+     #rx"expected '!', but found "
+     (λ () (scan-string "%TAG !foo bar"))))
+
+  (test-case "scan-tag-uri"
+    (check-exn
+     #rx"expected URI, but found <"
+     (λ () (scan-string "%TAG ! <foo>")))
+    (check-exn
+     #rx"expected URI escape, but found \\$"
+     (λ () (scan-string "%TAG ! foo%$$bar"))))
+
+  (test-case "scan-anchor"
+    (check-exn
+     #rx"expected alphanumeric character, but found "
+     (λ () (scan-string "First occurrence: & Value")))
+    (check-exn
+     #rx"expected alphanumeric character, but found \\$"
+     (λ () (scan-string "First occurrence: &anchor$Value")))))

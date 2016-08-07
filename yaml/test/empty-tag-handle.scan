@@ -1,0 +1,4 @@
+'<stream start>'
+tag-token(value=(#f . "!"))
+scalar-token(plain=#t, style=#f, value="foo")
+'<stream end>'
