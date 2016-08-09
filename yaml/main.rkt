@@ -240,18 +240,31 @@
 (module+ test
   (require rackunit "utils.rkt")
   
-  (for ([(test-file check-file) (test-files #"construct")])
-    (test-case test-file
-      (define docs (file->yaml* test-file))
+  (for ([(yaml-file check-file) (test-files #"construct")])
+    (define yml-file (path-replace-extension yaml-file ".yml"))
+    (test-case yaml-file
+      (define docs (file->yaml* yaml-file))
+      (define single? (= 1 (length docs)))
       (define (docs->string docs)
-        (if (= (length docs) 1)
+        (if single?
             (yaml->string (first docs))
             (yaml*->string docs)))
       (define (string->docs str)
-        (if (= (length docs) 1)
+        (if single?
             (list (string->yaml str))
             (string->yaml* str)))
-      (check-equal? (string->docs (docs->string docs)) docs)))
+      (define (docs->file path)
+        (if single?
+            (yaml->file (first docs) path)
+            (yaml*->file docs path)))
+      (define (file->docs path)
+        (if single?
+            (list (file->yaml path))
+            (file->yaml* path)))
+      (check-equal? (string->docs (docs->string docs)) docs)
+      (docs->file yml-file)
+      (check-equal? (file->docs yml-file) docs)
+      (delete-file yml-file)))
 
   (test-case "yaml-struct"
     (yaml-struct player (name hr avg) #:transparent)

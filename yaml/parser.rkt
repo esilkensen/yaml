@@ -172,10 +172,8 @@
             [(string=? "TAG" (directive-token-name token))
              (match-let ([(cons handle prefix)
                           (directive-token-value token)])
-               (when (char? handle)
-                 (set! handle (string handle)))
                (when (hash-has-key? tag-handles handle)
-                 (let ([msg (format "duplicate tag handle ~a" handle)])
+                 (let ([msg (format "found duplicate tag handle ~a" handle)])
                    (parser-error #f msg (token-start token))))
                (hash-set! tag-handles handle prefix))]
             [else
@@ -239,8 +237,6 @@
                   (set! anchor (anchor-token-value token)))))])
          (match tag
            [(cons handle suffix)
-            (when (char? handle)
-              (set! handle (string handle)))
             (if handle
                 (if (hash-has-key? tag-handles handle)
                     (let ([h (hash-ref tag-handles handle)])
@@ -561,6 +557,23 @@
             [line (file->lines check-file)])
         (check-equal? (event->string event) line))))
 
-  (test-case "parse-flow-errors"
-    (define no-end "{key: value")
-    (check-exn #rx"expected ',' or '}'" (λ () (parse-string no-end)))))
+  (test-case "parse-flow-mapping-key"
+    (check-exn
+     #rx"expected ',' or '}'"
+     (λ () (parse-string "{key: value"))))
+
+  (test-case "parse-flow-sequence-entry"
+    (check-exn
+     #rx"expected ',' or ']'"
+     (λ () (parse-string "[value"))))
+
+  (test-case "process-directives"
+    (check-exn
+     #rx"found incompatible YAML document"
+     (λ () (parse-string "%YAML 2.0\n---\nfoo")))
+    (check-exn
+     #rx"found duplicate YAML directive"
+     (λ () (parse-string "%YAML 1.1\n%YAML 1.2\n---\nfoo")))
+    (check-exn
+     #rx"found duplicate tag handle"
+     (λ () (parse-string "%TAG ! !\n%TAG ! !\n---\nfoo")))))
