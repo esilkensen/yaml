@@ -6,7 +6,7 @@
 
 (provide (all-defined-out))
 
-(yaml-struct: event ([start : (Option mark)] [end : (Option mark)]))
+(yaml-struct: event ([start : (Option mark)] [end : (Option mark)]) #:mutable)
 
 (event: stream-start)
 
@@ -15,24 +15,27 @@
 (event: document-start
         ([explicit : Boolean]
          [version : (Option (Pairof Integer Integer))]
-         [tags : (Option (HashTable String String))]))
+         [tags : (Option (HashTable String String))])
+        #:mutable)
 
-(event: document-end ([explicit : Boolean]))
+(event: document-end ([explicit : Boolean]) #:mutable)
 
-(event: alias ([anchor : (Option String)]))
+(event: alias ([anchor : (Option String)]) #:mutable)
 
 (event: scalar
         ([anchor : (Option String)]
          [tag : (Option String)]
          [implicit : (Pairof Boolean Boolean)]
          [value : String]
-         [style : (Option Char)]))
+         [style : (Option Char)])
+        #:mutable)
 
 (event: sequence-start
         ([anchor : (Option String)]
          [tag : (Option String)]
          [implicit : Boolean]
-         [flow-style : Boolean]))
+         [flow-style : Boolean])
+        #:mutable)
 
 (event: sequence-end)
 
@@ -40,7 +43,8 @@
         ([anchor : (Option String)]
          [tag : (Option String)]
          [implicit : Boolean]
-         [flow-style : Boolean]))
+         [flow-style : Boolean])
+        #:mutable)
 
 (event: mapping-end)
 

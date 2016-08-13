@@ -586,28 +586,7 @@
   (define (prepare-tag-prefix prefix)
     (unless (> (string-length prefix) 0)
       (emitter-error "tag prefix must not be empty"))
-    (let ([chunks '()]
-          [start 0]
-          [end 0])
-      (when (char=? #\! (string-ref prefix 0))
-        (set! end 1))
-      (while (< end (string-length prefix))
-        (let ([ch (string-ref prefix end)])
-          (cond
-            [(or (char<=? #\0 ch #\9)
-                 (char<=? #\A ch #\Z)
-                 (char<=? #\a ch #\z)
-                 (string-index "-;/?!:@&=+$,_.~*'()[]" ch))
-             (set! end (add1 end))]
-            [else
-             (when (< start end)
-               (append! chunks (list (substring prefix start end))))
-             (set! start (add1 end))
-             (set! end (add1 end))
-             (append! chunks (list (format "~a" ch)))])))
-      (when (< start end)
-        (append! chunks (list (substring prefix start end))))
-      (apply string-append chunks)))
+    prefix)
   
   (define (prepare-tag tag)
     (unless (and (string? tag) (> (string-length tag) 0))
@@ -623,28 +602,9 @@
                               (string-length tag))))
               (set! handle (hash-ref tag-prefixes prefix))
               (set! suffix (substring tag (string-length prefix)))))
-          (let ([chunks '()]
-                [start 0]
-                [end 0])
-            (while (< end (string-length suffix))
-              (let ([ch (string-ref suffix end)])
-                (cond
-                  [(or (char<=? #\0 ch #\9)
-                       (char<=? #\A ch #\Z)
-                       (char<=? #\a ch #\z)
-                       (string-index "-;/?!:@&=+$,_.~*'()[]" ch))
-                   (set! end (add1 end))]
-                  [else
-                   (when (< start end)
-                     (append! chunks (list (substring suffix start end))))
-                   (set! start (add1 end))
-                   (set! end (add1 end))
-                   (append! chunks (list (format "~a" ch)))])))
-            (when (< start end)
-              (append! chunks (list (substring suffix start end))))
-            (if (and (string? handle) (> (string-length handle) 0))
-                (format "~a~a" handle (apply string-append chunks))
-                (format "!<~a>" (apply string-append chunks)))))))
+          (if (and (string? handle) (> (string-length handle) 0))
+              (format "~a~a" handle suffix)
+              (format "!<~a>" suffix)))))
   
   (define (prepare-anchor anchor)
     (unless (> (string-length anchor) 0)
@@ -1134,6 +1094,7 @@
 
 (module+ test
   (require rackunit racket/generator "parser.rkt")
+  
   (for ([(test-file check-file) (test-files #"emit")])
     (test-case check-file
       (let* ([out (open-output-string)]
@@ -1143,4 +1104,82 @@
           (emit event))
         (check-equal? (get-output-string out) (port->string in))
         (close-output-port out)
-        (close-input-port in)))))
+        (close-input-port in))))
+
+  (define foo-seq (parse-string "[foo]"))
+  
+  (test-case "expect-stream-start"
+    (define emit (make-emitter))
+    (emit (second foo-seq))
+    (check-exn
+     #rx"expected stream-start"
+     (λ () (emit (third foo-seq)))))
+
+  (test-case "expect-nothing"
+    (define emit (make-emitter))
+    (emit (first foo-seq))
+    (emit (last foo-seq))
+    (check-exn
+     #rx"expected nothing"
+     (λ () (emit (last foo-seq)))))
+
+  (test-case "expect-document-start"
+    (define emit (make-emitter))
+    (emit (first foo-seq))
+    (check-exn
+     #rx"expected document-start"
+     (λ () (emit (sixth foo-seq)))))
+
+  (test-case "expect-document-end"
+    (define emit (make-emitter (open-output-string)))
+    (for ([e (drop-right foo-seq 2)]) (emit e))
+    (check-exn
+     #rx"expected document-end"
+     (λ () (emit (last foo-seq)))))
+
+  (test-case "expect-node"
+    (define emit (make-emitter (open-output-string)))
+    ;; emit stream-start, document-start, document-end
+    (emit (first foo-seq))
+    (emit (second foo-seq))
+    (check-exn
+     #rx"expected node"
+     (λ () (emit (sixth foo-seq)))))
+
+  (test-case "prepare-version"
+    (define emit (make-emitter (open-output-string)))
+    (define evs (parse-string "%YAML 1.1\n---\nfoo"))
+    (define doc-start (second evs))
+    (set-document-start-event-version! doc-start '(2 . 0))
+    (emit (first evs))
+    (emit (second evs))
+    (check-exn
+     #rx"unsupported YAML version: 2.0"
+     (λ () (emit (third evs)))))
+
+  (test-case "prepare-tag-handle"
+    (define evs (parse-string "%TAG ! !\n---\nfoo"))
+    (define doc-start (second evs))
+    (for ([handle '("" "foo" "!$!")]
+          [message '("tag handle must not be empty"
+                     "tag handle must start and end with '!'"
+                     "invalid character \\$ in the tag handle")])
+      (define emit (make-emitter (open-output-string)))
+      (define tags (make-hash `((,handle . "!"))))
+      (set-document-start-event-tags! doc-start tags)
+      (emit (first evs))
+      (emit (second evs))
+      (check-exn
+       (regexp message)
+       (λ () (emit (third evs))))))
+
+  (test-case "prepare-tag-prefix"
+    (define evs (parse-string "%TAG ! !\n---\nfoo"))
+    (define doc-start (second evs))
+    (define emit (make-emitter (open-output-string)))
+    (set-document-start-event-tags! doc-start #hash(("!" . "")))
+    (emit (first evs))
+    (emit (second evs))
+    (check-exn
+     #rx"tag prefix must not be empty"
+     (λ () (emit (third evs))))))
