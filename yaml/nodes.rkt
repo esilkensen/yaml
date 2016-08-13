@@ -5,6 +5,7 @@
 (require "errors.rkt" "struct.rkt")
 
 (provide (all-defined-out))
+;; TODO: Consider except-out node:
 
 (yaml-struct: node ([start : (Option mark)] [end : (Option mark)]) #:mutable)
 
