@@ -11,7 +11,9 @@ before_install:
   - cat travis-racket/install-racket.sh | bash
   - export PATH="${RACKET_DIR}/bin:${PATH}"
 
-install: raco pkg install --deps search-auto cover-codecov $TRAVIS_BUILD_DIR
+install:
+  - raco pkg install --deps search-auto $TRAVIS_BUILD_DIR
+  - raco pkg install --deps search-auto cover-codecov cover-coveralls
 
 script:
   - raco make $TRAVIS_BUILD_DIR/yaml/main.rkt
@@ -20,3 +22,4 @@ script:
 after_success:
   - cd $TRAVIS_BUILD_DIR/yaml
   - raco cover -f codecov .
+  - raco cover -f coveralls .
