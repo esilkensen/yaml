@@ -1333,8 +1333,8 @@
 (module+ test
   (require rackunit)
   
-  (for ([(test-file check-file) (test-files #"scan")])
-    (test-case check-file
+  (for ([(test-file check-file) (test-files #".scan")])
+    (test-case (path->string check-file)
       (for ([token (scan-file test-file)]
             [line (file->lines check-file)])
         (check-equal? (token->string token) line))))

@@ -3,12 +3,12 @@
 (module+ test (require rackunit))
 
 (module unknown-nodes typed/racket
-  (require "nodes.rkt")
+  (require "../nodes.rkt")
   (provide (all-defined-out))
   (node: unknown))
 
 (module+ test
-  (require "nodes.rkt" (submod ".." unknown-nodes))
+  (require "../nodes.rkt" (submod ".." unknown-nodes))
 
   (define unknown (unknown-node #f #f))
   

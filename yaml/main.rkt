@@ -240,9 +240,9 @@
 (module+ test
   (require rackunit "utils.rkt")
   
-  (for ([(yaml-file check-file) (test-files #"construct")])
-    (define yml-file (path-replace-extension yaml-file ".yml"))
-    (test-case yaml-file
+  (for ([(yaml-file check-file) (test-files #".construct")])
+    (define yml-file (path-replace-extension yaml-file #".yml"))
+    (test-case (path->string yaml-file)
       (define docs (file->yaml* yaml-file))
       (define single? (= 1 (length docs)))
       (define (docs->string docs)

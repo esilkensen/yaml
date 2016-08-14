@@ -551,8 +551,8 @@
 (module+ test
   (require rackunit)
   
-  (for ([(test-file check-file) (test-files #"parse")])
-    (test-case check-file
+  (for ([(test-file check-file) (test-files #".parse")])
+    (test-case (path->string check-file)
       (for ([event (parse-file test-file)]
             [line (file->lines check-file)])
         (check-equal? (event->string event) line))))

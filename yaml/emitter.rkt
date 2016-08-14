@@ -1094,9 +1094,9 @@
 
 (module+ test
   (require rackunit racket/generator "parser.rkt")
-  
-  (for ([(test-file check-file) (test-files #"emit")])
-    (test-case check-file
+
+  (for ([(test-file check-file) (test-files #".emit")])
+    (test-case (path->string check-file)
       (let* ([out (open-output-string)]
              [in (open-input-file check-file)]
              [emit (make-emitter out)])

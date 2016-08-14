@@ -1,12 +1,14 @@
 #lang scribble/manual
-@(require racket/sandbox scribble/eval
+@(require racket/sandbox racket/runtime-path scribble/eval
           (for-label (except-in racket load)))
+@(define-runtime-path scribblings ".")
+@(define main-path (build-path scribblings "../main.rkt"))
 @(define yaml-evaluator
    (call-with-trusted-sandbox-configuration 
     (lambda ()
       (parameterize ([sandbox-output 'string]
                      [sandbox-error-output 'string])
-        (make-evaluator 'racket #:requires '("main.rkt"))))))
+        (make-evaluator 'racket #:requires (list main-path))))))
 @(interaction-eval
   #:eval yaml-evaluator
   (current-print pretty-print-handler))

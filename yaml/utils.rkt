@@ -2,6 +2,8 @@
 
 #lang racket
 
+(require racket/runtime-path)
+
 (provide (all-defined-out))
 
 (define-syntax-rule (append! dst lst ...)
@@ -14,28 +16,19 @@
 (define-syntax-rule (while test body ...)
   (let loop () (when test body ... (loop))))
 
+(define-runtime-path yaml-directory ".")
+
 (define (test-files extension [directory "test"])
-  (define (remove-extension file)
-    (let* ([fn (if (string? file) file (path->string file))]
-           [ext (filename-extension (string->path fn))]
-           [str (if ext (substring fn 0 (- (string-length fn)
-                                           (add1 (bytes-length ext))))
-                    fn)])
-      (if (string? file) str (string->path str))))
-  (define (set-extension file extension)
-    (let* ([fn (if (string? file) file (path->string file))]
-           [str (format "~a.~a" (remove-extension fn) extension)])
-      (if (string? file) str (string->path str))))
-  (define test-extension "yaml")
+  (define test-extension #".yaml")
+  (define directory-path (build-path yaml-directory directory))
   (make-hash
    (map
     (λ (p)
-      (let ([path (format "~a/~a" directory (path->string p))])
-        (cons (set-extension path test-extension) path)))
+      (let ([file (string->path (format "~a/~a" directory-path p))])
+        (cons (path-replace-extension file test-extension) file)))
     (filter
      (λ (p)
-       (let ([path (string->path
-                    (format "~a/~a" directory (path->string p)))])
-         (and (equal? extension (filename-extension path))
-              (file-exists? (set-extension path test-extension)))))
-     (directory-list directory)))))
+       (let ([file (string->path (format "~a/~a" directory-path p))])
+         (and (equal? extension (path-get-extension file))
+              (file-exists? (path-replace-extension file test-extension)))))
+     (directory-list directory-path)))))

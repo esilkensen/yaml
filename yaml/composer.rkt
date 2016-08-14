@@ -173,8 +173,8 @@
 
 (module+ test
   (require rackunit)
-  (for ([(test-file check-file) (test-files #"compose")])
-    (test-case check-file
+  (for ([(test-file check-file) (test-files #".compose")])
+    (test-case (path->string check-file)
       (for ([node (compose-file test-file)]
             [line (file->lines check-file)])
         (check-equal? (node->string-rec node) line)))))

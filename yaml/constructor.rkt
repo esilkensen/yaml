@@ -455,8 +455,8 @@
           (append (sandbox-namespace-specs)
                   '(racket/set))])
       (make-evaluator 'racket)))
-  (for ([(test-file check-file) (test-files #"construct")])
-    (test-case check-file
+  (for ([(test-file check-file) (test-files #".construct")])
+    (test-case (path->string check-file)
       (check-equal?
        (construct-file test-file)
        (racket-eval (file->string check-file)))))
