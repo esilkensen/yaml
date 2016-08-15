@@ -1,7 +1,7 @@
 yaml
 ====
-[![Build Status](https://travis-ci.org/esilkensen/yaml.svg?branch=master)](https://travis-ci.org/esilkensen/yaml)
-[![Coverage Status](https://codecov.io/gh/esilkensen/yaml/branch/master/graph/badge.svg)](https://codecov.io/gh/esilkensen/yaml)
+[![Build Status](https://travis-ci.org/esilkensen/yaml.png?branch=master)](https://travis-ci.org/esilkensen/yaml)
+[![Coverage Status](https://codecov.io/gh/esilkensen/yaml/branch/master/graph/badge.png)](https://codecov.io/gh/esilkensen/yaml)
 
 A YAML parser and emitter for Racket ported from [PyYAML](http://pyyaml.org).
 

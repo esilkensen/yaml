@@ -16,7 +16,7 @@ install:
 
 script:
   - raco make $TRAVIS_BUILD_DIR/yaml/main.rkt
-  - raco test $TRAVIS_BUILD_DIR
+  - raco test $TRAVIS_BUILD_DIR/yaml
 
 after_success:
-  - raco cover -f codecov -b $TRAVIS_BUILD_DIR
+  - raco cover -f codecov -d $TRAVIS_BUILD_DIR/coverage -b $TRAVIS_BUILD_DIR/yaml
