@@ -7,8 +7,8 @@ env:
     - RACKET_VERSION=6.6
 
 before_install:
-  - git clone https://github.com/greghendershott/travis-racket.git
-  - cat travis-racket/install-racket.sh | bash
+  - git clone https://github.com/greghendershott/travis-racket.git ../travis-racket
+  - cat ../travis-racket/install-racket.sh | bash
   - export PATH="${RACKET_DIR}/bin:${PATH}"
 
 install:
@@ -19,4 +19,4 @@ script:
   - raco test $TRAVIS_BUILD_DIR/yaml
 
 after_success:
-  - raco cover -f codecov -d $TRAVIS_BUILD_DIR/yaml/coverage -b $TRAVIS_BUILD_DIR/yaml
+  - raco cover -f codecov -d $TRAVIS_BUILD_DIR/coverage -b $TRAVIS_BUILD_DIR
