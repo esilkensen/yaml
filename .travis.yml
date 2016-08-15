@@ -19,4 +19,4 @@ script:
   - raco test $TRAVIS_BUILD_DIR/yaml
 
 after_success:
-  - raco cover -f codecov -d $TRAVIS_BUILD_DIR/coverage -b $TRAVIS_BUILD_DIR/yaml
+  - raco cover -f codecov -d $TRAVIS_BUILD_DIR/yaml/coverage -b $TRAVIS_BUILD_DIR/yaml
