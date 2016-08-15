@@ -1,2 +1,2 @@
 coverage:
-  fixes: null
+  fixes: yaml::yaml
