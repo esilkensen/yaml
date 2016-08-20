@@ -112,6 +112,7 @@
                     (set! constructor (hash-ref yaml-multi-constructors #f))]
                    [(hash-has-key? yaml-constructors #f)
                     (set! constructor (hash-ref yaml-constructors #f))]
+                   ;; Undefined constructor; use node kind:
                    [(scalar-node? node)
                     (set! constructor construct-scalar)]
                    [(sequence-node? node)
@@ -210,10 +211,11 @@
         [(member bool '("yes" "true" "on")) #t]
         [(member bool '("no" "false" "off")) #f]
         [else (constructor-error
-               #f (format "expected a boolean, but got ~a" bool)
+               #f (format "expected a boolean, but found ~a" bool)
                (node-start node))])))
   
   (define (construct-yaml-int node)
+    (define checked-string->number (make-checked-string->number node))
     (let ([value (string-replace
                   (format "~a" (construct-scalar node)) "_" "")]
           [sign 1])
@@ -225,23 +227,24 @@
       (cond
         [(string=? "0" value) 0]
         [(string-prefix? "0b" value)
-         (* sign (string->number (substring value 2) 2))]
+         (* sign (checked-string->number (substring value 2) 2))]
         [(string-prefix? "0x" value)
-         (* sign (string->number (substring value 2) 16))]
+         (* sign (checked-string->number (substring value 2) 16))]
         [(char=? #\0 (string-ref value 0))
-         (* sign (string->number value 8))]
+         (* sign (checked-string->number value 8))]
         [(string-index value #\:)
          (let ([base 1]
                [int-value 0]
                [parts (string-split value ":")])
-           (for ([digit (reverse (map string->number parts))])
+           (for ([digit (reverse (map checked-string->number parts))])
              (set! int-value (+ int-value (* digit base)))
              (set! base (* base 60)))
            (* sign int-value))]
         [else
-         (* sign (string->number value))])))
+         (* sign (checked-string->number value))])))
   
   (define (construct-yaml-float node)
+    (define checked-string->number (make-checked-string->number node))
     (let ([value (string-replace
                   (string-downcase
                    (format "~a" (construct-scalar node))) "_" "")]
@@ -260,12 +263,12 @@
          (let ([base 1]
                [float-value 0.0]
                [parts (string-split value ":")])
-           (for ([digit (reverse (map string->number parts))])
+           (for ([digit (reverse (map checked-string->number parts))])
              (set! float-value (* digit base))
              (set! base (* base 60)))
            (* sign float-value))]
         [else
-         (* 1.0 sign (string->number value))])))
+         (* 1.0 sign (checked-string->number value))])))
   
   (define (construct-yaml-binary node)
     (string->bytes/utf-8
@@ -285,25 +288,26 @@
         "(?:\\.([0-9]*))?"
         "(?:[ \\t]*(Z|([-+])([0-9][0-9]?)"
         "(?::([0-9][0-9]))?))?)?$")))
+    (define checked-string->number (make-checked-string->number node))
     (define values (regexp-match timestamp-regexp (scalar-node-value node)))
-    (define year (string->number (list-ref values 1)))
-    (define month (string->number (list-ref values 2)))
-    (define day (string->number (list-ref values 3)))
+    (define year (checked-string->number (list-ref values 1)))
+    (define month (checked-string->number (list-ref values 2)))
+    (define day (checked-string->number (list-ref values 3)))
     (define (get-hour)
-      (and (list-ref values 4) (string->number (list-ref values 4))))
+      (and (list-ref values 4) (checked-string->number (list-ref values 4))))
     (define (get-minute)
-      (and (list-ref values 5) (string->number (list-ref values 5))))
+      (and (list-ref values 5) (checked-string->number (list-ref values 5))))
     (define (get-second)
-      (and (list-ref values 6) (string->number (list-ref values 6))))
+      (and (list-ref values 6) (checked-string->number (list-ref values 6))))
     (define (get-fraction)
       (let ([value (list-ref values 7)])
         (and value (substring value 0 (min 6 (string-length value))))))
     (define (get-tz-sign)
       (and (list-ref values 9) (if (equal? "-" (list-ref values 9)) -1 +1)))
     (define (get-tz-hour)
-      (and (list-ref values 10) (string->number (list-ref values 10))))
+      (and (list-ref values 10) (checked-string->number (list-ref values 10))))
     (define (get-tz-minute)
-      (and (list-ref values 11) (string->number (list-ref values 11))))
+      (and (list-ref values 11) (checked-string->number (list-ref values 11))))
     (if (not (get-hour))
         (seconds->date (find-seconds 0 0 0 day month year #f) #f)
         (let ([hour (get-hour)]
@@ -314,7 +318,7 @@
             (set! fraction (get-fraction))
             (while (< (string-length fraction) 6)
               (set! fraction (string-append fraction "0")))
-            (set! fraction (* 1000 (string->number fraction))))
+            (set! fraction (* 1000 (checked-string->number fraction))))
           (if (get-tz-sign)
               (let* ([tz-hour (get-tz-hour)]
                      [tz-minute (or (get-tz-minute) 0)]
@@ -441,11 +445,21 @@
   (add-constructor! "tag:yaml.org,2002:seq" construct-yaml-seq)
   (add-constructor! "tag:yaml.org,2002:map" construct-yaml-map)
   (add-constructor! "tag:yaml.org,2002:pair" construct-yaml-pair)
+  ;; TODO: Allow this to be turned on/off with a keyword?
   (add-constructor! #f construct-undefined)
   
   (add-multi-constructor! "tag:yaml.org,2002:struct:" construct-yaml-struct)
   
   (values check-data? get-data get-single-data))
+
+(define (make-checked-string->number node)
+  (λ (s [radix 10])
+    (define n (string->number s radix))
+    (if (number? n)
+        n
+        (constructor-error
+         #f (format "expected a number, but found ~a" s)
+         (node-start node)))))
 
 (module+ test
   (require rackunit racket/sandbox)
@@ -461,7 +475,51 @@
        (construct-file test-file)
        (racket-eval (file->string check-file)))))
 
-  (test-case "yaml-struct-errors"
+  (test-case "construct-yaml-int"
+    (check-exn
+     #rx"expected a number"
+     (λ () (construct-string "!!int foo"))))
+  
+  (test-case "construct-yaml-bool"
+    (check-exn
+     #rx"expected a boolean"
+     (λ () (construct-string "!!bool foo"))))
+
+  (test-case "construct-yaml-omap/pairs"
+    (check-exn
+     #rx"expected a sequence"
+     (λ () (construct-string "!!omap foo")))
+    (check-exn
+     #rx"expected a mapping of length 1"
+     (λ () (construct-string "!!omap [foo]")))
+    (check-exn
+     #rx"expected a single mapping item"
+     (λ () (construct-string "!!omap [{a: b, c: d}]")))
+    (check-exn
+     #rx"found a duplicate key"
+     (λ () (construct-string "!!omap [a: b, a: c]"))))
+
+  (test-case "construct-yaml-str"
+    (check-exn
+     #rx"expected a scalar node"
+     (λ () (construct-string "!!str [foo]"))))
+
+  (test-case "construct-yaml-seq"
+    (check-exn
+     #rx"expected a sequence node"
+     (λ () (construct-string "!!seq foo"))))
+
+  (test-case "construct-yaml-map"
+    (check-exn
+     #rx"expected a mapping node"
+     (λ () (construct-string "!!map foo"))))
+
+  (test-case "construct-undefined"
+    (check-exn
+     #rx"could not determine a constructor for the tag"
+     (λ () (construct-string "!!foo bar"))))
+
+  (test-case "construct-yaml-struct"
     (yaml-struct player (avg hr name))
     
     (define unrecognized-field
