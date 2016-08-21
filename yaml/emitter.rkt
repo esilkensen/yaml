@@ -1098,13 +1098,13 @@
   (for ([(test-file check-file) (test-files #".emit")])
     (test-case (path->string check-file)
       (let* ([out (open-output-string)]
-             [in (open-input-file check-file)]
              [emit (make-emitter out)])
         (for ([event (parse-file test-file)])
           (emit event))
-        (check-equal? (get-output-string out) (port->string in))
-        (close-output-port out)
-        (close-input-port in))))
+        (check-equal?
+         (get-output-string out)
+         (file->string check-file))
+        (close-output-port out))))
 
   (define foo-seq (parse-string "[foo]"))
   

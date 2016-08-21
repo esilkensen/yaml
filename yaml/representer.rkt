@@ -14,8 +14,8 @@
  (contract-out
   [make-representer
    (((node? . -> . void?))
-    (#:scalar-style (or/c #\" #\' #\| #\> 'plain #f)
-     #:style (or/c 'block 'flow 'best #f))
+    (#:scalar-style (or/c #\" #\' #\| #\> 'plain)
+     #:style (or/c 'block 'flow 'best))
     . ->* .
     ;; represent
     (yaml? . -> . void?))]))
@@ -24,8 +24,8 @@
   (error 'representer message))
 
 (define (make-representer serialize
-                          #:scalar-style [default-style #f]
-                          #:style [default-flow-style #f])
+                          #:scalar-style [default-style 'plain]
+                          #:style [default-flow-style 'best])
   (define yaml-representers '())
   (define represented-objects (make-hash))
   (define object-keeper '())
@@ -57,7 +57,7 @@
   
   (define (represent-scalar tag value [style #f])
     (unless style
-      (set! style default-style))
+      (set! style (if (eq? 'plain default-style) #f default-style)))
     (let ([node (scalar-node #f #f tag value style)])
       (when alias-key
         (hash-set! represented-objects alias-key node))
@@ -73,9 +73,9 @@
             (set! best-style #f))
           (append! value (list node-item))))
       (unless flow-style
-        (if (not (eq? 'best default-flow-style))
-            (set! flow-style default-flow-style)
-            (set! flow-style best-style)))
+        (if (eq? 'best default-flow-style)
+            (set! flow-style best-style)
+            (set! flow-style (eq? 'flow default-flow-style))))
       (let ([node (sequence-node #f #f tag value flow-style)])
         (when alias-key
           (hash-set! represented-objects alias-key node))
@@ -95,9 +95,9 @@
             (set! best-style #f))
           (append! value (list (cons node-key node-value)))))
       (unless flow-style
-        (if (not (eq? 'best default-flow-style))
-            (set! flow-style default-flow-style)
-            (set! flow-style best-style)))
+        (if (eq? 'best default-flow-style)
+            (set! flow-style best-style)
+            (set! flow-style (eq? 'flow default-flow-style))))
       (let ([node (mapping-node #f #f tag value flow-style)])
         (when alias-key
           (hash-set! represented-objects alias-key node))

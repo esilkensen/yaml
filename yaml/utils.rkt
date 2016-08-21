@@ -4,6 +4,7 @@
 
 (require racket/runtime-path)
 
+;; TODO: contracts
 (provide (all-defined-out))
 
 (define-syntax-rule (append! dst lst ...)
@@ -24,11 +25,14 @@
   (make-hash
    (map
     (λ (p)
-      (let ([file (string->path (format "~a/~a" directory-path p))])
-        (cons (path-replace-extension file test-extension) file)))
+      (define file (string->path (format "~a/~a" directory-path p)))
+      (cons (path-replace-extension file test-extension) file))
     (filter
      (λ (p)
-       (let ([file (string->path (format "~a/~a" directory-path p))])
-         (and (equal? extension (path-get-extension file))
-              (file-exists? (path-replace-extension file test-extension)))))
+       (define file (string->path (format "~a/~a" directory-path p)))
+       (define file-extension (path-get-extension file))
+       ;; extension : (U String Bytes)
+       ;; file-extension : (Option Bytes)
+       (and (equal? (format "~a" extension) (format "~a" file-extension))
+            (file-exists? (path-replace-extension file test-extension))))
      (directory-list directory-path)))))

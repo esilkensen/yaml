@@ -147,9 +147,7 @@
                      #:explicit-start explicit-start
                      #:explicit-end explicit-end))
   (define represent
-    (let ([scalar-style (if (eq? 'plain scalar-style) #f scalar-style)]
-          [style (if (eq? 'best style) style (eq? 'flow style))])
-      (make-representer serialize #:scalar-style scalar-style #:style style)))
+    (make-representer serialize #:scalar-style scalar-style #:style style))
   (open)
   (for ([data documents])
     (represent data))
@@ -266,7 +264,26 @@
       (check-equal? (file->docs yml-file) docs)
       (delete-file yml-file)))
 
+  (for ([style '(flow block)])
+    (for ([(yaml-file check-file) (test-files (format ".~a" style))])
+      (test-case (path->string check-file)
+        (check-equal?
+         (yaml*->string (file->yaml* yaml-file) #:style style)
+         (file->string check-file)))))
+
   (test-case "yaml-struct"
     (yaml-struct player (name hr avg) #:transparent)
     (define p1 (player "Mark McGwire" 65 0.278))
-    (check-equal? (string->yaml (yaml->string p1)) p1)))
+    (check-equal? (string->yaml (yaml->string p1)) p1)
+
+    (yaml-struct opaque-player (name hr avg))
+    (define p2 (opaque-player "Sammy Sosa" 63 0.288))
+    (define p3
+      (string->yaml
+       "!!struct:opaque-player {name: Sammy Sosa, hr: 63, avg: 0.288}"))
+    (check-equal? (opaque-player-name p3) (opaque-player-name p2))
+    (check-equal? (opaque-player-hr p3) (opaque-player-hr p2))
+    (check-equal? (opaque-player-avg p3) (opaque-player-avg p2))
+    (check-exn
+     #rx"not a transparent struct"
+     (λ () (yaml->string p2)))))
