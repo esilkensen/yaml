@@ -115,3 +115,28 @@
     [(_ thing . _)
      (raise-syntax-error
       #f "expected an identifier for the structure type name" stx #'thing)]))
+
+(module+ test
+  (yaml-struct player (name hr avg) #:transparent)
+  (yaml-struct pitcher player (era) #:transparent)
+
+  (define p1 (player "Carlos González" 34 0.336))
+  (check-equal? (player-name p1) "Carlos González")
+  (check-equal? (player-hr p1) 34)
+  
+  (check-equal?
+   (gen->yaml p1)
+   '(("name" . "Carlos González")
+     ("hr" . 34)
+     ("avg" . 0.336)))
+  
+  (define p2 (pitcher "Ubaldo Jiménez" 0 0.104 2.88))
+  (check-equal? (player-name p2) "Ubaldo Jiménez")
+  (check-equal? (pitcher-era p2) 2.88)
+
+  (check-equal?
+   (gen->yaml p2)
+   '(("name" . "Ubaldo Jiménez")
+     ("hr" . 0)
+     ("avg" . 0.104)
+     ("era" . 2.88))))
