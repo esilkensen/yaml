@@ -1,0 +1,23 @@
+'<stream start>'
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="first")
+':'
+anchor-token(value="abc")
+'['
+scalar-token(plain=#t, style=#f, value="1")
+','
+scalar-token(plain=#t, style=#f, value="2")
+','
+scalar-token(plain=#t, style=#f, value="3")
+']'
+'?'
+scalar-token(plain=#t, style=#f, value="second")
+':'
+'['
+alias-token(value="abc")
+','
+alias-token(value="abc")
+']'
+block-end-token()
+'<stream end>'

@@ -173,8 +173,22 @@
 
 (module+ test
   (require rackunit)
+  
   (for ([(test-file check-file) (test-files #".compose")])
     (test-case (path->string check-file)
       (for ([node (compose-file test-file)]
             [line (file->lines check-file)])
-        (check-equal? (node->string-rec node) line)))))
+        (check-equal? (node->string-rec node) line))))
+
+  (test-case "get-single-node"
+    (check-exn
+     #rx"expected a single document"
+     (λ () (with-input-from-string "first\n---\nsecond" compose))))
+
+  (test-case "compose-node"
+    (check-exn
+     #rx"found undefined alias"
+     (λ () (compose-string "foo: *bar")))
+    (check-exn
+     #rx"found duplicate anchor"
+     (λ () (compose-string "first: &key val1\nsecond: &key val2")))))

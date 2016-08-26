@@ -1,0 +1,2 @@
+first: &abc [1, 2, 3]
+second: [*abc, *abc]
