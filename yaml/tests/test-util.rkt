@@ -6,7 +6,8 @@
  "../parser.rkt"
  "../events.rkt"
  "../emitter.rkt"
- "../constructor.rkt")
+ "../constructor.rkt"
+ "../main.rkt")
 
 (provide (all-defined-out))
 
@@ -15,15 +16,28 @@
     (path-replace-extension test-file ".scan")
     (thunk
      (for ([t (scan-file test-file)])
-       (displayln (token->string t)))))
+       (displayln (token->string t))))
+    #:exists 'replace)
   (with-output-to-file
     (path-replace-extension test-file ".parse")
     (thunk
      (for ([e (parse-file test-file)])
-       (displayln (event->string e)))))
+       (displayln (event->string e))))
+    #:exists 'replace)
   (with-output-to-file
     (path-replace-extension test-file ".emit")
     (thunk
      (define emit (make-emitter))
      (for ([e (parse-file test-file)])
-       (emit e)))))
+       (emit e)))
+    #:exists 'replace)
+  (with-output-to-file
+    (path-replace-extension test-file ".block-sort")
+    (thunk
+     (write-yaml*
+      (file->yaml* test-file)
+      #:style 'block
+      #:sort-mapping string<?
+      #:sort-mapping-key car))
+    #:exists 'replace))
+     

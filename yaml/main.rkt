@@ -31,7 +31,9 @@
      #:explicit-start boolean?
      #:explicit-end boolean?
      #:scalar-style (or/c #\" #\' #\| #\> 'plain)
-     #:style (or/c 'block 'flow 'best))
+     #:style (or/c 'block 'flow 'best)
+     #:sort-mapping (or/c (any/c any/c . -> . any/c) #f)
+     #:sort-mapping-key (any/c . -> . any/c))
     . ->* . void?)]
   [write-yaml*
    (((listof yaml?))
@@ -42,7 +44,9 @@
      #:explicit-start boolean?
      #:explicit-end boolean?
      #:scalar-style (or/c #\" #\' #\| #\> 'plain)
-     #:style (or/c 'block 'flow 'best))
+     #:style (or/c 'block 'flow 'best)
+     #:sort-mapping (or/c (any/c any/c . -> . any/c) #f)
+     #:sort-mapping-key (any/c . -> . any/c))
     . ->* . void?)]
   [yaml->string
    ((yaml?)
@@ -52,7 +56,9 @@
      #:explicit-start boolean?
      #:explicit-end boolean?
      #:scalar-style (or/c #\" #\' #\| #\> 'plain)
-     #:style (or/c 'block 'flow 'best))
+     #:style (or/c 'block 'flow 'best)
+     #:sort-mapping (or/c (any/c any/c . -> . any/c) #f)
+     #:sort-mapping-key (any/c . -> . any/c))
     . ->* . string?)]
   [yaml*->string
    (((listof yaml?))
@@ -62,7 +68,9 @@
      #:explicit-start boolean?
      #:explicit-end boolean?
      #:scalar-style (or/c #\" #\' #\| #\> 'plain)
-     #:style (or/c 'block 'flow 'best))
+     #:style (or/c 'block 'flow 'best)
+     #:sort-mapping (or/c (any/c any/c . -> . any/c) #f)
+     #:sort-mapping-key (any/c . -> . any/c))
     . ->* . string?)]
   [yaml->file
    ((yaml? path-string?)
@@ -75,7 +83,9 @@
      #:explicit-start boolean?
      #:explicit-end boolean?
      #:scalar-style (or/c #\" #\' #\| #\> 'plain)
-     #:style (or/c 'block 'flow 'best))
+     #:style (or/c 'block 'flow 'best)
+     #:sort-mapping (or/c (any/c any/c . -> . any/c) #f)
+     #:sort-mapping-key (any/c . -> . any/c))
     . ->* . string?)]
   [yaml*->file
    (((listof yaml?) path-string?)
@@ -88,7 +98,9 @@
      #:explicit-start boolean?
      #:explicit-end boolean?
      #:scalar-style (or/c #\" #\' #\| #\> 'plain)
-     #:style (or/c 'block 'flow 'best))
+     #:style (or/c 'block 'flow 'best)
+     #:sort-mapping (or/c (any/c any/c . -> . any/c) #f)
+     #:sort-mapping-key (any/c . -> . any/c))
     . ->* . string?)])
  
  (except-out
@@ -121,7 +133,9 @@
                     #:explicit-start [explicit-start #f]
                     #:explicit-end [explicit-end #f]
                     #:scalar-style [scalar-style 'plain]
-                    #:style [style 'best])
+                    #:style [style 'best]
+                    #:sort-mapping [mapping-less-than? #f]
+                    #:sort-mapping-key [mapping-extract-key identity])
   (write-yaml* (list document) out
                #:canonical canonical
                #:indent indent
@@ -129,7 +143,9 @@
                #:explicit-start explicit-start
                #:explicit-end explicit-end
                #:scalar-style scalar-style
-               #:style style))
+               #:style style
+               #:sort-mapping mapping-less-than?
+               #:sort-mapping-key mapping-extract-key))
 
 (define (write-yaml* documents [out (current-output-port)]
                      #:canonical [canonical #f]
@@ -138,7 +154,9 @@
                      #:explicit-start [explicit-start #f]
                      #:explicit-end [explicit-end #f]
                      #:scalar-style [scalar-style 'plain]
-                     #:style [style 'best])
+                     #:style [style 'best]
+                     #:sort-mapping [mapping-less-than? #f]
+                     #:sort-mapping-key [mapping-extract-key identity])
   (define-values (open close serialize)
     (make-serializer out
                      #:canonical canonical
@@ -147,7 +165,11 @@
                      #:explicit-start explicit-start
                      #:explicit-end explicit-end))
   (define represent
-    (make-representer serialize #:scalar-style scalar-style #:style style))
+    (make-representer serialize
+                      #:scalar-style scalar-style
+                      #:style style
+                      #:sort-mapping mapping-less-than?
+                      #:sort-mapping-key mapping-extract-key))
   (open)
   (for ([data documents])
     (represent data))
@@ -160,7 +182,9 @@
                       #:explicit-start [explicit-start #f]
                       #:explicit-end [explicit-end #f]
                       #:scalar-style [scalar-style 'plain]
-                      #:style [style 'best])
+                      #:style [style 'best]
+                      #:sort-mapping [mapping-less-than? #f]
+                      #:sort-mapping-key [mapping-extract-key identity])
   (with-output-to-string
     (λ () (write-yaml document
                       #:canonical canonical
@@ -169,7 +193,9 @@
                       #:explicit-start explicit-start
                       #:explicit-end explicit-end
                       #:scalar-style scalar-style
-                      #:style style))))
+                      #:style style
+                      #:sort-mapping mapping-less-than?
+                      #:sort-mapping-key mapping-extract-key))))
 
 (define (yaml*->string documents
                        #:canonical [canonical #f]
@@ -178,7 +204,9 @@
                        #:explicit-start [explicit-start #f]
                        #:explicit-end [explicit-end #f]
                        #:scalar-style [scalar-style 'plain]
-                       #:style [style 'best])
+                       #:style [style 'best]
+                       #:sort-mapping [mapping-less-than? #f]
+                       #:sort-mapping-key [mapping-extract-key identity])
   (with-output-to-string
     (λ () (write-yaml* documents
                        #:canonical canonical
@@ -187,7 +215,9 @@
                        #:explicit-start explicit-start
                        #:explicit-end explicit-end
                        #:scalar-style scalar-style
-                       #:style style))))
+                       #:style style
+                       #:sort-mapping mapping-less-than?
+                       #:sort-mapping-key mapping-extract-key))))
 
 (define (yaml->file document path
                     #:mode [mode-flag 'binary]
@@ -198,7 +228,9 @@
                     #:explicit-start [explicit-start #f]
                     #:explicit-end [explicit-end #f]
                     #:scalar-style [scalar-style 'plain]
-                    #:style [style 'best])
+                    #:style [style 'best]
+                    #:sort-mapping [mapping-less-than? #f]
+                    #:sort-mapping-key [mapping-extract-key identity])
   (with-output-to-file
     path
     (λ () (write-yaml document
@@ -208,7 +240,9 @@
                       #:explicit-start explicit-start
                       #:explicit-end explicit-end
                       #:scalar-style scalar-style
-                      #:style style))
+                      #:style style
+                      #:sort-mapping mapping-less-than?
+                      #:sort-mapping-key mapping-extract-key))
     #:mode mode-flag
     #:exists exists-flag))
 
@@ -221,7 +255,9 @@
                      #:explicit-start [explicit-start #f]
                      #:explicit-end [explicit-end #f]
                      #:scalar-style [scalar-style 'plain]
-                     #:style [style 'best])
+                     #:style [style 'best]
+                     #:sort-mapping [mapping-less-than? #f]
+                     #:sort-mapping-key [mapping-extract-key identity])
   (with-output-to-file
     path
     (λ () (write-yaml* documents
@@ -231,7 +267,9 @@
                        #:explicit-start explicit-start
                        #:explicit-end explicit-end
                        #:scalar-style scalar-style
-                       #:style style))
+                       #:style style
+                       #:sort-mapping mapping-less-than?
+                       #:sort-mapping-key mapping-extract-key))
     #:mode mode-flag
     #:exists exists-flag))
 
@@ -270,6 +308,16 @@
         (check-equal?
          (yaml*->string (file->yaml* yaml-file) #:style style)
          (file->string check-file)))))
+
+  (for ([(yaml-file check-file) (test-files #".block-sort")])
+    (test-case (path->string check-file)
+      (check-equal?
+       (yaml*->string
+        (file->yaml* yaml-file)
+        #:style 'block
+        #:sort-mapping string<?
+        #:sort-mapping-key car)
+       (file->string check-file))))
 
   (test-case "yaml-struct"
     (yaml-struct player (name hr avg) #:transparent)

@@ -15,7 +15,9 @@
   [make-representer
    (((node? . -> . void?))
     (#:scalar-style (or/c #\" #\' #\| #\> 'plain)
-     #:style (or/c 'block 'flow 'best))
+     #:style (or/c 'block 'flow 'best)
+     #:sort-mapping (or/c (any/c any/c . -> . any/c) #f)
+     #:sort-mapping-key (any/c . -> . any/c))
     . ->* .
     ;; represent
     (yaml? . -> . void?))]))
@@ -25,7 +27,9 @@
 
 (define (make-representer serialize
                           #:scalar-style [default-style 'plain]
-                          #:style [default-flow-style 'best])
+                          #:style [default-flow-style 'best]
+                          #:sort-mapping [mapping-less-than? #f]
+                          #:sort-mapping-key [mapping-extract-key identity])
   (define yaml-representers '())
   (define represented-objects (make-hash))
   (define object-keeper '())
@@ -83,10 +87,15 @@
   
   (define (represent-mapping tag mapping [flow-style #f])
     (let ([value '()]
-          [best-style #t])
-      (for ([(key val) mapping])
-        (let* ([node-key (represent-data key)]
-               [node-value (represent-data val)])
+          [best-style #t]
+          [key-vals (hash->list mapping)])
+      (when mapping-less-than?
+        (set! key-vals (sort key-vals
+                             mapping-less-than?
+                             #:key mapping-extract-key)))
+      (for ([key-val key-vals])
+        (let* ([node-key (represent-data (car key-val))]
+               [node-value (represent-data (cdr key-val))])
           (when (not (and (scalar-node? node-key)
                           (not (scalar-node-style node-key))))
             (set! best-style #f))

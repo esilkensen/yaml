@@ -160,12 +160,24 @@ Accepts the same keyword arguments as @racket[write-yaml*]
            [#:explicit-start explicit-start boolean? #f]
            [#:explicit-end explicit-end boolean? #f]
            [#:scalar-style scalar-style (or/c #\" #\' #\| #\> 'plain) 'plain]
-           [#:style style (or/c 'block 'flow 'best) 'best])
+           [#:style style (or/c 'block 'flow 'best) 'best]
+           [#:sort-mapping mapping-less-than?
+            (or/c (any/c any/c . -> . any/c) #f) #f]
+           [#:sort-mapping-key mapping-extract-key
+            (any/c . -> . any/c) identity])
          void?]{
 Writes a sequence of Racket YAML expressions to @racket[out] as YAML
 text formatted with the keyword arguments. See the
 @link["http://www.yaml.org/spec/1.2/spec.html"]{YAML specification}
-for more information on style.}
+for more information on style.
+
+The @racket[#:sort-mapping] argument @racket[mapping-less-than?] can be used
+to @racket[sort] the elements of mappings. When it is a function, for any
+@racket[mapping] the sorting procedure is essentially
+@racketblock[
+(sort (hash->list mapping)
+      mapping-less-than?
+      #:key mapping-extract-key)]}
 
 @defproc[(yaml->string
            [document yaml?])

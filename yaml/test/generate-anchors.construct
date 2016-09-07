@@ -1,0 +1,3 @@
+`((,(make-hash `(("first" . "val1")))
+   ,(make-hash `(("second" . "val2")))
+   ,(make-hash `(("third" . ("val1" "val2"))))))
