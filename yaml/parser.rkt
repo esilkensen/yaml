@@ -384,7 +384,7 @@
        (unless (check-token? block-end-token?)
          (parser-error
           "while parsing a block mapping"
-          (format "expected <block end>, but found"
+          (format "expected <block end>, but found ~a"
                   (token->string (peek-token)))
           (token-start (peek-token))))
        (let ([token (get-token)])
