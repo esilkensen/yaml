@@ -20,12 +20,10 @@
 (define (yaml? v)
   (or (equal? v (yaml-null))
       (string? v)
+      (bytes? v)
       (boolean? v)
       (exact-integer? v)
       (inexact-real? v)
-      (date? v)
-      (bytes? v)
-      (yaml-struct? v)
       (and (list? v)
            (andmap yaml? v))
       (and (hash? v)
@@ -35,9 +33,11 @@
       (and (set? v)
            (for/and ([val v])
              (yaml? val)))
+      (date? v)
       (and (pair? v)
            (yaml? (car v))
-           (yaml? (cdr v)))))
+           (yaml? (cdr v)))
+      (yaml-struct? v)))
 
 (module+ test
   (test-case "yaml?"

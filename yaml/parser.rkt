@@ -567,6 +567,11 @@
      #rx"expected ',' or ']'"
      (λ () (parse-string "[value"))))
 
+  (test-case "parse-node"
+    (check-exn
+     #rx"found undefined tag handle"
+     (λ () (parse-string "!foo!bar baz"))))
+
   (test-case "process-directives"
     (check-exn
      #rx"found incompatible YAML document"

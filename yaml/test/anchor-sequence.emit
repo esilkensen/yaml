@@ -1,2 +1,2 @@
-first: &abc [1, 2, 3]
+first: &abc !!seq [1, 2, 3]
 second: [*abc, *abc]

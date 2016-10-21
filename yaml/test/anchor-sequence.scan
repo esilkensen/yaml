@@ -4,6 +4,7 @@ block-mapping-start-token()
 scalar-token(plain=#t, style=#f, value="first")
 ':'
 anchor-token(value="abc")
+tag-token(value=("!!" . "seq"))
 '['
 scalar-token(plain=#t, style=#f, value="1")
 ','
