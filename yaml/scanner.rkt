@@ -229,7 +229,7 @@
                     (scanner-error
                      "while scanning for the next token"
                      (format
-                      "found character ~a that cannot start any token" ch)
+                      "found character ~s that cannot start any token" ch)
                      (get-mark))))))))
   
   ;;; Simple keys treatment.
@@ -594,7 +594,7 @@
       (when (zero? len)
         (scanner-error
          "while scanning a directive"
-         (format "expected alphanumeric character, but found ~a" (peek))
+         (format "expected alphanumeric character, but found ~s" (peek))
          (get-mark)))
       (let ([value (prefix len)])
         (forward len)
@@ -602,7 +602,7 @@
                     (string-index " \r\n\x85\u2028\u2029" (peek)))
           (scanner-error
            "while scanning a directive"
-           (format "expected alphanumeric character, but found ~a" (peek))
+           (format "expected alphanumeric character, but found ~s" (peek))
            (get-mark)))
         value)))
   
@@ -615,7 +615,7 @@
       (unless (equal? #\. (peek))
         (scanner-error
          "while scanning a directive"
-         (format "expected a digit or '.', but found ~a" (peek))
+         (format "expected a digit or '.', but found ~s" (peek))
          (get-mark)))
       (forward)
       (let ([minor (scan-yaml-directive-number)])
@@ -623,7 +623,7 @@
                     (string-index " \r\n\x85\u2028\u2029" (peek)))
           (scanner-error
            "while scanning a directive"
-           (format "expected a digit or ' ', but found ~a" (peek))
+           (format "expected a digit or ' ', but found ~s" (peek))
            (get-mark)))
         (cons major minor))))
   
@@ -1352,10 +1352,10 @@
      #rx"expected a digit, but found x"
      (λ () (scan-string "%YAML 1.x")))
     (check-exn
-     #rx"expected a digit or '.', but found -"
+     #rx"expected a digit or '.', but found #[\\]-"
      (λ () (scan-string "%YAML 1-1")))
     (check-exn
-     #rx"expected a digit or ' ', but found x"
+     #rx"expected a digit or ' ', but found #[\\]x"
      (λ () (scan-string "%YAML 1.1x"))))
 
   (test-case "scan-tag-directive-value"
@@ -1401,4 +1401,14 @@
      (λ () (scan-string "First occurrence: & Value")))
     (check-exn
      #rx"expected alphanumeric character, but found \\$"
-     (λ () (scan-string "First occurrence: &anchor$Value")))))
+     (λ () (scan-string "First occurrence: &anchor$Value"))))
+
+  (test-case "scan-flow-scalar-spaces"
+    (check-exn
+     #rx"found unexpected end of stream"
+     (λ () (scan-string "\"foo"))))
+
+  (test-case "scan-flow-scalar-breaks"
+    (check-exn
+     #rx"found unexpected document separator"
+     (λ () (scan-string "\"foo\n---")))))
