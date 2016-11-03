@@ -52,6 +52,8 @@
 (define (make-composer [in (current-input-port)])
   (define-values (check-event? peek-event get-event)
     (make-parser in))
+
+  (define resolver (new resolver%))
   
   (define anchors (make-hash))
   
@@ -121,7 +123,7 @@
       (when (or (not tag) (equal? "!" tag))
         (let ([value (scalar-event-value event)]
               [implicit (scalar-event-implicit event)])
-          (set! tag (resolve 'scalar value implicit))))
+          (set! tag (send resolver resolve 'scalar value implicit))))
       (let ([value (scalar-event-value event)]
             [start (event-start event)]
             [end (event-end event)]
@@ -135,7 +137,8 @@
     (let* ([event (get-event)]
            [tag (any-event-tag event)])
       (when (or (not tag) (equal? "!" tag))
-        (set! tag (resolve 'sequence #f (any-event-implicit event))))
+        (set! tag
+              (send resolver resolve 'sequence #f (any-event-implicit event))))
       (let* ([start (event-start event)]
              [flow-style (collection-start-event-flow-style event)]
              [node (sequence-node start #f tag '() flow-style)]
@@ -154,7 +157,8 @@
     (let* ([event (get-event)]
            [tag (any-event-tag event)])
       (when (or (not tag) (equal? "!" tag))
-        (set! tag (resolve 'mapping #f (any-event-implicit event))))
+        (set! tag
+              (send resolver resolve 'mapping #f (any-event-implicit event))))
       (let* ([start (event-start event)]
              [flow-style (collection-start-event-flow-style event)]
              [node (mapping-node start #f tag '() flow-style)])

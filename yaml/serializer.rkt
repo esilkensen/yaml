@@ -18,6 +18,7 @@
 (define serializer+c%
   (class/c
    (init-field
+    [resolver (instanceof/c resolver+c%)]
     [out output-port?]
     [canonical boolean?]
     [indent (or/c exact-positive-integer? #f)]
@@ -39,6 +40,7 @@
 (define serializer%
   (class object%
     (init-field
+     [resolver (new resolver%)]
      [out (current-output-port)]
      [canonical #f]
      [indent #f]
@@ -133,16 +135,17 @@
                      [value (scalar-node-value node)]
                      [style (scalar-node-style node)]
                      [detected-tag
-                      (resolve 'scalar value (cons #t #f))]
+                      (send resolver resolve 'scalar value (cons #t #f))]
                      [default-tag
-                       (resolve 'scalar value (cons #f #t))]
+                       (send resolver resolve 'scalar value (cons #f #t))]
                      [implicit (cons (equal? tag detected-tag)
                                      (equal? tag default-tag))])
                 (emit (scalar-event #f #f alias tag implicit value style)))]
              [(sequence-node? node)
               (let* ([tag (sequence-node-tag node)]
                      [value (sequence-node-value node)]
-                     [implicit (equal? tag (resolve 'sequence value #t))]
+                     [implicit
+                      (equal? tag (send resolver resolve 'sequence value #t))]
                      [flow-style (sequence-node-flow-style node)])
                 (emit
                  (sequence-start-event #f #f alias tag implicit flow-style))
@@ -152,7 +155,8 @@
              [(mapping-node? node)
               (let* ([tag (mapping-node-tag node)]
                      [value (mapping-node-value node)]
-                     [implicit (equal? tag (resolve 'mapping value #t))]
+                     [implicit
+                      (equal? tag (send resolver resolve 'mapping value #t))]
                      [flow-style (mapping-node-flow-style node)])
                 (emit
                  (mapping-start-event #f #f alias tag implicit flow-style))
