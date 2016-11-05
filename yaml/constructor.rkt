@@ -52,8 +52,7 @@
         (reverse data))))
 
 (define (make-constructor [in (current-input-port)])
-  (define-values (check-node? get-node get-single-node)
-    (make-composer in))
+  (define composer (new composer% [in in]))
   
   (define yaml-constructors (make-hash))
   (define yaml-multi-constructors (make-hash))
@@ -61,14 +60,14 @@
   (define recursive-objects (make-hash))
   
   (define (check-data?)
-    (check-node?))
+    (send composer check-node?))
   
   (define (get-data)
-    (when (check-node?)
-      (construct-document (get-node))))
+    (when (send composer check-node?)
+      (construct-document (send composer get-node))))
   
   (define (get-single-data)
-    (let ([node (get-single-node)])
+    (let ([node (send composer get-single-node)])
       (and node (construct-document node))))
   
   (define (construct-document node)
