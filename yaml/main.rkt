@@ -157,23 +157,25 @@
                      #:style [style 'best]
                      #:sort-mapping [mapping-less-than? #f]
                      #:sort-mapping-key [mapping-extract-key identity])
-  (define-values (open close serialize)
-    (make-serializer out
-                     #:canonical canonical
-                     #:indent indent
-                     #:width width
-                     #:explicit-start explicit-start
-                     #:explicit-end explicit-end))
-  (define represent
-    (make-representer serialize
-                      #:scalar-style scalar-style
-                      #:style style
-                      #:sort-mapping mapping-less-than?
-                      #:sort-mapping-key mapping-extract-key))
-  (open)
+  (define serializer
+    (new serializer%
+         [out out]
+         [canonical canonical]
+         [indent indent]
+         [width width]
+         [explicit-start explicit-start]
+         [explicit-end explicit-end]))
+  (define representer
+    (new representer%
+         [serializer serializer]
+         [scalar-style (if (eq? scalar-style 'plain) #f scalar-style)]
+         [style style]
+         [sort-mapping mapping-less-than?]
+         [sort-mapping-key mapping-extract-key]))
+  (send serializer open)
   (for ([data documents])
-    (represent data))
-  (close))
+    (send representer represent data))
+  (send serializer close))
 
 (define (yaml->string document
                       #:canonical [canonical #f]
