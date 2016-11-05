@@ -61,46 +61,45 @@
     
     (super-new)
     
-    (define-values (check-event? peek-event get-event)
-      (make-parser in))
+    (define parser (new parser% [in in]))
     
     (define anchors (make-hash))
     
     (define/public (check-node?)
-      (when (check-event? stream-start-event?)
-        (get-event))
-      (not (check-event? stream-end-event?)))
+      (when (send parser check-event? stream-start-event?)
+        (send parser get-event))
+      (not (send parser check-event? stream-end-event?)))
     
     (define/public (get-node)
-      (when (check-event?)
-        (unless (check-event? stream-end-event?)
+      (when (send parser check-event?)
+        (unless (send parser check-event? stream-end-event?)
           (compose-document))))
     
     (define/public (get-single-node)
-      (and (check-event?)
+      (and (send parser check-event?)
            (let ([document #f])
-             (get-event)
-             (unless (check-event? stream-end-event?)
+             (send parser get-event)
+             (unless (send parser check-event? stream-end-event?)
                (set! document (compose-document)))
-             (unless (check-event? stream-end-event?)
+             (unless (send parser check-event? stream-end-event?)
                (composer-error
                 "expected a single document in the stream"
                 "but found another document"
-                (event-start (get-event))))
-             (get-event)
+                (event-start (send parser get-event))))
+             (send parser get-event)
              document)))
     
     (define (compose-document)
-      (get-event)
+      (send parser get-event)
       (let ([node (compose-node #f #f)])
-        (get-event)
+        (send parser get-event)
         (set! anchors (make-hash))
         node))
     
     (define (compose-node parent index)
       (cond
-        [(check-event? alias-event?)
-         (let* ([event (get-event)]
+        [(send parser check-event? alias-event?)
+         (let* ([event (send parser get-event)]
                 [anchor (any-event-anchor event)])
            (unless (hash-has-key? anchors anchor)
              (composer-error
@@ -109,7 +108,7 @@
               (event-start event)))
            (hash-ref anchors anchor))]
         [else
-         (let* ([event (peek-event)]
+         (let* ([event (send parser peek-event)]
                 [anchor (any-event-anchor event)])
            (when (hash-has-key? anchors anchor)
              (composer-error
@@ -118,16 +117,16 @@
               (event-start event)))
            (let ([node #f])
              (cond
-               [(check-event? scalar-event?)
+               [(send parser check-event? scalar-event?)
                 (set! node (compose-scalar-node anchor))]
-               [(check-event? sequence-start-event?)
+               [(send parser check-event? sequence-start-event?)
                 (set! node (compose-sequence-node anchor))]
-               [(check-event? mapping-start-event?)
+               [(send parser check-event? mapping-start-event?)
                 (set! node (compose-mapping-node anchor))])
              node))]))
     
     (define (compose-scalar-node anchor)
-      (let* ([event (get-event)]
+      (let* ([event (send parser get-event)]
              [tag (scalar-event-tag event)])
         (when (or (not tag) (equal? "!" tag))
           (let ([value (scalar-event-value event)]
@@ -143,7 +142,7 @@
             node))))
     
     (define (compose-sequence-node anchor)
-      (let* ([event (get-event)]
+      (let* ([event (send parser get-event)]
              [tag (any-event-tag event)])
         (when (or (not tag) (equal? "!" tag))
           (let ([implicit (any-event-implicit event)])
@@ -154,16 +153,16 @@
                [index 0])
           (when anchor
             (hash-set! anchors anchor node))
-          (while (not (check-event? sequence-end-event?))
+          (while (not (send parser check-event? sequence-end-event?))
             (let ([value (sequence-node-value node)]
                   [new (compose-node node index)])
               (set-sequence-node-value! node (append value (list new)))
               (set! index (add1 index))))
-          (set-node-end! node (event-end (get-event)))
+          (set-node-end! node (event-end (send parser get-event)))
           node)))
     
     (define (compose-mapping-node anchor)
-      (let* ([event (get-event)]
+      (let* ([event (send parser get-event)]
              [tag (any-event-tag event)])
         (when (or (not tag) (equal? "!" tag))
           (let ([implicit (any-event-implicit event)])
@@ -173,13 +172,13 @@
                [node (mapping-node start #f tag '() flow-style)])
           (when anchor
             (hash-set! anchors anchor node))
-          (while (not (check-event? mapping-end-event?))
+          (while (not (send parser check-event? mapping-end-event?))
             (let* ([item-key (compose-node node #f)]
                    [item-value (compose-node node item-key)]
                    [value (mapping-node-value node)]
                    [new (cons item-key item-value)])
               (set-mapping-node-value! node (append value (list new)))))
-          (set-node-end! node (event-end (get-event)))
+          (set-node-end! node (event-end (send parser get-event)))
           node)))))
 
 (module+ test
