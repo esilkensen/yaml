@@ -54,12 +54,14 @@
     
     (super-new)
     
-    (define emit (make-emitter out
-                               #:canonical canonical
-                               #:indent indent
-                               #:width width
-                               #:allow-unicode allow-unicode
-                               #:line-break line-break))
+    (define emitter
+      (new emitter%
+           [out out]
+           [canonical canonical]
+           [indent indent]
+           [width width]
+           [allow-unicode allow-unicode]
+           [line-break line-break]))
     (define serialized-nodes (make-hasheq))
     (define anchors (make-hasheq))
     (define last-anchor-id 0)
@@ -68,7 +70,7 @@
     (define/public (open)
       (cond
         [(null? closed)
-         (emit (stream-start-event #f #f))
+         (send emitter emit (stream-start-event #f #f))
          (set! closed #f)]
         [closed
          (serializer-error "serializer is closed")]
@@ -80,7 +82,7 @@
         [(null? closed)
          (serializer-error "serializer has not been opened")]
         [(not closed)
-         (emit (stream-end-event #f #f))
+         (send emitter emit (stream-end-event #f #f))
          (set! closed #t)]
         [else
          (serializer-error "serializer is closed")]))
@@ -91,10 +93,11 @@
          (serializer-error "serializer has not been opened")]
         [closed
          (serializer-error "serializer is closed")])
-      (emit (document-start-event #f #f explicit-start version tags))
+      (send emitter emit (document-start-event
+                          #f #f explicit-start version tags))
       (anchor-node node)
       (serialize-node node)
-      (emit (document-end-event #f #f explicit-end))
+      (send emitter emit (document-end-event #f #f explicit-end))
       (set! serialized-nodes (make-hasheq))
       (set! anchors (make-hasheq))
       (set! last-anchor-id 0))
@@ -126,7 +129,7 @@
       (let ([alias (hash-ref anchors node)])
         (cond
           [(hash-has-key? serialized-nodes node)
-           (emit (alias-event #f #f alias))]
+           (send emitter emit (alias-event #f #f alias))]
           [else
            (hash-set! serialized-nodes node #t)
            (cond
@@ -140,30 +143,31 @@
                        (send resolver resolve 'scalar value (cons #f #t))]
                      [implicit (cons (equal? tag detected-tag)
                                      (equal? tag default-tag))])
-                (emit (scalar-event #f #f alias tag implicit value style)))]
+                (send emitter emit (scalar-event
+                                    #f #f alias tag implicit value style)))]
              [(sequence-node? node)
               (let* ([tag (sequence-node-tag node)]
                      [value (sequence-node-value node)]
                      [implicit
                       (equal? tag (send resolver resolve 'sequence value #t))]
                      [flow-style (sequence-node-flow-style node)])
-                (emit
-                 (sequence-start-event #f #f alias tag implicit flow-style))
+                (send emitter emit (sequence-start-event
+                                    #f #f alias tag implicit flow-style))
                 (for ([item value])
                   (serialize-node item))
-                (emit (sequence-end-event #f #f)))]
+                (send emitter emit (sequence-end-event #f #f)))]
              [(mapping-node? node)
               (let* ([tag (mapping-node-tag node)]
                      [value (mapping-node-value node)]
                      [implicit
                       (equal? tag (send resolver resolve 'mapping value #t))]
                      [flow-style (mapping-node-flow-style node)])
-                (emit
-                 (mapping-start-event #f #f alias tag implicit flow-style))
+                (send emitter emit (mapping-start-event
+                                    #f #f alias tag implicit flow-style))
                 (for ([kv value])
                   (serialize-node (car kv))
                   (serialize-node (cdr kv)))
-                (emit (mapping-end-event #f #f)))])])))))
+                (send emitter emit (mapping-end-event #f #f)))])])))))
 
 (module+ test
   (require rackunit)

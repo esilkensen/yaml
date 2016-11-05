@@ -27,9 +27,9 @@
   (with-output-to-file
     (path-replace-extension test-file ".emit")
     (thunk
-     (define emit (make-emitter))
+     (define emitter (new emitter%))
      (for ([e (parse-file test-file)])
-       (emit e)))
+       (send emitter emit e)))
     #:exists 'replace)
   (with-output-to-file
     (path-replace-extension test-file ".block-sort")
