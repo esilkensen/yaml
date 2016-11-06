@@ -25,6 +25,10 @@
     [sort-mapping (or/c (any/c any/c . -> . any/c) #f)]
     [sort-mapping-key (any/c . -> . any/c)])
    [represent (yaml? . ->m . void?)]
+   [represent-data (yaml? . ->m . node?)]
+   [represent-scalar (string? string? . ->m . node?)]
+   [represent-sequence (string? list? . ->m . node?)]
+   [represent-mapping (string? hash? . ->m . node?)]
    [add ((any/c . -> . boolean?) (any/c . -> . node?) . ->m . void?)]))
 
 (define (representer-error message)
@@ -52,7 +56,7 @@
       (set! object-keeper '())
       (set! alias-key #f))
 
-    (define (represent-data data)
+    (define/public (represent-data data)
       (call/cc
        (λ (return)
          (if (ignore-aliases? data)
@@ -70,13 +74,13 @@
                      (repr data)
                      (loop (cdr kvs)))))))))
     
-    (define (represent-scalar tag value)
+    (define/public (represent-scalar tag value)
       (define node (scalar-node #f #f tag value scalar-style))
       (when alias-key
         (hash-set! represented-objects alias-key node))
       node)
 
-    (define (represent-sequence tag sequence)
+    (define/public (represent-sequence tag sequence)
       (define best-style #t)
       (define value
         (for/list ([item sequence])
@@ -91,7 +95,7 @@
         (hash-set! represented-objects alias-key node))
       node)
     
-    (define (represent-mapping tag mapping)
+    (define/public (represent-mapping tag mapping)
       (define best-style #t)
       (define sequence
         (if sort-mapping

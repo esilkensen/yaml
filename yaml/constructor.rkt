@@ -34,6 +34,7 @@
    [check-data? (->m boolean?)]
    [get-data (->m (or/c yaml? void?))]
    [get-single-data (->m (or/c yaml? #f))]
+   [construct-object (node? . ->m . yaml?)]
    [add (string? (node? . -> . yaml?) . ->m . void?)]
    [add-multi (string? (string? node? . -> . yaml?) . ->m . void?)]))
 
@@ -90,7 +91,7 @@
         (set! recursive-objects (make-hash))
         data))
     
-    (define (construct-object node)
+    (define/public (construct-object node)
       (if (hash-has-key? constructed-objects node)
           (hash-ref constructed-objects node)
           (let ([constructor #f]
@@ -153,10 +154,7 @@
          #f (format "expected a sequence node, but found ~a"
                     (node->string-rec node))
          (node-start node)))
-      (map
-       (λ (child)
-         (construct-object child))
-       (sequence-node-value node)))
+      (map (λ (child) (construct-object child)) (sequence-node-value node)))
     
     (define (construct-mapping node)
       (unless (mapping-node? node)

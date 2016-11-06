@@ -7,7 +7,8 @@
 (provide
  (contract-out
   [yaml? (any/c . -> . boolean?)]
-  [yaml-null (case-> (-> any/c) (any/c . -> . void?))]
+  [yaml-null (parameter/c any/c)]
+  [yaml-types (parameter/c (listof (any/c . -> . boolean?)))]
   [yaml-struct? (any/c . -> . boolean?)]
   [gen->yaml (yaml-struct? . -> . (listof (cons/c string? yaml?)))])
  yaml-struct
@@ -16,6 +17,8 @@
 (module+ test (require rackunit racket/date))
 
 (define yaml-null (make-parameter 'null))
+
+(define yaml-types (make-parameter '()))
 
 (define (yaml? v)
   (or (equal? v (yaml-null))
@@ -37,7 +40,9 @@
       (and (pair? v)
            (yaml? (car v))
            (yaml? (cdr v)))
-      (yaml-struct? v)))
+      (yaml-struct? v)
+      (for/or ([type? (yaml-types)])
+        (type? v))))
 
 (module+ test
   (test-case "yaml?"

@@ -6,6 +6,7 @@
  "constructor.rkt"
  "representer.rkt"
  "serializer.rkt"
+ "utils.rkt"
  "yaml-expr.rkt")
 
 (provide
@@ -108,6 +109,8 @@
   gen->yaml
   yaml-struct-constructors))
 
+;; Reading YAML
+
 (define (read-yaml [in (current-input-port)])
   (construct in))
 
@@ -125,6 +128,29 @@
 
 (define (file->yaml* path #:mode [mode-flag 'binary])
   (with-input-from-file path read-yaml* #:mode mode-flag))
+
+;; Writing YAML
+
+(define current-representer (make-parameter #f))
+
+(define custom-representers '())
+
+(define (add-representer! type? representer)
+  (append! custom-representers (list (cons type? representer))))
+
+;; TODO: Check value of (current-representer) and raise-user-error
+
+(define (represent-data data)
+  (send (current-representer) represent-data data))
+
+(define (represent-scalar tag value)
+  (send (current-representer) represent-scalar tag value))
+
+(define (represent-sequence tag sequence)
+  (send (current-representer) represent-sequence tag sequence))
+
+(define (represent-mapping tag mapping)
+  (send (current-representer) represent-mapping tag mapping))
 
 (define (write-yaml document [out (current-output-port)]
                     #:canonical [canonical #f]
@@ -172,10 +198,15 @@
          [style style]
          [sort-mapping mapping-less-than?]
          [sort-mapping-key mapping-extract-key]))
-  (send serializer open)
-  (for ([data documents])
-    (send representer represent data))
-  (send serializer close))
+  (parameterize
+      ([current-representer representer]
+       [yaml-types (map car custom-representers)])
+    (for ([repr custom-representers])
+      (send representer add (car repr) (cdr repr)))
+    (send serializer open)
+    (for ([data documents])
+      (send representer represent data))
+    (send serializer close)))
 
 (define (yaml->string document
                       #:canonical [canonical #f]
@@ -276,7 +307,17 @@
     #:exists exists-flag))
 
 (module+ test
-  (require rackunit "utils.rkt")
+  (require rackunit)
+
+  ;; add a constructor and representer for vectors
+  ;; (define tag "tag:yaml.org,2002:vector")
+  ;; (define (construct-vector node)
+  ;;   (list->vector (construct-object node)))
+  ;; (define tag "tag:yaml.org,2002:vector")
+  ;; (define (represent-vector vector)
+  ;;   (represent-sequence (vector->list vector) tag))
+  ;; (add-constructor! tag construct-vector)
+  ;; (add-representer! vector? represent-vector)
   
   (for ([(yaml-file check-file) (test-files #".construct")])
     (define yml-file (path-replace-extension yaml-file #".yml"))
@@ -336,4 +377,12 @@
     (check-equal? (opaque-player-avg p3) (opaque-player-avg p2))
     (check-exn
      #rx"not a transparent struct"
-     (λ () (yaml->string p2)))))
+     (λ () (yaml->string p2))))
+
+  (test-case "add-representer!"
+    (define (represent-vector vec)
+      (represent-sequence "tag:yaml.org,2002:vector" (vector->list vec)))
+    (add-representer! vector? represent-vector)
+    (check-equal?
+     (yaml->string #(1 2 3))
+     "!!vector [1, 2, 3]\n")))
