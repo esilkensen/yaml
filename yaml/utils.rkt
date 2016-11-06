@@ -19,7 +19,7 @@
 
 (define-runtime-path yaml-directory ".")
 
-(define (test-files extension [directory "test"])
+(define (test-files extension [directory "test-files"])
   (define test-extension #".yaml")
   (define directory-path (build-path yaml-directory directory))
   (make-hash
