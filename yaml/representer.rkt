@@ -25,7 +25,6 @@
     [sort-mapping (or/c (any/c any/c . -> . any/c) #f)]
     [sort-mapping-key (any/c . -> . any/c)])
    [represent (yaml? . ->m . void?)]
-   [represent-data (yaml? . ->m . node?)]
    [represent-scalar (string? string? . ->m . node?)]
    [represent-sequence (string? list? . ->m . node?)]
    [represent-mapping (string? hash? . ->m . node?)]
@@ -56,7 +55,7 @@
       (set! object-keeper '())
       (set! alias-key #f))
 
-    (define/public (represent-data data)
+    (define (represent-data data)
       (call/cc
        (λ (return)
          (if (ignore-aliases? data)

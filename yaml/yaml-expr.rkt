@@ -2,15 +2,29 @@
 
 #lang racket
 
-(require racket/generic)
+(require racket/generic "nodes.rkt")
 
 (provide
  (contract-out
+  (struct yaml-constructor
+    ([type? (any/c . -> . boolean?)]
+     [tag string?]
+     [construct (node? . -> . yaml?)]))
+  (struct yaml-multi-constructor
+    ([type? (any/c . -> . boolean?)]
+     [tag string?]
+     [construct (string? node? . -> . yaml?)]))
+  (struct yaml-representer
+    ([type? (any/c . -> . boolean?)]
+     [represent (any/c . -> . node?)]))
   [yaml? (any/c . -> . boolean?)]
   [yaml-null (parameter/c any/c)]
-  [yaml-types (parameter/c (listof (any/c . -> . boolean?)))]
+  [yaml-constructors
+   (parameter/c (listof (or/c yaml-constructor? yaml-multi-constructor?)))]
+  [yaml-representers (parameter/c (listof yaml-representer?))]
   [yaml-struct? (any/c . -> . boolean?)]
   [gen->yaml (yaml-struct? . -> . (listof (cons/c string? yaml?)))])
+ node?
  yaml-struct
  yaml-struct-constructors)
 
@@ -18,7 +32,21 @@
 
 (define yaml-null (make-parameter 'null))
 
-(define yaml-types (make-parameter '()))
+(struct yaml-constructor (type? tag construct))
+(struct yaml-multi-constructor (type? tag construct))
+(define yaml-constructors (make-parameter '()))
+
+(struct yaml-representer (type? represent))
+(define yaml-representers (make-parameter '()))
+
+(define (yaml-types)
+  (define (any-constructor-type? c)
+    (if (yaml-constructor? c)
+        (yaml-constructor-type? c)
+        (yaml-multi-constructor-type? c)))
+  (define constructor-types (map any-constructor-type? (yaml-constructors)))
+  (define representer-types (map yaml-representer-type? (yaml-representers)))
+  (remove-duplicates (append constructor-types representer-types)))
 
 (define (yaml? v)
   (or (equal? v (yaml-null))
@@ -46,7 +74,10 @@
 
 (module+ test
   (test-case "yaml?"
-    (define exprs (list (yaml-null) "string" #t 1 1.0 (current-date) #"bytes"))
+    (define exprs
+      (list (yaml-null) "string" #t 1 1.0 (current-date) #"bytes"))
+    (define (represent-vector vec) (error "unused"))
+    (define vector-representer (yaml-representer vector? represent-vector))
     (check-true (yaml? '()))
     (check-true (yaml? (set)))
     (check-true (yaml? exprs))
@@ -54,7 +85,10 @@
     (check-true (yaml? (cons "first" "second")))
     (check-true (yaml? (make-hash)))
     (check-true (yaml? #hash(("key" . "value"))))
-    (check-false (yaml? 'yaml?))))
+    (check-false (yaml? 'yaml?))
+    (check-false (yaml? #(1 2 3)))
+    (parameterize ([yaml-representers (list vector-representer)])
+      (check-true (yaml? #(1 2 3))))))
 
 (define-generics yaml-struct
   (gen->yaml yaml-struct)

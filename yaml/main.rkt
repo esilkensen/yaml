@@ -4,13 +4,33 @@
 
 (require
  "constructor.rkt"
+ "nodes.rkt"
  "representer.rkt"
  "serializer.rkt"
  "utils.rkt"
  "yaml-expr.rkt")
 
 (provide
+ node?
+ yaml-constructor
+ yaml-constructor?
+ yaml-multi-constructor
+ yaml-multi-constructor?
+ yaml-representer
+ yaml-representer?
+ (recontract-out
+  yaml?
+  yaml-struct?
+  yaml-null
+  yaml-constructors
+  yaml-representers)
  (contract-out
+  [construct-scalar (node? . -> . string?)]
+  [construct-sequence (node? . -> . (listof yaml?))]
+  [construct-mapping (node? . -> . (hash/c yaml? yaml?))]
+  [represent-scalar (string? string? . -> . node?)]
+  [represent-sequence (string? list? . -> . node?)]
+  [represent-mapping (string? hash? . -> . node?)]
   [read-yaml (() (input-port?) . ->* . yaml?)]
   [read-yaml* (() (input-port?) . ->* . (listof yaml?))]
   [string->yaml (string? . -> . yaml?)]
@@ -102,29 +122,11 @@
      #:style (or/c 'block 'flow 'best)
      #:sort-mapping (or/c (any/c any/c . -> . any/c) #f)
      #:sort-mapping-key (any/c . -> . any/c))
-    . ->* . string?)])
- 
- (except-out
-  (all-from-out "yaml-expr.rkt")
-  gen->yaml
-  yaml-struct-constructors))
-
-;; Parameters
-
-(define current-constructor
-  (make-parameter (new constructor%)))
-(define yaml-constructors
-  (make-parameter '()))
-
-(define current-representer
-  (make-parameter (new representer% [serializer (new serializer%)])))
-(define yaml-representers
-  (make-parameter '()))
+    . ->* . string?)]))
 
 ;; Reading YAML
 
-(define (construct-object node)
-  (send (current-constructor) construct-object node))
+(define current-constructor (make-parameter (new constructor%)))
 
 (define (construct-scalar node)
   (send (current-constructor) construct-scalar node))
@@ -135,65 +137,47 @@
 (define (construct-mapping node)
   (send (current-constructor) construct-mapping node))
 
-(define (read-yaml [in (current-input-port)]
-                   #:constructors [custom-constructors (yaml-constructors)]
-                   #:representers [custom-representers (yaml-representers)])
+(define (read-yaml [in (current-input-port)])
   (define constructor (new constructor% [in in]))
-  (parameterize ([current-constructor constructor]
-                 [yaml-types (map car custom-representers)])
-    (for ([ctr custom-constructors])
-      (send constructor add (car ctr) (cdr ctr)))
+  (parameterize ([current-constructor constructor])
+    (add-constructors! constructor (yaml-constructors))
     (send constructor get-single-data)))
 
-(define (read-yaml* [in (current-input-port)]
-                    #:constructors [custom-constructors (yaml-constructors)]
-                    #:representers [custom-representers (yaml-representers)])
+(define (read-yaml* [in (current-input-port)])
   (define constructor (new constructor% [in in]))
-  (parameterize ([current-constructor constructor]
-                 [yaml-types (map car custom-representers)])
-    (for ([ctr custom-constructors])
-      (send constructor add (car ctr) (cdr ctr)))
+  (parameterize ([current-constructor constructor])
+    (add-constructors! constructor (yaml-constructors))
     (let loop ([data '()])
       (if (send constructor check-data?)
           (loop (cons (send constructor get-data) data))
           (reverse data)))))
 
-(define (string->yaml str
-                      #:constructors [custom-constructors (yaml-constructors)]
-                      #:representers [custom-representers (yaml-representers)])
-  (with-input-from-string str
-    (λ () (read-yaml #:constructors custom-constructors
-                     #:representers custom-representers))))
+(define (add-constructors! constructor constructors)
+  (for ([c constructors])
+    (if (yaml-constructor? c)
+        (let ([tag (yaml-constructor-tag c)]
+              [construct (yaml-constructor-construct c)])
+          (send constructor add tag construct))
+        (let ([tag (yaml-multi-constructor-tag c)]
+              [construct (yaml-multi-constructor-construct c)])
+          (send constructor add-multi tag construct)))))
 
-(define (string->yaml* str
-                       #:constructors [custom-constructors (yaml-constructors)]
-                       #:representers [custom-representers (yaml-representers)])
-  (with-input-from-string str
-    (λ () (read-yaml* #:constructors custom-constructors
-                      #:representers custom-representers))))
+(define (string->yaml str)
+  (with-input-from-string str read-yaml))
 
-(define (file->yaml path
-                    #:constructors [custom-constructors (yaml-constructors)]
-                    #:representers [custom-representers (yaml-representers)]
-                    #:mode [mode-flag 'binary])
-  (with-input-from-file path
-    (λ () (read-yaml #:constructors custom-constructors
-                     #:representers custom-representers))
-    #:mode mode-flag))
+(define (string->yaml* str)
+  (with-input-from-string str read-yaml*))
 
-(define (file->yaml* path
-                     #:constructors [custom-constructors (yaml-constructors)]
-                     #:representers [custom-representers (yaml-representers)]
-                     #:mode [mode-flag 'binary])
-  (with-input-from-file path
-    (λ () (read-yaml* #:constructors custom-constructors
-                      #:representers custom-representers))
-    #:mode mode-flag))
+(define (file->yaml path #:mode [mode-flag 'binary])
+  (with-input-from-file path read-yaml #:mode mode-flag))
+
+(define (file->yaml* path #:mode [mode-flag 'binary])
+  (with-input-from-file path read-yaml* #:mode mode-flag))
 
 ;; Writing YAML
 
-(define (represent-data data)
-  (send (current-representer) represent-data data))
+(define current-representer
+  (make-parameter (new representer% [serializer (new serializer%)])))
 
 (define (represent-scalar tag value)
   (send (current-representer) represent-scalar tag value))
@@ -213,8 +197,7 @@
                     #:scalar-style [scalar-style 'plain]
                     #:style [style 'best]
                     #:sort-mapping [mapping-less-than? #f]
-                    #:sort-mapping-key [mapping-extract-key identity]
-                    #:representers [custom-representers (yaml-representers)])
+                    #:sort-mapping-key [mapping-extract-key identity])
   (write-yaml* (list document) out
                #:canonical canonical
                #:indent indent
@@ -224,8 +207,7 @@
                #:scalar-style scalar-style
                #:style style
                #:sort-mapping mapping-less-than?
-               #:sort-mapping-key mapping-extract-key
-               #:representers custom-representers))
+               #:sort-mapping-key mapping-extract-key))
 
 (define (write-yaml* documents [out (current-output-port)]
                      #:canonical [canonical #f]
@@ -236,8 +218,7 @@
                      #:scalar-style [scalar-style 'plain]
                      #:style [style 'best]
                      #:sort-mapping [mapping-less-than? #f]
-                     #:sort-mapping-key [mapping-extract-key identity]
-                     #:representers [custom-representers (yaml-representers)])
+                     #:sort-mapping-key [mapping-extract-key identity])
   (define serializer
     (new serializer%
          [out out]
@@ -253,10 +234,11 @@
          [style style]
          [sort-mapping mapping-less-than?]
          [sort-mapping-key mapping-extract-key]))
-  (parameterize ([current-representer representer]
-                 [yaml-types (map car custom-representers)])
-    (for ([repr custom-representers])
-      (send representer add (car repr) (cdr repr)))
+  (parameterize ([current-representer representer])
+    (for ([cr (yaml-representers)])
+      (let ([type? (yaml-representer-type? cr)]
+            [represent (yaml-representer-represent cr)])
+        (send representer add type? represent)))
     (send serializer open)
     (for ([data documents])
       (send representer represent data))
@@ -271,8 +253,7 @@
                       #:scalar-style [scalar-style 'plain]
                       #:style [style 'best]
                       #:sort-mapping [mapping-less-than? #f]
-                      #:sort-mapping-key [mapping-extract-key identity]
-                      #:representers [custom-representers (yaml-representers)])
+                      #:sort-mapping-key [mapping-extract-key identity])
   (with-output-to-string
     (λ () (write-yaml document
                       #:canonical canonical
@@ -283,8 +264,7 @@
                       #:scalar-style scalar-style
                       #:style style
                       #:sort-mapping mapping-less-than?
-                      #:sort-mapping-key mapping-extract-key
-                      #:representers custom-representers))))
+                      #:sort-mapping-key mapping-extract-key))))
 
 (define (yaml*->string documents
                        #:canonical [canonical #f]
@@ -295,8 +275,7 @@
                        #:scalar-style [scalar-style 'plain]
                        #:style [style 'best]
                        #:sort-mapping [mapping-less-than? #f]
-                       #:sort-mapping-key [mapping-extract-key identity]
-                       #:representers [custom-representers (yaml-representers)])
+                       #:sort-mapping-key [mapping-extract-key identity])
   (with-output-to-string
     (λ () (write-yaml* documents
                        #:canonical canonical
@@ -307,8 +286,7 @@
                        #:scalar-style scalar-style
                        #:style style
                        #:sort-mapping mapping-less-than?
-                       #:sort-mapping-key mapping-extract-key
-                       #:representers custom-representers))))
+                       #:sort-mapping-key mapping-extract-key))))
 
 (define (yaml->file document path
                     #:mode [mode-flag 'binary]
@@ -321,8 +299,7 @@
                     #:scalar-style [scalar-style 'plain]
                     #:style [style 'best]
                     #:sort-mapping [mapping-less-than? #f]
-                    #:sort-mapping-key [mapping-extract-key identity]
-                    #:representers [custom-representers (yaml-representers)])
+                    #:sort-mapping-key [mapping-extract-key identity])
   (with-output-to-file
     path
     (λ () (write-yaml document
@@ -334,8 +311,7 @@
                       #:scalar-style scalar-style
                       #:style style
                       #:sort-mapping mapping-less-than?
-                      #:sort-mapping-key mapping-extract-key
-                      #:representers custom-representers))
+                      #:sort-mapping-key mapping-extract-key))
     #:mode mode-flag
     #:exists exists-flag))
 
@@ -350,8 +326,7 @@
                      #:scalar-style [scalar-style 'plain]
                      #:style [style 'best]
                      #:sort-mapping [mapping-less-than? #f]
-                     #:sort-mapping-key [mapping-extract-key identity]
-                     #:representers [custom-representers (yaml-representers)])
+                     #:sort-mapping-key [mapping-extract-key identity])
   (with-output-to-file
     path
     (λ () (write-yaml* documents
@@ -363,8 +338,7 @@
                        #:scalar-style scalar-style
                        #:style style
                        #:sort-mapping mapping-less-than?
-                       #:sort-mapping-key mapping-extract-key
-                       #:representers custom-representers))
+                       #:sort-mapping-key mapping-extract-key))
     #:mode mode-flag
     #:exists exists-flag))
 
@@ -434,11 +408,12 @@
   (test-case "vectors"
     (define (construct-vector node)
       (list->vector (construct-sequence node)))
-    (define vector-constructor (cons "!vector" construct-vector))
+    (define vector-constructor
+      (yaml-constructor vector? "!vector" construct-vector))
     
     (define (represent-vector vec)
       (represent-sequence "!vector" (vector->list vec)))
-    (define vector-representer (cons vector? represent-vector))
+    (define vector-representer (yaml-representer vector? represent-vector))
     
     (parameterize ([yaml-constructors (list vector-constructor)]
                    [yaml-representers (list vector-representer)])

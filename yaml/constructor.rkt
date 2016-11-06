@@ -34,7 +34,6 @@
    [check-data? (->m boolean?)]
    [get-data (->m (or/c yaml? void?))]
    [get-single-data (->m (or/c yaml? #f))]
-   [construct-object (node? . ->m . yaml?)]
    [construct-scalar (node? . ->m . string?)]
    [construct-sequence (node? . ->m . (listof yaml?))]
    [construct-mapping (node? . ->m . (hash/c yaml? yaml?))]
@@ -94,7 +93,7 @@
         (set! recursive-objects (make-hash))
         data))
     
-    (define/public (construct-object node)
+    (define (construct-object node)
       (if (hash-has-key? constructed-objects node)
           (hash-ref constructed-objects node)
           (let ([constructor #f]
