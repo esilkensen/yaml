@@ -22,7 +22,7 @@
    ((string?) ((instanceof/c resolver+c%)) . ->* . (listof yaml?))]
   [construct-all
    (() (input-port? (instanceof/c resolver+c%)) . ->* . (listof yaml?))]
-  [construct
+  #;[construct
    (() (input-port? (instanceof/c resolver+c%)) . ->* . (or/c yaml? #f))]
   [constructor% constructor+c%]))
 
@@ -35,6 +35,9 @@
    [get-data (->m (or/c yaml? void?))]
    [get-single-data (->m (or/c yaml? #f))]
    [construct-object (node? . ->m . yaml?)]
+   [construct-scalar (node? . ->m . string?)]
+   [construct-sequence (node? . ->m . (listof yaml?))]
+   [construct-mapping (node? . ->m . (hash/c yaml? yaml?))]
    [add (string? (node? . -> . yaml?) . ->m . void?)]
    [add-multi (string? (string? node? . -> . yaml?) . ->m . void?)]))
 
@@ -48,7 +51,7 @@
   (with-input-from-string string
     (λ () (construct-all (current-input-port) resolver))))
 
-(define (construct [in (current-input-port)] [resolver (new resolver%)])
+#;(define (construct [in (current-input-port)] [resolver (new resolver%)])
   (define constructor (new constructor% [in in] [resolver resolver]))
   (send constructor get-single-data))
 
@@ -128,11 +131,14 @@
                       (set! constructor (hash-ref yaml-constructors #f))]
                      ;; Undefined constructor; use node kind:
                      [(scalar-node? node)
-                      (set! constructor construct-scalar)]
+                      (set! constructor
+                            (λ (node) (construct-scalar node)))]
                      [(sequence-node? node)
-                      (set! constructor construct-sequence)]
+                      (set! constructor
+                            (λ (node) (construct-sequence node)))]
                      [(mapping-node? node)
-                      (set! constructor construct-mapping)]))]))
+                      (set! constructor
+                            (λ (node) (construct-mapping node)))]))]))
             (let ([data (if (not tag-suffix)
                             (constructor node)
                             (constructor tag-suffix node))])
@@ -140,7 +146,7 @@
               (hash-remove! recursive-objects node)
               data))))
     
-    (define (construct-scalar node)
+    (define/public (construct-scalar node)
       (unless (scalar-node? node)
         (constructor-error
          #f (format "expected a scalar node, but found ~a"
@@ -148,7 +154,7 @@
          (node-start node)))
       (scalar-node-value node))
     
-    (define (construct-sequence node)
+    (define/public (construct-sequence node)
       (unless (sequence-node? node)
         (constructor-error
          #f (format "expected a sequence node, but found ~a"
@@ -156,7 +162,7 @@
          (node-start node)))
       (map (λ (child) (construct-object child)) (sequence-node-value node)))
     
-    (define (construct-mapping node)
+    (define/public (construct-mapping node)
       (unless (mapping-node? node)
         (constructor-error
          #f (format "expected a mapping node, but found ~a"
