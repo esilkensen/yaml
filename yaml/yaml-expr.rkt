@@ -12,13 +12,14 @@
      [construct (node? . -> . yaml?)]))
   (struct yaml-multi-constructor
     ([type? (any/c . -> . boolean?)]
-     [tag string?]
+     [tag-prefix string?]
      [construct (string? node? . -> . yaml?)]))
   (struct yaml-representer
     ([type? (any/c . -> . boolean?)]
      [represent (any/c . -> . node?)]))
   [yaml? (any/c . -> . boolean?)]
   [yaml-null (parameter/c any/c)]
+  [yaml-null? (any/c . -> . boolean?)]
   [yaml-constructors
    (parameter/c (listof (or/c yaml-constructor? yaml-multi-constructor?)))]
   [yaml-representers (parameter/c (listof yaml-representer?))]
@@ -32,8 +33,11 @@
 
 (define yaml-null (make-parameter 'null))
 
+(define (yaml-null? v)
+  (equal? v (yaml-null)))
+
 (struct yaml-constructor (type? tag construct))
-(struct yaml-multi-constructor (type? tag construct))
+(struct yaml-multi-constructor (type? tag-prefix construct))
 (define yaml-constructors (make-parameter '()))
 
 (struct yaml-representer (type? represent))
@@ -49,7 +53,7 @@
   (remove-duplicates (append constructor-types representer-types)))
 
 (define (yaml? v)
-  (or (equal? v (yaml-null))
+  (or (yaml-null? v)
       (string? v)
       (bytes? v)
       (boolean? v)
@@ -88,7 +92,13 @@
     (check-false (yaml? 'yaml?))
     (check-false (yaml? #(1 2 3)))
     (parameterize ([yaml-representers (list vector-representer)])
-      (check-true (yaml? #(1 2 3))))))
+      (check-true (yaml? #(1 2 3)))))
+
+  (test-case "yaml-null?"
+    (check-true (yaml-null? (yaml-null)))
+    (check-false (yaml-null? 'foo))
+    (parameterize ([yaml-null 'foo])
+      (check-true (yaml-null? 'foo)))))
 
 (define-generics yaml-struct
   (gen->yaml yaml-struct)

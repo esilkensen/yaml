@@ -22,8 +22,6 @@
    ((string?) ((instanceof/c resolver+c%)) . ->* . (listof yaml?))]
   [construct-all
    (() (input-port? (instanceof/c resolver+c%)) . ->* . (listof yaml?))]
-  #;[construct
-   (() (input-port? (instanceof/c resolver+c%)) . ->* . (or/c yaml? #f))]
   [constructor% constructor+c%]))
 
 (define constructor+c%
@@ -37,8 +35,8 @@
    [construct-scalar (node? . ->m . string?)]
    [construct-sequence (node? . ->m . (listof yaml?))]
    [construct-mapping (node? . ->m . (hash/c yaml? yaml?))]
-   [add (string? (node? . -> . yaml?) . ->m . void?)]
-   [add-multi (string? (string? node? . -> . yaml?) . ->m . void?)]))
+   [add (yaml-constructor? . ->m . void?)]
+   [add-multi (yaml-multi-constructor? . ->m . void?)]))
 
 (define constructor-error (make-error 'constructor))
 
@@ -49,10 +47,6 @@
 (define (construct-string string [resolver (new resolver%)])
   (with-input-from-string string
     (λ () (construct-all (current-input-port) resolver))))
-
-#;(define (construct [in (current-input-port)] [resolver (new resolver%)])
-  (define constructor (new constructor% [in in] [resolver resolver]))
-  (send constructor get-single-data))
 
 (define (construct-all [in (current-input-port)] [resolver (new resolver%)])
   (define constructor (new constructor% [in in] [resolver resolver]))
@@ -448,29 +442,39 @@
              (node-start node))))
         (apply make-struct (map (λ (f) (hash-ref state f)) fields))))
     
-    (define/public (add tag constructor)
-      (hash-set! yaml-constructors tag constructor))
+    (define/public (add constructor)
+      (define tag (yaml-constructor-tag constructor))
+      (define construct (yaml-constructor-construct constructor))
+      (add-constructor tag construct))
+
+    (define (add-constructor tag construct)
+      (hash-set! yaml-constructors tag construct))
     
-    (define/public (add-multi tag-prefix multi-constructor)
-      (hash-set! yaml-multi-constructors tag-prefix multi-constructor))
+    (define/public (add-multi multi-constructor)
+      (define tag-prefix (yaml-multi-constructor-tag-prefix multi-constructor))
+      (define construct (yaml-multi-constructor-construct multi-constructor))
+      (add-multi-constructor tag-prefix construct))
+
+    (define (add-multi-constructor tag-prefix construct)
+      (hash-set! yaml-multi-constructors tag-prefix construct))
     
-    (add "tag:yaml.org,2002:null" construct-yaml-null)
-    (add "tag:yaml.org,2002:bool" construct-yaml-bool)
-    (add "tag:yaml.org,2002:int" construct-yaml-int)
-    (add "tag:yaml.org,2002:float" construct-yaml-float)
-    (add "tag:yaml.org,2002:binary" construct-yaml-binary)
-    (add "tag:yaml.org,2002:timestamp" construct-yaml-timestamp)
-    (add "tag:yaml.org,2002:omap" construct-yaml-omap)
-    (add "tag:yaml.org,2002:pairs" construct-yaml-pairs)
-    (add "tag:yaml.org,2002:set" construct-yaml-set)
-    (add "tag:yaml.org,2002:str" construct-yaml-str)
-    (add "tag:yaml.org,2002:seq" construct-yaml-seq)
-    (add "tag:yaml.org,2002:map" construct-yaml-map)
-    (add "tag:yaml.org,2002:pair" construct-yaml-pair)
+    (add-constructor "tag:yaml.org,2002:null" construct-yaml-null)
+    (add-constructor "tag:yaml.org,2002:bool" construct-yaml-bool)
+    (add-constructor "tag:yaml.org,2002:int" construct-yaml-int)
+    (add-constructor "tag:yaml.org,2002:float" construct-yaml-float)
+    (add-constructor "tag:yaml.org,2002:binary" construct-yaml-binary)
+    (add-constructor "tag:yaml.org,2002:timestamp" construct-yaml-timestamp)
+    (add-constructor "tag:yaml.org,2002:omap" construct-yaml-omap)
+    (add-constructor "tag:yaml.org,2002:pairs" construct-yaml-pairs)
+    (add-constructor "tag:yaml.org,2002:set" construct-yaml-set)
+    (add-constructor "tag:yaml.org,2002:str" construct-yaml-str)
+    (add-constructor "tag:yaml.org,2002:seq" construct-yaml-seq)
+    (add-constructor "tag:yaml.org,2002:map" construct-yaml-map)
+    (add-constructor "tag:yaml.org,2002:pair" construct-yaml-pair)
     ;; TODO: Allow this to be turned on/off with a keyword?
-    (add #f construct-undefined)
+    (add-constructor #f construct-undefined)
     
-    (add-multi "tag:yaml.org,2002:struct:" construct-yaml-struct)))
+    (add-multi-constructor "tag:yaml.org,2002:struct:" construct-yaml-struct)))
 
 (define (make-checked-string->number node)
   (λ (s [radix 10])

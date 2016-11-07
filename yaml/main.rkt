@@ -21,6 +21,7 @@
  (recontract-out
   yaml?
   yaml-struct?
+  yaml-null?
   yaml-null
   yaml-constructors
   yaml-representers)
@@ -155,12 +156,8 @@
 (define (add-constructors! constructor constructors)
   (for ([c constructors])
     (if (yaml-constructor? c)
-        (let ([tag (yaml-constructor-tag c)]
-              [construct (yaml-constructor-construct c)])
-          (send constructor add tag construct))
-        (let ([tag (yaml-multi-constructor-tag c)]
-              [construct (yaml-multi-constructor-construct c)])
-          (send constructor add-multi tag construct)))))
+        (send constructor add c)
+        (send constructor add-multi c))))
 
 (define (string->yaml str)
   (with-input-from-string str read-yaml))
@@ -235,10 +232,8 @@
          [sort-mapping mapping-less-than?]
          [sort-mapping-key mapping-extract-key]))
   (parameterize ([current-representer representer])
-    (for ([cr (yaml-representers)])
-      (let ([type? (yaml-representer-type? cr)]
-            [represent (yaml-representer-represent cr)])
-        (send representer add type? represent)))
+    (for ([r (yaml-representers)])
+      (send representer add r))
     (send serializer open)
     (for ([data documents])
       (send representer represent data))
