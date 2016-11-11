@@ -20,7 +20,6 @@
  yaml-representer?
  (recontract-out
   yaml?
-  yaml-struct?
   yaml-null?
   yaml-null
   yaml-constructors
@@ -382,23 +381,6 @@
         #:sort-mapping string<?
         #:sort-mapping-key car)
        (file->string check-file))))
-
-  (test-case "yaml-struct"
-    (yaml-struct player (name hr avg) #:transparent)
-    (define p1 (player "Mark McGwire" 65 0.278))
-    (check-equal? (string->yaml (yaml->string p1)) p1)
-
-    (yaml-struct opaque-player (name hr avg))
-    (define p2 (opaque-player "Sammy Sosa" 63 0.288))
-    (define p3
-      (string->yaml
-       "!!struct:opaque-player {name: Sammy Sosa, hr: 63, avg: 0.288}"))
-    (check-equal? (opaque-player-name p3) (opaque-player-name p2))
-    (check-equal? (opaque-player-hr p3) (opaque-player-hr p2))
-    (check-equal? (opaque-player-avg p3) (opaque-player-avg p2))
-    (check-exn
-     #rx"not a transparent struct"
-     (λ () (yaml->string p2))))
 
   (test-case "vectors"
     (define (construct-vector node)

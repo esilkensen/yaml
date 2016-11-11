@@ -67,7 +67,7 @@
            (append! object-keeper (list data)))
          (let loop ([rs yaml-representers])
            (if (null? rs)
-               (scalar-node #f #f #f data #f)
+               (represent-str (format "~s" data))
                (if ((yaml-representer-type? (car rs)) data)
                    ((yaml-representer-represent (car rs)) data)
                    (loop (cdr rs))))))))
@@ -129,7 +129,7 @@
           (eq? 'flow style)))
     
     (define (ignore-aliases? data)
-      (or (equal? (yaml-null) data)
+      (or (yaml-null? data)
           (boolean? data)
           (string? data)
           (number? data)))
@@ -165,6 +165,10 @@
     
     (define (represent-list data)
       (represent-sequence "tag:yaml.org,2002:seq" data))
+
+    (define (represent-pair data)
+      (let ([value (list (car data) (cdr data))])
+        (represent-sequence "tag:yaml.org,2002:racket/pair" value)))
     
     (define (represent-hash data)
       (represent-mapping "tag:yaml.org,2002:map" data))
@@ -188,34 +192,22 @@
               (set! value (format "~a.~a" value microsecond))))
           (represent-scalar "tag:yaml.org,2002:timestamp" value))))
     
-    (define (represent-pair data)
-      (let ([value (list (car data) (cdr data))])
-        (represent-sequence "tag:yaml.org,2002:pair" value)))
-    
-    (define (represent-struct data)
-      (define-values (struct-type skipped?)
-        (struct-info data))
-      (define-values (name a b c d e f g)
-        (if skipped?
-            (representer-error
-             (format "~a not a transparent struct" (pretty-format data)))
-            (struct-type-info struct-type)))
-      (represent-mapping
-       (format "tag:yaml.org,2002:struct:~a" name)
-       (make-hash (gen->yaml data))))
-    
     (define/public (add representer)
       (append! yaml-representers (list representer)))
-    
-    (add (yaml-representer (λ (x) (equal? x (yaml-null))) represent-null))
-    (add (yaml-representer string? represent-str))
+
+    ;; Scalar Types
+    (add (yaml-representer yaml-null? represent-null))
     (add (yaml-representer bytes? represent-binary))
     (add (yaml-representer boolean? represent-bool))
+    (add (yaml-representer inexact-real? represent-float))
     (add (yaml-representer integer? represent-int))
-    (add (yaml-representer real? represent-float))
-    (add (yaml-representer list? represent-list))
+    (add (yaml-representer string? represent-str))
+    (add (yaml-representer date? represent-date))
+
+    ;; Collection Types
     (add (yaml-representer hash? represent-hash))
     (add (yaml-representer set? represent-set))
-    (add (yaml-representer date? represent-date))
-    (add (yaml-representer pair? represent-pair))
-    (add (yaml-representer yaml-struct? represent-struct))))
+    (add (yaml-representer list? represent-list))
+    
+    ;; Racket Types
+    (add (yaml-representer pair? represent-pair))))

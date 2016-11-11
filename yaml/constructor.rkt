@@ -407,6 +407,11 @@
     
     (define (construct-yaml-pair node)
       (let ([value (sequence-node-value node)])
+        (unless (= 2 (length value))
+          (constructor-error
+           "while constructing a pair"
+           (format "expected 2 values, but found ~a" (length value))
+           (node-start node)))
         (cons (construct-object (first value))
               (construct-object (second value)))))
     
@@ -416,31 +421,6 @@
        (format "could not determine a constructor for the tag ~a"
                (node-tag node))
        (node-start node)))
-    
-    (define (construct-yaml-struct id node)
-      (unless (hash-has-key? yaml-struct-constructors id)
-        (constructor-error
-         #f
-         (format "unrecognized struct ~a" id)
-         (node-start node)))
-      (match-let ([(cons make-struct (list (cons fields _) ...))
-                   (hash-ref yaml-struct-constructors id)]
-                  [state (construct-mapping node)])
-        (for ([n (mapping-node-value node)])
-          (let ([arg-node (car n)]
-                [arg (scalar-node-value (car n))])
-            (unless (member arg fields)
-              (constructor-error
-               (format "unrecognized field for struct ~a" id)
-               (format "  field: ~a" (pretty-format arg))
-               (node-start arg-node)))))
-        (for ([f fields])
-          (unless (hash-has-key? state f)
-            (constructor-error
-             (format "missing expected field for struct ~a" id)
-             (format "  field: ~a" (pretty-format f))
-             (node-start node))))
-        (apply make-struct (map (λ (f) (hash-ref state f)) fields))))
     
     (define/public (add constructor)
       (define tag (yaml-constructor-tag constructor))
@@ -457,24 +437,28 @@
 
     (define (add-multi-constructor tag-prefix construct)
       (hash-set! yaml-multi-constructors tag-prefix construct))
-    
-    (add-constructor "tag:yaml.org,2002:null" construct-yaml-null)
-    (add-constructor "tag:yaml.org,2002:bool" construct-yaml-bool)
-    (add-constructor "tag:yaml.org,2002:int" construct-yaml-int)
-    (add-constructor "tag:yaml.org,2002:float" construct-yaml-float)
-    (add-constructor "tag:yaml.org,2002:binary" construct-yaml-binary)
-    (add-constructor "tag:yaml.org,2002:timestamp" construct-yaml-timestamp)
+
+    ;; Collection Types
+    (add-constructor "tag:yaml.org,2002:map" construct-yaml-map)
     (add-constructor "tag:yaml.org,2002:omap" construct-yaml-omap)
     (add-constructor "tag:yaml.org,2002:pairs" construct-yaml-pairs)
     (add-constructor "tag:yaml.org,2002:set" construct-yaml-set)
-    (add-constructor "tag:yaml.org,2002:str" construct-yaml-str)
     (add-constructor "tag:yaml.org,2002:seq" construct-yaml-seq)
-    (add-constructor "tag:yaml.org,2002:map" construct-yaml-map)
-    (add-constructor "tag:yaml.org,2002:pair" construct-yaml-pair)
-    ;; TODO: Allow this to be turned on/off with a keyword?
-    (add-constructor #f construct-undefined)
+
+    ;; Scalar Types
+    (add-constructor "tag:yaml.org,2002:binary" construct-yaml-binary)
+    (add-constructor "tag:yaml.org,2002:bool" construct-yaml-bool)
+    (add-constructor "tag:yaml.org,2002:float" construct-yaml-float)
+    (add-constructor "tag:yaml.org,2002:int" construct-yaml-int)
+    (add-constructor "tag:yaml.org,2002:null" construct-yaml-null)
+    (add-constructor "tag:yaml.org,2002:str" construct-yaml-str)
+    (add-constructor "tag:yaml.org,2002:timestamp" construct-yaml-timestamp)
+
+    ;; Racket Types
+    (add-constructor "tag:yaml.org,2002:racket/pair" construct-yaml-pair)
     
-    (add-multi-constructor "tag:yaml.org,2002:struct:" construct-yaml-struct)))
+    ;; TODO: Allow this to be turned on/off with a keyword?
+    (add-constructor #f construct-undefined)))
 
 (define (make-checked-string->number node)
   (λ (s [radix 10])
@@ -541,25 +525,4 @@
   (test-case "construct-undefined"
     (check-exn
      #rx"could not determine a constructor for the tag"
-     (λ () (construct-string "!!foo bar"))))
-
-  (test-case "construct-yaml-struct"
-    (yaml-struct player (avg hr name))
-    
-    (define unrecognized-field
-      "!!struct:player {avg: 0.278, hr: 65, name: Mark McGwire, obp: 0.470}")
-    (check-exn
-     #rx"unrecognized field for struct"
-     (λ () (construct-string unrecognized-field)))
-    
-    (define missing-field
-      "!!struct:player {avg: 0.278, hr: 65}")
-    (check-exn
-     #rx"missing expected field for struct"
-     (λ () (construct-string missing-field)))
-    
-    (define missing-struct
-      "!!struct:baseball-player {avg: 0.278, hr: 65, name: Mark McGwire}")
-    (check-exn
-     #rx"unrecognized struct"
-     (λ () (construct-string missing-struct)))))
+     (λ () (construct-string "!!foo bar")))))
