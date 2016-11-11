@@ -17,18 +17,32 @@
  constructor+c%
  (contract-out
   [construct-file
-   ((path-string?) ((instanceof/c resolver+c%)) . ->* . (listof yaml?))]
+   ((path-string?)
+    (#:resolver (instanceof/c resolver+c%)
+     #:allow-undefined? boolean?)
+    . ->* .
+    (listof yaml?))]
   [construct-string
-   ((string?) ((instanceof/c resolver+c%)) . ->* . (listof yaml?))]
+   ((string?)
+    (#:resolver (instanceof/c resolver+c%)
+     #:allow-undefined? boolean?)
+    . ->* .
+    (listof yaml?))]
   [construct-all
-   (() (input-port? (instanceof/c resolver+c%)) . ->* . (listof yaml?))]
+   (()
+    (input-port?
+     #:resolver (instanceof/c resolver+c%)
+     #:allow-undefined? boolean?)
+    . ->* .
+    (listof yaml?))]
   [constructor% constructor+c%]))
 
 (define constructor+c%
   (class/c
    (init-field
     [in input-port?]
-    [resolver (instanceof/c resolver+c%)])
+    [resolver (instanceof/c resolver+c%)]
+    [allow-undefined? boolean?])
    [check-data? (->m boolean?)]
    [get-data (->m (or/c yaml? void?))]
    [get-single-data (->m (or/c yaml? #f))]
@@ -40,16 +54,29 @@
 
 (define constructor-error (make-error 'constructor))
 
-(define (construct-file filename [resolver (new resolver%)])
+(define (construct-file filename
+                        #:resolver [resolver (new resolver%)]
+                        #:allow-undefined? [allow-undefined? #f])
   (with-input-from-file filename
-    (λ () (construct-all (current-input-port) resolver))))
+    (λ () (construct-all (current-input-port)
+                         #:resolver resolver
+                         #:allow-undefined? allow-undefined?))))
 
-(define (construct-string string [resolver (new resolver%)])
+(define (construct-string string
+                          #:resolver [resolver (new resolver%)]
+                          #:allow-undefined? [allow-undefined? #f])
   (with-input-from-string string
-    (λ () (construct-all (current-input-port) resolver))))
+    (λ () (construct-all (current-input-port)
+                         #:resolver resolver
+                         #:allow-undefined? allow-undefined?))))
 
-(define (construct-all [in (current-input-port)] [resolver (new resolver%)])
-  (define constructor (new constructor% [in in] [resolver resolver]))
+(define (construct-all [in (current-input-port)]
+                       #:resolver [resolver (new resolver%)]
+                       #:allow-undefined? [allow-undefined? #f])
+  (define constructor (new constructor%
+                           [in in]
+                           [resolver resolver]
+                           [allow-undefined? allow-undefined?]))
   (let loop ([data '()])
     (if (send constructor check-data?)
         (loop (cons (send constructor get-data) data))
@@ -59,7 +86,8 @@
   (class object%
     (init-field
      [in (current-input-port)]
-     [resolver (new resolver%)])
+     [resolver (new resolver%)]
+     [allow-undefined? #f])
     
     (super-new)
     
@@ -100,8 +128,6 @@
             (let ([tag (node-tag node)]
                   [break #f])
               (cond
-                [(hash-has-key? yaml-multi-constructors tag)
-                 (set! constructor (hash-ref yaml-multi-constructors tag))]
                 [(hash-has-key? yaml-constructors tag)
                  (set! constructor (hash-ref yaml-constructors tag))]
                 [else
@@ -116,22 +142,7 @@
                         (set! break #t)]
                        [else (loop (cdr ts))])))
                  (unless break
-                   (cond
-                     [(hash-has-key? yaml-multi-constructors #f)
-                      (set! tag-suffix tag)
-                      (set! constructor (hash-ref yaml-multi-constructors #f))]
-                     [(hash-has-key? yaml-constructors #f)
-                      (set! constructor (hash-ref yaml-constructors #f))]
-                     ;; Undefined constructor; use node kind:
-                     [(scalar-node? node)
-                      (set! constructor
-                            (λ (node) (construct-scalar node)))]
-                     [(sequence-node? node)
-                      (set! constructor
-                            (λ (node) (construct-sequence node)))]
-                     [(mapping-node? node)
-                      (set! constructor
-                            (λ (node) (construct-mapping node)))]))]))
+                   (set! constructor construct-undefined))]))
             (let ([data (if (not tag-suffix)
                             (constructor node)
                             (constructor tag-suffix node))])
@@ -187,9 +198,12 @@
                                   (constructor-error
                                    "while constructing a mapping"
                                    (format (string-append
-                                            "expected a mapping for merging,"
-                                            "but found ~a")
-                                           (node->string subnode))))
+                                            "expected a mapping for merging, "
+                                            "but found a ~a")
+                                           (if (sequence-node? subnode)
+                                               "sequence"
+                                               "scalar"))
+                                   (node-start subnode)))
                                 (flatten-mapping! subnode)
                                 (append! submerge (mapping-node-value subnode)))
                               (for ([value (reverse submerge)])
@@ -198,9 +212,10 @@
                             (constructor-error
                              "while constructing a mapping"
                              (format (string-append
-                                      "expected a mapping or list of mappings"
-                                      "for merging, but found ~a")
-                                     (node->string node)))])
+                                      "expected a mapping or list of mappings "
+                                      "for merging, but found a ~s")
+                                     (scalar-node-value value-node))
+                             (node-start value-node))])
                      (set-mapping-node-value! node value)]
                     [(equal? "tag:yaml.org,2002:value" (node-tag key-node))
                      (set-node-tag! key-node "tag:yaml.org,2002:str")
@@ -416,11 +431,14 @@
               (construct-object (second value)))))
     
     (define (construct-undefined node)
-      (constructor-error
-       #f
-       (format "could not determine a constructor for the tag ~a"
-               (node-tag node))
-       (node-start node)))
+      (unless allow-undefined?
+        (define message "could not determine a constructor for the tag ~a")
+        (constructor-error
+         #f (format message (node-tag node)) (node-start node)))
+      (cond
+        [(mapping-node? node) (construct-mapping node)]
+        [(sequence-node? node) (construct-sequence node)]
+        [else (construct-scalar node)]))
     
     (define/public (add constructor)
       (define tag (yaml-constructor-tag constructor))
@@ -455,10 +473,7 @@
     (add-constructor "tag:yaml.org,2002:timestamp" construct-yaml-timestamp)
 
     ;; Racket Types
-    (add-constructor "tag:yaml.org,2002:racket/pair" construct-yaml-pair)
-    
-    ;; TODO: Allow this to be turned on/off with a keyword?
-    (add-constructor #f construct-undefined)))
+    (add-constructor "tag:yaml.org,2002:racket/pair" construct-yaml-pair)))
 
 (define (make-checked-string->number node)
   (λ (s [radix 10])
@@ -507,6 +522,14 @@
      #rx"found a duplicate key"
      (λ () (construct-string "!!omap [a: b, a: c]"))))
 
+  (test-case "construct-yaml-pair"
+    (check-exn
+     #rx"expected 2 values, but found 1"
+     (λ () (construct-string "!!racket/pair [foo]")))
+    (check-exn
+     #rx"expected 2 values, but found 3"
+     (λ () (construct-string "!!racket/pair [foo, bar, baz]"))))
+
   (test-case "construct-yaml-str"
     (check-exn
      #rx"expected a scalar node"
@@ -520,9 +543,27 @@
   (test-case "construct-yaml-map"
     (check-exn
      #rx"expected a mapping node"
-     (λ () (construct-string "!!map foo"))))
+     (λ () (construct-string "!!map foo")))
+    (check-exn
+     #rx"expected a mapping or list of mappings for merging"
+     (λ () (construct-string "<< : foo")))
+    (check-exn
+     #rx"expected a mapping for merging"
+     (λ () (construct-string "<< : [foo]")))
+    (check-exn
+     #rx"expected a mapping for merging"
+     (λ () (construct-string "<< : [[foo]]"))))
 
   (test-case "construct-undefined"
     (check-exn
      #rx"could not determine a constructor for the tag"
-     (λ () (construct-string "!!foo bar")))))
+     (λ () (construct-string "!foo bar" #:allow-undefined? #f)))
+    (check-equal?
+     (construct-string "!foo bar" #:allow-undefined? #t)
+     '("bar"))
+    (check-equal?
+     (construct-string "!foo [bar]" #:allow-undefined? #t)
+     '(("bar")))
+    (check-equal?
+     (construct-string "!foo {bar: baz}" #:allow-undefined? #t)
+     `(,(make-hash '(("bar" . "baz")))))))

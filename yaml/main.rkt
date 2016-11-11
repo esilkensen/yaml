@@ -31,18 +31,26 @@
   [represent-scalar (string? string? . -> . node?)]
   [represent-sequence (string? list? . -> . node?)]
   [represent-mapping (string? hash? . -> . node?)]
-  [read-yaml (() (input-port?) . ->* . yaml?)]
-  [read-yaml* (() (input-port?) . ->* . (listof yaml?))]
-  [string->yaml (string? . -> . yaml?)]
-  [string->yaml* (string? . -> . (listof yaml?))]
+  [read-yaml
+   (() (input-port? #:allow-undefined? boolean?) . ->* . yaml?)]
+  [read-yaml*
+   (() (input-port? #:allow-undefined? boolean?) . ->* . (listof yaml?))]
+  [string->yaml
+   ((string?) (#:allow-undefined? boolean?) . ->* . yaml?)]
+  [string->yaml*
+   ((string?) (#:allow-undefined? boolean?) . ->* . (listof yaml?))]
   [file->yaml
    ((path-string?)
-    (#:mode (or/c 'binary 'text))
-    . ->* . yaml?)]
+    (#:allow-undefined? boolean?
+     #:mode (or/c 'binary 'text))
+    . ->* .
+    yaml?)]
   [file->yaml*
    ((path-string?)
-    (#:mode (or/c 'binary 'text))
-    . ->* . (listof yaml?))]
+    (#:allow-undefined? boolean?
+     #:mode (or/c 'binary 'text))
+    . ->* .
+    (listof yaml?))]
   [write-yaml
    ((yaml?)
     (output-port?
@@ -137,14 +145,18 @@
 (define (construct-mapping node)
   (send (current-constructor) construct-mapping node))
 
-(define (read-yaml [in (current-input-port)])
-  (define constructor (new constructor% [in in]))
+(define (read-yaml [in (current-input-port)]
+                   #:allow-undefined? [allow-undefined? #f])
+  (define constructor
+    (new constructor% [in in] [allow-undefined? allow-undefined?]))
   (parameterize ([current-constructor constructor])
     (add-constructors! constructor (yaml-constructors))
     (send constructor get-single-data)))
 
-(define (read-yaml* [in (current-input-port)])
-  (define constructor (new constructor% [in in]))
+(define (read-yaml* [in (current-input-port)]
+                    #:allow-undefined? [allow-undefined? #f])
+  (define constructor
+    (new constructor% [in in] [allow-undefined? allow-undefined?]))
   (parameterize ([current-constructor constructor])
     (add-constructors! constructor (yaml-constructors))
     (let loop ([data '()])
@@ -158,17 +170,27 @@
         (send constructor add c)
         (send constructor add-multi c))))
 
-(define (string->yaml str)
-  (with-input-from-string str read-yaml))
+(define (string->yaml str #:allow-undefined? [allow-undefined? #f])
+  (with-input-from-string str
+    (λ () (read-yaml #:allow-undefined? allow-undefined?))))
 
-(define (string->yaml* str)
-  (with-input-from-string str read-yaml*))
+(define (string->yaml* str #:allow-undefined? [allow-undefined? #f])
+  (with-input-from-string str
+    (λ () (read-yaml* #:allow-undefined? allow-undefined?))))
 
-(define (file->yaml path #:mode [mode-flag 'binary])
-  (with-input-from-file path read-yaml #:mode mode-flag))
+(define (file->yaml path
+                    #:allow-undefined? [allow-undefined? #f]
+                    #:mode [mode-flag 'binary])
+  (with-input-from-file path
+    (λ () (read-yaml #:allow-undefined? allow-undefined?))
+    #:mode mode-flag))
 
-(define (file->yaml* path #:mode [mode-flag 'binary])
-  (with-input-from-file path read-yaml* #:mode mode-flag))
+(define (file->yaml* path
+                     #:allow-undefined? [allow-undefined? #f]
+                     #:mode [mode-flag 'binary])
+  (with-input-from-file path
+    (λ () (read-yaml* #:allow-undefined? allow-undefined?))
+    #:mode mode-flag))
 
 ;; Writing YAML
 
@@ -399,4 +421,36 @@
        "!vector [1, [2], 3]\n")
       (check-equal?
        (string->yaml "!vector [1, [2], 3]\n")
-       #(1 (2) 3)))))
+       #(1 (2) 3))))
+
+  (test-case "multi-constructor"
+    (define tag-prefix "tag:yaml.org,2002:racket/vector:")
+    (define (construct-racket-vector type node)
+      (cond
+        [(equal? "mutable" type)
+         (list->vector (construct-sequence node))]
+        [(equal? "immutable" type)
+         (vector->immutable-vector (list->vector (construct-sequence node)))]
+        [else (error (format "unexpected type: ~a" type))]))
+    (define racket-vector-constructor
+      (yaml-multi-constructor vector? tag-prefix construct-racket-vector))
+    (define (represent-racket-vector vec)
+      (define type (if (immutable? vec) "immutable" "mutable"))
+      (define tag (string-append tag-prefix type))
+      (represent-sequence tag (vector->list vec)))
+    (define racket-vector-representer
+      (yaml-representer vector? represent-racket-vector))
+    (parameterize ([yaml-constructors (list racket-vector-constructor)]
+                   [yaml-representers (list racket-vector-representer)])
+      (check-equal?
+       (yaml->string (vector 1 2 3) #:style 'flow)
+       "!!racket/vector:mutable [1, 2, 3]\n")
+      (check-equal?
+       (yaml->string (vector-immutable 1 2 3) #:style 'flow)
+       "!!racket/vector:immutable [1, 2, 3]\n")
+      (define vec-mut (string->yaml "!!racket/vector:mutable [1, 2, 3]\n"))
+      (define vec-imm (string->yaml "!!racket/vector:immutable [1, 2, 3]\n"))
+      (check-equal? vec-mut #(1 2 3))
+      (check-equal? vec-imm #(1 2 3))
+      (check-false (immutable? vec-mut))
+      (check-true (immutable? vec-imm)))))
