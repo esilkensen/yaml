@@ -1262,7 +1262,7 @@
             [ch (peek)])
         (while (and (char? ch)
                     (or (regexp-match? #"[0-9A-Za-z]" (format "~a" ch))
-                        (string-index "-/;?:@&=+$,_.!~*'()[]%" ch)))
+                        (string-index "-/;?:@&=+$,_.!~*'()[]%^" ch)))
           (cond
             [(equal? #\% ch)
              (set! chunks (append chunks (string->list (prefix len))))

@@ -54,11 +54,11 @@
   [write-yaml
    ((yaml?)
     (output-port?
-     #:canonical boolean?
+     #:canonical? boolean?
      #:indent exact-positive-integer?
      #:width exact-positive-integer?
-     #:explicit-start boolean?
-     #:explicit-end boolean?
+     #:explicit-start? boolean?
+     #:explicit-end? boolean?
      #:scalar-style (or/c #\" #\' #\| #\> 'plain)
      #:style (or/c 'block 'flow 'best)
      #:sort-mapping (or/c (any/c any/c . -> . any/c) #f)
@@ -67,11 +67,11 @@
   [write-yaml*
    (((listof yaml?))
     (output-port?
-     #:canonical boolean?
+     #:canonical? boolean?
      #:indent exact-positive-integer?
      #:width exact-positive-integer?
-     #:explicit-start boolean?
-     #:explicit-end boolean?
+     #:explicit-start? boolean?
+     #:explicit-end? boolean?
      #:scalar-style (or/c #\" #\' #\| #\> 'plain)
      #:style (or/c 'block 'flow 'best)
      #:sort-mapping (or/c (any/c any/c . -> . any/c) #f)
@@ -79,11 +79,11 @@
     . ->* . void?)]
   [yaml->string
    ((yaml?)
-    (#:canonical boolean?
+    (#:canonical? boolean?
      #:indent exact-positive-integer?
      #:width exact-positive-integer?
-     #:explicit-start boolean?
-     #:explicit-end boolean?
+     #:explicit-start? boolean?
+     #:explicit-end? boolean?
      #:scalar-style (or/c #\" #\' #\| #\> 'plain)
      #:style (or/c 'block 'flow 'best)
      #:sort-mapping (or/c (any/c any/c . -> . any/c) #f)
@@ -91,11 +91,11 @@
     . ->* . string?)]
   [yaml*->string
    (((listof yaml?))
-    (#:canonical boolean?
+    (#:canonical? boolean?
      #:indent exact-positive-integer?
      #:width exact-positive-integer?
-     #:explicit-start boolean?
-     #:explicit-end boolean?
+     #:explicit-start? boolean?
+     #:explicit-end? boolean?
      #:scalar-style (or/c #\" #\' #\| #\> 'plain)
      #:style (or/c 'block 'flow 'best)
      #:sort-mapping (or/c (any/c any/c . -> . any/c) #f)
@@ -106,11 +106,11 @@
     (#:mode (or/c 'binary 'text)
      #:exists (or/c 'error 'append 'update 'replace
                     'truncate 'truncate/replace)
-     #:canonical boolean?
+     #:canonical? boolean?
      #:indent exact-positive-integer?
      #:width exact-positive-integer?
-     #:explicit-start boolean?
-     #:explicit-end boolean?
+     #:explicit-start? boolean?
+     #:explicit-end? boolean?
      #:scalar-style (or/c #\" #\' #\| #\> 'plain)
      #:style (or/c 'block 'flow 'best)
      #:sort-mapping (or/c (any/c any/c . -> . any/c) #f)
@@ -121,11 +121,11 @@
     (#:mode (or/c 'binary 'text)
      #:exists (or/c 'error 'append 'update 'replace
                     'truncate 'truncate/replace)
-     #:canonical boolean?
+     #:canonical? boolean?
      #:indent exact-positive-integer?
      #:width exact-positive-integer?
-     #:explicit-start boolean?
-     #:explicit-end boolean?
+     #:explicit-start? boolean?
+     #:explicit-end? boolean?
      #:scalar-style (or/c #\" #\' #\| #\> 'plain)
      #:style (or/c 'block 'flow 'best)
      #:sort-mapping (or/c (any/c any/c . -> . any/c) #f)
@@ -172,24 +172,24 @@
 
 (define (string->yaml str #:allow-undefined? [allow-undefined? #f])
   (with-input-from-string str
-    (λ () (read-yaml #:allow-undefined? allow-undefined?))))
+    (thunk (read-yaml #:allow-undefined? allow-undefined?))))
 
 (define (string->yaml* str #:allow-undefined? [allow-undefined? #f])
   (with-input-from-string str
-    (λ () (read-yaml* #:allow-undefined? allow-undefined?))))
+    (thunk (read-yaml* #:allow-undefined? allow-undefined?))))
 
 (define (file->yaml path
                     #:allow-undefined? [allow-undefined? #f]
                     #:mode [mode-flag 'binary])
   (with-input-from-file path
-    (λ () (read-yaml #:allow-undefined? allow-undefined?))
+    (thunk (read-yaml #:allow-undefined? allow-undefined?))
     #:mode mode-flag))
 
 (define (file->yaml* path
                      #:allow-undefined? [allow-undefined? #f]
                      #:mode [mode-flag 'binary])
   (with-input-from-file path
-    (λ () (read-yaml* #:allow-undefined? allow-undefined?))
+    (thunk (read-yaml* #:allow-undefined? allow-undefined?))
     #:mode mode-flag))
 
 ;; Writing YAML
@@ -207,32 +207,32 @@
   (send (current-representer) represent-mapping tag mapping))
 
 (define (write-yaml document [out (current-output-port)]
-                    #:canonical [canonical #f]
+                    #:canonical? [canonical? #f]
                     #:indent [indent 2]
                     #:width [width 80]
-                    #:explicit-start [explicit-start #f]
-                    #:explicit-end [explicit-end #f]
+                    #:explicit-start? [explicit-start? #f]
+                    #:explicit-end? [explicit-end? #f]
                     #:scalar-style [scalar-style 'plain]
                     #:style [style 'best]
                     #:sort-mapping [mapping-less-than? #f]
                     #:sort-mapping-key [mapping-extract-key identity])
   (write-yaml* (list document) out
-               #:canonical canonical
+               #:canonical? canonical?
                #:indent indent
                #:width width
-               #:explicit-start explicit-start
-               #:explicit-end explicit-end
+               #:explicit-start? explicit-start?
+               #:explicit-end? explicit-end?
                #:scalar-style scalar-style
                #:style style
                #:sort-mapping mapping-less-than?
                #:sort-mapping-key mapping-extract-key))
 
 (define (write-yaml* documents [out (current-output-port)]
-                     #:canonical [canonical #f]
+                     #:canonical? [canonical? #f]
                      #:indent [indent 2]
                      #:width [width 80]
-                     #:explicit-start [explicit-start #f]
-                     #:explicit-end [explicit-end #f]
+                     #:explicit-start? [explicit-start? #f]
+                     #:explicit-end? [explicit-end? #f]
                      #:scalar-style [scalar-style 'plain]
                      #:style [style 'best]
                      #:sort-mapping [mapping-less-than? #f]
@@ -240,11 +240,11 @@
   (define serializer
     (new serializer%
          [out out]
-         [canonical canonical]
+         [canonical? canonical?]
          [indent indent]
          [width width]
-         [explicit-start explicit-start]
-         [explicit-end explicit-end]))
+         [explicit-start? explicit-start?]
+         [explicit-end? explicit-end?]))
   (define representer
     (new representer%
          [serializer serializer]
@@ -261,100 +261,98 @@
     (send serializer close)))
 
 (define (yaml->string document
-                      #:canonical [canonical #f]
+                      #:canonical? [canonical? #f]
                       #:indent [indent 2]
                       #:width [width 80]
-                      #:explicit-start [explicit-start #f]
-                      #:explicit-end [explicit-end #f]
+                      #:explicit-start? [explicit-start? #f]
+                      #:explicit-end? [explicit-end? #f]
                       #:scalar-style [scalar-style 'plain]
                       #:style [style 'best]
                       #:sort-mapping [mapping-less-than? #f]
                       #:sort-mapping-key [mapping-extract-key identity])
   (with-output-to-string
-    (λ () (write-yaml document
-                      #:canonical canonical
-                      #:indent indent
-                      #:width width
-                      #:explicit-start explicit-start
-                      #:explicit-end explicit-end
-                      #:scalar-style scalar-style
-                      #:style style
-                      #:sort-mapping mapping-less-than?
-                      #:sort-mapping-key mapping-extract-key))))
-
-(define (yaml*->string documents
-                       #:canonical [canonical #f]
-                       #:indent [indent 2]
-                       #:width [width 80]
-                       #:explicit-start [explicit-start #f]
-                       #:explicit-end [explicit-end #f]
-                       #:scalar-style [scalar-style 'plain]
-                       #:style [style 'best]
-                       #:sort-mapping [mapping-less-than? #f]
-                       #:sort-mapping-key [mapping-extract-key identity])
-  (with-output-to-string
-    (λ () (write-yaml* documents
-                       #:canonical canonical
+    (thunk (write-yaml document
+                       #:canonical? canonical?
                        #:indent indent
                        #:width width
-                       #:explicit-start explicit-start
-                       #:explicit-end explicit-end
+                       #:explicit-start? explicit-start?
+                       #:explicit-end? explicit-end?
                        #:scalar-style scalar-style
                        #:style style
                        #:sort-mapping mapping-less-than?
                        #:sort-mapping-key mapping-extract-key))))
 
+(define (yaml*->string documents
+                       #:canonical? [canonical? #f]
+                       #:indent [indent 2]
+                       #:width [width 80]
+                       #:explicit-start? [explicit-start? #f]
+                       #:explicit-end? [explicit-end? #f]
+                       #:scalar-style [scalar-style 'plain]
+                       #:style [style 'best]
+                       #:sort-mapping [mapping-less-than? #f]
+                       #:sort-mapping-key [mapping-extract-key identity])
+  (with-output-to-string
+    (thunk (write-yaml* documents
+                        #:canonical? canonical?
+                        #:indent indent
+                        #:width width
+                        #:explicit-start? explicit-start?
+                        #:explicit-end? explicit-end?
+                        #:scalar-style scalar-style
+                        #:style style
+                        #:sort-mapping mapping-less-than?
+                        #:sort-mapping-key mapping-extract-key))))
+
 (define (yaml->file document path
                     #:mode [mode-flag 'binary]
                     #:exists [exists-flag 'error]
-                    #:canonical [canonical #f]
+                    #:canonical? [canonical? #f]
                     #:indent [indent 2]
                     #:width [width 80]
-                    #:explicit-start [explicit-start #f]
-                    #:explicit-end [explicit-end #f]
+                    #:explicit-start? [explicit-start? #f]
+                    #:explicit-end? [explicit-end? #f]
                     #:scalar-style [scalar-style 'plain]
                     #:style [style 'best]
                     #:sort-mapping [mapping-less-than? #f]
                     #:sort-mapping-key [mapping-extract-key identity])
-  (with-output-to-file
-    path
-    (λ () (write-yaml document
-                      #:canonical canonical
-                      #:indent indent
-                      #:width width
-                      #:explicit-start explicit-start
-                      #:explicit-end explicit-end
-                      #:scalar-style scalar-style
-                      #:style style
-                      #:sort-mapping mapping-less-than?
-                      #:sort-mapping-key mapping-extract-key))
+  (with-output-to-file path
+    (thunk (write-yaml document
+                       #:canonical? canonical?
+                       #:indent indent
+                       #:width width
+                       #:explicit-start? explicit-start?
+                       #:explicit-end? explicit-end?
+                       #:scalar-style scalar-style
+                       #:style style
+                       #:sort-mapping mapping-less-than?
+                       #:sort-mapping-key mapping-extract-key))
     #:mode mode-flag
     #:exists exists-flag))
 
 (define (yaml*->file documents path
                      #:mode [mode-flag 'binary]
                      #:exists [exists-flag 'error]
-                     #:canonical [canonical #f]
+                     #:canonical? [canonical? #f]
                      #:indent [indent 2]
                      #:width [width 80]
-                     #:explicit-start [explicit-start #f]
-                     #:explicit-end [explicit-end #f]
+                     #:explicit-start? [explicit-start? #f]
+                     #:explicit-end? [explicit-end? #f]
                      #:scalar-style [scalar-style 'plain]
                      #:style [style 'best]
                      #:sort-mapping [mapping-less-than? #f]
                      #:sort-mapping-key [mapping-extract-key identity])
-  (with-output-to-file
-    path
-    (λ () (write-yaml* documents
-                       #:canonical canonical
-                       #:indent indent
-                       #:width width
-                       #:explicit-start explicit-start
-                       #:explicit-end explicit-end
-                       #:scalar-style scalar-style
-                       #:style style
-                       #:sort-mapping mapping-less-than?
-                       #:sort-mapping-key mapping-extract-key))
+  (with-output-to-file path
+    (thunk (write-yaml* documents
+                        #:canonical? canonical?
+                        #:indent indent
+                        #:width width
+                        #:explicit-start? explicit-start?
+                        #:explicit-end? explicit-end?
+                        #:scalar-style scalar-style
+                        #:style style
+                        #:sort-mapping mapping-less-than?
+                        #:sort-mapping-key mapping-extract-key))
     #:mode mode-flag
     #:exists exists-flag))
 

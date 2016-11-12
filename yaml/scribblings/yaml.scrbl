@@ -1,6 +1,6 @@
 #lang scribble/manual
 @(require racket/sandbox racket/runtime-path scribble/eval
-          (for-label (except-in racket load)))
+          (for-label (except-in racket load ...) "../main.rkt"))
 @(define-runtime-path scribblings ".")
 @(define main-path (build-path scribblings "../main.rkt"))
 @(define yaml-evaluator
@@ -18,147 +18,165 @@
 @defmodule[yaml]
 
 This module provides utilities for parsing and emitting data in the YAML
-data serialization format to and from Racket values. See the 
+data serialization format. The implementation is hosted at
+@link["https://github.com/esilkensen/yaml"]{GitHub} and is based on
+@link["http://pyyaml.org"]{PyYAML}. See the
 @link["http://yaml.org"]{YAML web site} for more information about YAML.
-The implementation is ported from @link["http://pyyaml.org"]{PyYAML}.
-
-See the @link["https://github.com/esilkensen/yaml"]{GitHub repository} for
-more information.
-
-@section{Examples}
-
-As a quick introduction, this section shows an example of using the module
-to go from Racket values to YAML and back again.
-
-The @racket[write-yaml] procedure turns a Racket value into YAML output.
-Here it displays a sequence of mappings in @emph{flow style} (by default):
-
-@interaction[#:eval yaml-evaluator
-(write-yaml
- '(#hash(("name" . "Mark McGwire")
-         ("hr" . 65)
-         ("avg" . 0.278))
-   #hash(("name" . "Sammy Sosa")
-         ("hr" . 63)
-         ("avg" . 0.288))))]
-
-The @racket[string->yaml] procedure turns YAML text into a Racket value.
-Here it constructs the same sequence of mappings from above, where this
-time the YAML is in @emph{block style}:
-
-@interaction[#:eval yaml-evaluator
-(string->yaml
- (string-append
-  "- name: Mark McGwire\n"
-  "  hr:   65\n"
-  "  avg:  0.278\n"
-  "- name: Sammy Sosa\n"
-  "  hr:   63\n"
-  "  avg:  0.288\n"))]
-
-The @racket[yaml-struct] macro defines a @racket[struct] that can
-be written to and read from YAML:
-
-@interaction[#:eval yaml-evaluator
-(yaml-struct player (name hr avg) #:transparent)
-(write-yaml (player "Mark McGwire" 65 0.278))
-(string->yaml
- "!!struct:player {hr: 65, avg: 0.278, name: Mark McGwire}")]
 
 @section{YAML Expressions}
 
 @defproc[(yaml? [v any/c]) boolean?]{
 Returns @racket[#t] if @racket[v] is a YAML expression, @racket[#f] otherwise.
 
-This library defines a subset of Racket values that can be represented as
-YAML strings, and this predicate checks for such values.
-A @deftech{YAML expression} is one of:
-@itemize[
-  @item{the value of @racket[(yaml-null)]}
-  @item{@racket[(or/c boolean? string? exact-integer? inexact-real? bytes? date?)]}
-  @item{@racket[(cons/c yaml? yaml?)]}
-  @item{@racket[(listof yaml?)]}
-  @item{@racket[(hash/c yaml? yaml?)]}
-  @item{@racket[(set/c yaml?)]}
-  @item{a @racket[yaml-struct?] whose fields are all @racket[yaml?] expressions}]}
+This module defines a subset of Racket values that can be represented as or
+constructed from YAML strings, and this predicate checks for such values.
+
+The following table shows how the standard YAML tags correspond to values in
+Racket.
+
+@tabular[#:sep @hspace[2] #:row-properties '(bottom-border ())
+(list
+ (list @bold{YAML tag} @bold{Racket type})
+ (list @link["http://yaml.org/type/map.html"]{@tt{!!map}}
+       @racket[(hash/c yaml? yaml?)])
+ (list (list @link["http://yaml.org/type/omap.html"]{@tt{!!omap}}
+             ", "
+             @link["http://yaml.org/type/pairs.html"]{@tt{!!pairs}})
+       @racket[(listof (cons/c yaml? yaml?))])
+ (list @link["http://yaml.org/type/set.html"]{@tt{!!set}}
+       @racket[(set/c yaml?)])
+ (list @link["http://yaml.org/type/seq.html"]{@tt{!!seq}}
+       @racket[(listof yaml?)])
+ (list @link["http://yaml.org/type/binary.html"]{@tt{!!binary}}
+       @racket[bytes?])
+ (list @link["http://yaml.org/type/bool.html"]{@tt{!!bool}}
+       @racket[boolean?])
+ (list @link["http://yaml.org/type/float.html"]{@tt{!!float}}
+       @racket[inexact-real?])
+ (list @link["http://yaml.org/type/int.html"]{@tt{!!int}}
+       @racket[exact-integer?])
+ (list @link["http://yaml.org/type/null.html"]{@tt{!!null}}
+       @racket[yaml-null?])
+ (list @link["http://yaml.org/type/str.html"]{@tt{!!str}}
+       @racket[string?])
+ (list @link["http://yaml.org/type/timestamp.html"]{@tt{!!timestamp}}
+       @racket[date?]))
+]
+
+The Racket-specific tag @tt{!!racket/pair} corresponds to a
+@racket[(cons/c yaml? yaml?)] value, and is also supported.
+Finally,
+application-specific tags can be implemented with the
+@racket[(yaml-representers)] and @racket[(yaml-constructors)] parameters,
+and this predicate takes those into account.
+}
 
 @defparam[yaml-null null any/c]{
-A parameter that determines the Racket value that corresponds to a YAML
-``@tt{null}'' (empty scalar) value. It is @racket['null] by default.}
+A parameter that determines the value that corresponds to a YAML
+``@tt{null}'' (or empty scalar) value. It is @racket['null] by default.}
 
-@defproc[(yaml-struct? [v any/c]) boolean?]{
-Returns @racket[#t] if @racket[v] is an instance of a YAML structure,
-@racket[#f] otherwise.}
+@defproc[(yaml-null? [v any/c]) boolean?]{
+Returns @racket[#t] if @racket[v] is equal to @racket[(yaml-null)], @racket[#f]
+otherwise.
 
-@defform[(yaml-struct id maybe-super (field ...)
-                      struct-option ...)]{
-Creates a new structure that can be used as a YAML expression. This
-macro expands to a call to @racket[struct] that uses @racket[#:methods]
-to register itself with the YAML implementation.
-}
+@examples[#:eval yaml-evaluator
+(yaml-null? 'null)
+(yaml-null? '())
+(parameterize ([yaml-null '()])
+  (yaml-null? '()))]}
 
 @section{Reading YAML}
 
 @defproc[(read-yaml
-           [in input-port? (current-input-port)])
+           [in input-port? (current-input-port)]
+           [#:allow-undefined? allow-undefined? boolean? #f])
          yaml?]{
-Parses the first
-@link["http://www.yaml.org/spec/1.2/spec.html#id2800132"]{YAML document}
-from @racket[in] and returns the corresponding YAML expression in Racket.}
+Parses a @emph{single}
+@link["http://www.yaml.org/spec/1.2/spec.html#id2800132"]{document}
+from @racket[in] and returns a corresponding YAML expression. If the input
+contains more than one document, an @racket[exn:fail:user] exception is raised.
+
+The @racket[#:allow-undefined?] keyword argument controls whether an undefined
+tag should raise an exception (the default behavior), or be interpreted as either
+a scalar, sequence, or mapping value.}
 
 @defproc[(read-yaml*
-           [in input-port? (current-input-port)])
+           [in input-port? (current-input-port)]
+           [#:allow-undefined? allow-undefined? boolean? #f])
          (listof yaml?)]{
 Like @racket[read-yaml], but parses @emph{all}
-@link["http://www.yaml.org/spec/1.2/spec.html#id2800132"]{YAML documents}
-from @racket[in] and returns a list of the corresponding YAML expressions
-in Racket.}
+@link["http://www.yaml.org/spec/1.2/spec.html#id2800132"]{documents}
+from @racket[in] and returns a list of the corresponding YAML expressions.}
 
 @defproc[(string->yaml
-           [str string?])
+           [str string?]
+           [#:allow-undefined? allow-undefined? boolean? #f])
          yaml?]{
 Equivalent to
-@racketblock[(with-input-from-string str read-yaml)]}
+@racketblock[
+(with-input-from-string str
+  (thunk (read-yaml #:allow-undefined? allow-undefined?)))]
+
+@examples[#:eval yaml-evaluator
+(string->yaml "!invoice {id: 1, total: 251.42}")
+(string->yaml "!invoice {id: 1, total: 251.42}"
+              #:allow-undefined? #t)]}
 
 @defproc[(string->yaml*
-           [str string?])
+           [str string?]
+           [#:allow-undefined? allow-undefined? boolean? #f])
          (listof yaml?)]{
 Equivalent to
-@racketblock[(with-input-from-string str read-yaml*)]}
+@racketblock[
+(with-input-from-string str
+  (thunk (read-yaml* #:allow-undefined? allow-undefined?)))]
+
+@examples[#:eval yaml-evaluator
+(string->yaml*
+ (string-append
+  "# Ranking of 1998 home runs\n"
+  "---\n"
+  "- Mark McGwire\n"
+  "- Sammy Sosa\n"
+  "- Ken Griffey\n"
+  "\n"
+  "# Team ranking\n"
+  "---\n"
+  "- Chicago Cubs\n"
+  "- St. Louis Cardinals\n"))]}
 
 @defproc[(file->yaml
            [path path-string?]
+           [#:allow-undefined? allow-undefined? boolean? #f]
            [#:mode mode-flag (or/c 'binary 'text) 'binary])
          yaml?]{
 Equivalent to
-@racketblock[(with-input-from-file path read-yaml #:mode mode-flag)]}
+@racketblock[
+(with-input-from-file path
+  (thunk (read-yaml #:allow-undefined? allow-undefined?))
+  #:mode mode-flag)]}
 
 @defproc[(file->yaml*
            [path path-string?]
+           [#:allow-undefined? allow-undefined? boolean? #f]
            [#:mode mode-flag (or/c 'binary 'text) 'binary])
          (listof yaml?)]{
 Equivalent to
-@racketblock[(with-input-from-file path read-yaml* #:mode mode-flag)]}
+@racketblock[
+(with-input-from-file path
+  (thunk (read-yaml* #:allow-undefined? allow-undefined?))
+  #:mode mode-flag)]}
 
 @section{Writing YAML}
 
 @defproc[(write-yaml
            [document yaml?]
-           [out output-port? (current-output-port)])
-         void?]{
-Equivalent to
-@racketblock[(write-yaml* (list document) out ....)]
-Accepts the same keyword arguments as @racket[write-yaml*]
-(represented above by @racket[....]).}
-
-@defproc[(write-yaml*
-           [documents (listof yaml?)]
            [out output-port? (current-output-port)]
-           [#:canonical canonical boolean? #f]
+           [#:canonical? canonical? boolean? #f]
            [#:indent indent exact-positive-integer? 2]
            [#:width width exact-positive-integer? 80]
-           [#:explicit-start explicit-start boolean? #f]
-           [#:explicit-end explicit-end boolean? #f]
+           [#:explicit-start? explicit-start? boolean? #f]
+           [#:explicit-end? explicit-end? boolean? #f]
            [#:scalar-style scalar-style (or/c #\" #\' #\| #\> 'plain) 'plain]
            [#:style style (or/c 'block 'flow 'best) 'best]
            [#:sort-mapping mapping-less-than?
@@ -166,10 +184,8 @@ Accepts the same keyword arguments as @racket[write-yaml*]
            [#:sort-mapping-key mapping-extract-key
             (any/c . -> . any/c) identity])
          void?]{
-Writes a sequence of Racket YAML expressions to @racket[out] as YAML
-text formatted with the keyword arguments. See the
-@link["http://www.yaml.org/spec/1.2/spec.html"]{YAML specification}
-for more information on style.
+Writes a YAML expression to @racket[out] as text formatted with the keyword
+arguments.
 
 The @racket[#:sort-mapping] argument @racket[mapping-less-than?] can be used
 to @racket[sort] the elements of mappings. When it is a function, for any
@@ -177,60 +193,145 @@ to @racket[sort] the elements of mappings. When it is a function, for any
 @racketblock[
 (sort (hash->list mapping)
       mapping-less-than?
-      #:key mapping-extract-key)]}
+      #:key mapping-extract-key)
+]
+
+@examples[#:eval yaml-evaluator
+(write-yaml 42 #:canonical? #t)
+(write-yaml
+ '#hash(("Apple" . 3.99) ("Orange" . 2.15) ("Cherry" . 4.12))
+ #:style 'block
+ #:sort-mapping string<?
+ #:sort-mapping-key car)
+]
+}
+
+@defproc[(write-yaml*
+           [documents (listof yaml?)]
+           [out output-port? (current-output-port)]
+           [#:canonical? canonical? boolean? #f]
+           [#:indent indent exact-positive-integer? 2]
+           [#:width width exact-positive-integer? 80]
+           [#:explicit-start? explicit-start? boolean? #f]
+           [#:explicit-end? explicit-end? boolean? #f]
+           [#:scalar-style scalar-style (or/c #\" #\' #\| #\> 'plain) 'plain]
+           [#:style style (or/c 'block 'flow 'best) 'best]
+           [#:sort-mapping mapping-less-than?
+            (or/c (any/c any/c . -> . any/c) #f) #f]
+           [#:sort-mapping-key mapping-extract-key
+            (any/c . -> . any/c) identity])
+         void?]{
+Like @racket[write-yaml], but writes a @emph{sequence} of YAML expressions to
+@racket[out] as text formatted with the same keyword arguments.
+}
 
 @defproc[(yaml->string
-           [document yaml?])
+           [document yaml?]
+           [#:canonical? canonical? boolean? #f]
+           [#:indent indent exact-positive-integer? 2]
+           [#:width width exact-positive-integer? 80]
+           [#:explicit-start? explicit-start? boolean? #f]
+           [#:explicit-end? explicit-end? boolean? #f]
+           [#:scalar-style scalar-style (or/c #\" #\' #\| #\> 'plain) 'plain]
+           [#:style style (or/c 'block 'flow 'best) 'best]
+           [#:sort-mapping mapping-less-than?
+            (or/c (any/c any/c . -> . any/c) #f) #f]
+           [#:sort-mapping-key mapping-extract-key
+            (any/c . -> . any/c) identity])
          string?]{
-Equivalent to
-@racketblock[
-(with-output-to-string
-  (λ () (write-yaml document ....)))]
-Accepts the same keyword arguments as @racket[write-yaml]
-(represented above by @racket[....]).}
+A wrapper around @racket[write-yaml] using @racket[with-output-to-string].
+}
 
 @defproc[(yaml*->string
-           [documents (listof yaml?)])
+           [documents (listof yaml?)]
+           [#:canonical? canonical? boolean? #f]
+           [#:indent indent exact-positive-integer? 2]
+           [#:width width exact-positive-integer? 80]
+           [#:explicit-start? explicit-start? boolean? #f]
+           [#:explicit-end? explicit-end? boolean? #f]
+           [#:scalar-style scalar-style (or/c #\" #\' #\| #\> 'plain) 'plain]
+           [#:style style (or/c 'block 'flow 'best) 'best]
+           [#:sort-mapping mapping-less-than?
+            (or/c (any/c any/c . -> . any/c) #f) #f]
+           [#:sort-mapping-key mapping-extract-key
+            (any/c . -> . any/c) identity])
          string?]{
-Equivalent to
-@racketblock[
-(with-output-to-string
-  (λ () (write-yaml* documents ....)))]
-Accepts the same keyword arguments as @racket[write-yaml*]
-(represented above by @racket[....]).}
+A wrapper around @racket[write-yaml*] using @racket[with-output-to-string].
+}
 
 @defproc[(yaml->file
            [document yaml?]
            [path path-string?]
+           [#:canonical? canonical? boolean? #f]
+           [#:indent indent exact-positive-integer? 2]
+           [#:width width exact-positive-integer? 80]
+           [#:explicit-start? explicit-start? boolean? #f]
+           [#:explicit-end? explicit-end? boolean? #f]
+           [#:scalar-style scalar-style (or/c #\" #\' #\| #\> 'plain) 'plain]
+           [#:style style (or/c 'block 'flow 'best) 'best]
+           [#:sort-mapping mapping-less-than?
+            (or/c (any/c any/c . -> . any/c) #f) #f]
+           [#:sort-mapping-key mapping-extract-key
+            (any/c . -> . any/c) identity]
            [#:mode mode-flag (or/c 'binary 'text) 'binary]
            [#:exists exists-flag (or/c 'error 'append 'update
                                        'replace 'truncate 'truncate/replace)
                      'error])
          string?]{
-Equivalent to
-@racketblock[
-(with-output-to-file
-  path
-  (λ () (write-yaml document ....))
-  #:mode mode-flag
-  #:exists exists-flag)]
-Accepts the same keyword arguments as @racket[write-yaml]
-(represented above by @racket[....]).}
+A wrapper around @racket[write-yaml] using @racket[with-output-to-file].
+}
 
 @defproc[(yaml*->file
            [documents (listof yaml?)]
            [path path-string?]
+           [#:canonical? canonical? boolean? #f]
+           [#:indent indent exact-positive-integer? 2]
+           [#:width width exact-positive-integer? 80]
+           [#:explicit-start? explicit-start? boolean? #f]
+           [#:explicit-end? explicit-end? boolean? #f]
+           [#:scalar-style scalar-style (or/c #\" #\' #\| #\> 'plain) 'plain]
+           [#:style style (or/c 'block 'flow 'best) 'best]
+           [#:sort-mapping mapping-less-than?
+            (or/c (any/c any/c . -> . any/c) #f) #f]
+           [#:sort-mapping-key mapping-extract-key
+            (any/c . -> . any/c) identity]
+           
            [#:mode mode-flag (or/c 'binary 'text) 'binary]
            [#:exists exists-flag (or/c 'error 'append 'update
                                        'replace 'truncate 'truncate/replace)
                      'error])
          string?]{
-Equivalent to
-@racketblock[
-(with-output-to-file
-  path
-  (λ () (write-yaml* documents ....))
-  #:mode mode-flag
-  #:exists exists-flag)]
-Accepts the same keyword arguments as @racket[write-yaml*]
-(represented above by @racket[....]).}
+A wrapper around @racket[write-yaml*] using @racket[with-output-to-file].
+}
+
+@section{Extending YAML}
+
+TODO
+
+@interaction[#:eval yaml-evaluator
+(define (represent-vector vec)
+  (represent-sequence "!vector" (vector->list vec)))
+(define vector-representer (yaml-representer vector? represent-vector))
+(parameterize ([yaml-representers (list vector-representer)])
+  (write-yaml #(1 2 3) #:style 'flow))]
+
+TODO
+
+@interaction[#:eval yaml-evaluator
+(define (construct-vector node)
+  (list->vector (construct-sequence node)))
+(define vector-constructor
+  (yaml-constructor vector? "!vector" construct-vector))
+(parameterize ([yaml-constructors (list vector-constructor)])
+  (string->yaml "!vector [1, 2, 3]"))]
+
+TODO
+
+@defparam[yaml-representers representers (listof yaml-representer?)]{
+A parameter that configures user-defined @emph{representers} to use when
+writing YAML. It is @racket['()] by default.}
+
+@defparam[yaml-constructors constructors
+(listof (or/c yaml-constructor? yaml-multi-constructor?))]{
+A parameter that configures user-defined @emph{constructors} to use when
+reading YAML. It is @racket['()] by default.}

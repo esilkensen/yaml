@@ -17,10 +17,10 @@
   (class/c
    (init-field
     [out output-port?]
-    [canonical boolean?]
+    [canonical? boolean?]
     [indent (or/c exact-positive-integer? #f)]
     [width (or/c exact-positive-integer? #f)]
-    [allow-unicode boolean?]
+    [allow-unicode? boolean?]
     [line-break (or/c "\n" "\r" "\r\n" #f)])
    [emit (event? . ->m . void?)]))
 
@@ -38,10 +38,10 @@
   (class object%
     (init-field
      [out (current-output-port)]
-     [canonical #f]
+     [canonical? #f]
      [indent #f]
      [width #f]
-     [allow-unicode #f]
+     [allow-unicode? #f]
      [line-break #f])
     
     (super-new)
@@ -167,13 +167,13 @@
                         [prefix-text (prepare-tag-prefix prefix)])
                    (write-tag-directive handle-text prefix-text))))))
          (unless (and first (not (document-start-event-explicit event))
-                      (not canonical) (not (document-start-event-version event))
+                      (not canonical?) (not (document-start-event-version event))
                       (or (not (hash? (document-start-event-tags event)))
                           (null? (hash-keys (document-start-event-tags event))))
                       (not (check-empty-document?)))
            (write-indent)
            (write-indicator "---" #t)
-           (when canonical
+           (when canonical?
              (write-indent)))
          (set! state expect-document-root)]
         [(stream-end-event? event)
@@ -224,14 +224,14 @@
             (expect-scalar)]
            [(sequence-start-event? event)
             (if (or (> flow-level 0)
-                    canonical
+                    canonical?
                     (sequence-start-event-flow-style event)
                     (check-empty-sequence?))
                 (expect-flow-sequence)
                 (expect-block-sequence))]
            [(mapping-start-event? event)
             (if (or (> flow-level 0)
-                    canonical
+                    canonical?
                     (mapping-start-event-flow-style event)
                     (check-empty-mapping?))
                 (expect-flow-mapping)
@@ -269,7 +269,7 @@
          (write-indicator "]" #f)
          (set! state (pop! states))]
         [else
-         (when (or canonical (> column best-width))
+         (when (or canonical? (> column best-width))
            (write-indent))
          (append! states (list expect-flow-sequence-item))
          (expect-node #f #t #f #f)]))
@@ -279,14 +279,14 @@
         [(sequence-end-event? event)
          (set! current-indent (pop! indents))
          (set! flow-level (sub1 flow-level))
-         (when canonical
+         (when canonical?
            (write-indicator "," #f)
            (write-indent))
          (write-indicator "]" #f)
          (set! state (pop! states))]
         [else
          (write-indicator "," #f)
-         (when (or canonical (> column best-width))
+         (when (or canonical? (> column best-width))
            (write-indent))
          (append! states (list expect-flow-sequence-item))
          (expect-node #f #t #f #f)]))
@@ -307,10 +307,10 @@
          (write-indicator "}" #f)
          (set! state (pop! states))]
         [else
-         (when (or canonical (> column best-width))
+         (when (or canonical? (> column best-width))
            (write-indent))
          (cond
-           [(and (not canonical) (check-simple-key?))
+           [(and (not canonical?) (check-simple-key?))
             (append! states (list expect-flow-mapping-simple-value))
             (expect-node #f #f #t #t)]
            [else
@@ -323,17 +323,17 @@
         [(mapping-end-event? event)
          (set! current-indent (pop! indents))
          (set! flow-level (sub1 flow-level))
-         (when canonical
+         (when canonical?
            (write-indicator "," #f)
            (write-indent))
          (write-indicator "}" #f)
          (set! state (pop! states))]
         [else
          (write-indicator "," #f)
-         (when (or canonical (> column best-width))
+         (when (or canonical? (> column best-width))
            (write-indent))
          (cond
-           [(and (not canonical) (check-simple-key?))
+           [(and (not canonical?) (check-simple-key?))
             (append! states (list expect-flow-mapping-simple-value))
             (expect-node #f #f #t #t)]
            [else
@@ -347,7 +347,7 @@
       (expect-node #f #f #t #f))
     
     (define (expect-flow-mapping-value)
-      (when (or canonical (> column best-width))
+      (when (or canonical? (> column best-width))
         (write-indent))
       (write-indicator ":" #t)
       (append! states (list expect-flow-mapping-key))
@@ -480,14 +480,14 @@
           (set! style (choose-scalar-style)))
         (cond
           [(and (scalar-event? event)
-                (or (not canonical) (not tag))
+                (or (not canonical?) (not tag))
                 (or (and (equal? "" style)
                          (car (scalar-event-implicit event)))
                     (and (not (equal? "" style))
                          (cdr (scalar-event-implicit event)))))
            (set! prepared-tag #f)]
           [(and (not (scalar-event? event))
-                (or (not canonical)
+                (or (not canonical?)
                     (not tag))
                 (collection-start-event-implicit event))
            (set! prepared-tag #f)]
@@ -509,7 +509,7 @@
       (unless analysis
         (set! analysis (analyze-scalar (scalar-event-value event))))
       (cond
-        [(or (equal? #\" (scalar-event-style event)) canonical)
+        [(or (equal? #\" (scalar-event-style event)) canonical?)
          #\"]
         [(and (not (scalar-event-style event))
               (car (scalar-event-implicit event))
@@ -686,7 +686,7 @@
                              (char<=? #\u00A0 ch #\uD7FF)
                              (char<=? #\uE000 ch #\uFFFD))
                          (not (char=? #\uFEFF ch)))
-                    (unless allow-unicode
+                    (unless allow-unicode?
                       (set! special-characters #t))]
                    [else (set! special-characters #t)]))
                (cond
@@ -877,7 +877,7 @@
             (when (or (not (char? ch))
                       (string-index "\"\\\x85\u2028\u2029\uFEFF" ch)
                       (not (char<=? #\space ch #\~))
-                      (and allow-unicode
+                      (and allow-unicode?
                            (or (char<=? #\u00A0 ch #\uD7FF)
                                (char<=? #\uE000 ch #\uFFFD))))
               (when (< start end)

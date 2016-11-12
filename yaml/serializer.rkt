@@ -20,13 +20,13 @@
    (init-field
     [resolver (instanceof/c resolver+c%)]
     [out output-port?]
-    [canonical boolean?]
+    [canonical? boolean?]
     [indent (or/c exact-positive-integer? #f)]
     [width (or/c exact-positive-integer? #f)]
-    [allow-unicode boolean?]
+    [allow-unicode? boolean?]
     [line-break (or/c "\n" "\r" "\r\n" #f)]
-    [explicit-start boolean?]
-    [explicit-end boolean?]
+    [explicit-start? boolean?]
+    [explicit-end? boolean?]
     [version (or/c (cons/c exact-integer? exact-integer?) #f)]
     [tags (or/c (hash/c string? string?) #f)])
    [open (->m void?)]
@@ -42,13 +42,13 @@
     (init-field
      [resolver (new resolver%)]
      [out (current-output-port)]
-     [canonical #f]
+     [canonical? #f]
      [indent #f]
      [width #f]
-     [allow-unicode #f]
+     [allow-unicode? #f]
      [line-break #f]
-     [explicit-start #f]
-     [explicit-end #f]
+     [explicit-start? #f]
+     [explicit-end? #f]
      [version #f]
      [tags #f])
     
@@ -57,10 +57,10 @@
     (define emitter
       (new emitter%
            [out out]
-           [canonical canonical]
+           [canonical? canonical?]
            [indent indent]
            [width width]
-           [allow-unicode allow-unicode]
+           [allow-unicode? allow-unicode?]
            [line-break line-break]))
     (define serialized-nodes (make-hasheq))
     (define anchors (make-hasheq))
@@ -94,10 +94,10 @@
         [closed
          (serializer-error "serializer is closed")])
       (send emitter emit (document-start-event
-                          #f #f explicit-start version tags))
+                          #f #f explicit-start? version tags))
       (anchor-node node)
       (serialize-node node)
-      (send emitter emit (document-end-event #f #f explicit-end))
+      (send emitter emit (document-end-event #f #f explicit-end?))
       (set! serialized-nodes (make-hasheq))
       (set! anchors (make-hasheq))
       (set! last-anchor-id 0))

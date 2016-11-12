@@ -200,7 +200,7 @@
     (add (yaml-representer bytes? represent-binary))
     (add (yaml-representer boolean? represent-bool))
     (add (yaml-representer inexact-real? represent-float))
-    (add (yaml-representer integer? represent-int))
+    (add (yaml-representer exact-integer? represent-int))
     (add (yaml-representer string? represent-str))
     (add (yaml-representer date? represent-date))
 
