@@ -68,7 +68,7 @@ of Racket-specific tags, correspond to values in Racket.
 
 This module can be @seclink["extending"]{extended} with support for
 application-specific tags using custom @emph{representers} and
-@emph{constructors}, and this predicate checks for those as well.
+@emph{constructors}, and this predicate checks for those values as well.
 }
 
 @defparam[yaml-null null any/c]{
@@ -277,7 +277,7 @@ A wrapper around @racket[write-yaml*] using @racket[with-output-to-string].
            [#:exists exists-flag (or/c 'error 'append 'update
                                        'replace 'truncate 'truncate/replace)
                      'error])
-         string?]{
+         void?]{
 A wrapper around @racket[write-yaml] using @racket[with-output-to-file].
 }
 
@@ -300,38 +300,112 @@ A wrapper around @racket[write-yaml] using @racket[with-output-to-file].
            [#:exists exists-flag (or/c 'error 'append 'update
                                        'replace 'truncate 'truncate/replace)
                      'error])
-         string?]{
+         void?]{
 A wrapper around @racket[write-yaml*] using @racket[with-output-to-file].
 }
 
 @section[#:tag "extending"]{Extending YAML}
 
-TODO
-
-@interaction[#:eval yaml-evaluator
-(define (represent-vector vec)
-  (represent-sequence "!vector" (vector->list vec)))
-(define vector-representer (yaml-representer vector? represent-vector))
-(parameterize ([yaml-representers (list vector-representer)])
-  (write-yaml #(1 2 3) #:style 'flow))]
-
-TODO
-
-@interaction[#:eval yaml-evaluator
-(define (construct-vector node)
-  (list->vector (construct-sequence node)))
-(define vector-constructor
-  (yaml-constructor vector? "!vector" construct-vector))
-(parameterize ([yaml-constructors (list vector-constructor)])
-  (string->yaml "!vector [1, 2, 3]"))]
-
-TODO
+This module provides a simple API... TODO
 
 @defparam[yaml-representers representers (listof yaml-representer?)]{
 A parameter that configures user-defined @emph{representers} to use when
-writing YAML. It is @racket['()] by default.}
+writing YAML. It is @racket['()] by default.
+}
 
 @defparam[yaml-constructors constructors
-(listof (or/c yaml-constructor? yaml-multi-constructor?))]{
+          (listof (or/c yaml-constructor? yaml-multi-constructor?))]{
 A parameter that configures user-defined @emph{constructors} to use when
-reading YAML. It is @racket['()] by default.}
+reading YAML. It is @racket['()] by default.
+}
+
+@defproc[(node? [v any/c]) boolean?]{
+Returns @racket[#t] if @racket[v] is a YAML node, @racket[#f] otherwise.
+}
+
+@defproc[(yaml-constructor? [v any/c]) boolean?]{
+Returns @racket[#t] if @racket[v] is a YAML constructor, @racket[#f] otherwise.
+}
+
+@defproc[(yaml-constructor
+           [type? (any/c . -> . boolean?)]
+           [tag string?]
+           [construct (node? . -> . yaml?)])
+         yaml-constructor?]{
+TODO
+}
+
+@defproc[(yaml-multi-constructor? [v any/c]) boolean?]{
+Returns @racket[#t] if @racket[v] is a YAML multi-constructor, @racket[#f]
+otherwise.
+}
+
+@defproc[(yaml-multi-constructor
+           [type? (any/c . -> . boolean?)]
+           [tag-prefix string?]
+           [construct (string? node? . -> . yaml?)])
+         yaml-multi-constructor?]{
+TODO
+}
+
+@defproc[(construct-scalar [node node?]) string?]{
+TODO
+}
+
+@defproc[(construct-sequence [node node?]) (listof yaml?)]{
+TODO
+}
+
+@defproc[(construct-mapping [node node?]) (hash/c yaml? yaml?)]{
+TODO
+}
+
+@defproc[(yaml-representer? [v any/c]) boolean?]{
+Returns @racket[#t] if @racket[v] is a YAML representer, @racket[#f] otherwise.
+}
+
+@defproc[(yaml-representer
+           [type? (any/c . -> . boolean?)]
+           [represent (any/c . -> . node?)])
+         yaml-representer?]{
+TODO
+}
+
+@defproc[(represent-scalar [tag string?] [str string?]) node?]{
+TODO
+}
+
+@defproc[(represent-sequence [tag string?] [lst (listof yaml?)]) node?]{
+TODO
+}
+
+@defproc[(represent-mapping [tag string?] [hash (hash/c yaml? yaml?)]) node?]{
+TODO
+}
+
+@interaction[#:eval yaml-evaluator
+(struct player (name hr avg) #:transparent)
+(define (represent-player p)
+  (define mapping (make-hash))
+  (hash-set! mapping "name" (player-name p))
+  (hash-set! mapping "hr" (player-hr p))
+  (hash-set! mapping "avg" (player-avg p))
+  (represent-mapping "!player" mapping))
+(define player-representer
+  (yaml-representer player? represent-player))
+(parameterize ([yaml-representers (list player-representer)])
+  (write-yaml (player "Mark McGwire" 65 0.278)))
+]
+
+@interaction[#:eval yaml-evaluator
+(define (construct-player node)
+  (define mapping (construct-mapping node))
+  (player (hash-ref mapping "name")
+          (hash-ref mapping "hr")
+          (hash-ref mapping "avg")))
+(define player-constructor
+  (yaml-constructor player? "!player" construct-player))
+(parameterize ([yaml-constructors (list player-constructor)])
+  (string->yaml
+   "!player {name: Sammy Sosa, hr: 63, avg: 0.288}"))
+]

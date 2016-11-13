@@ -29,8 +29,8 @@
   [construct-sequence (node? . -> . (listof yaml?))]
   [construct-mapping (node? . -> . (hash/c yaml? yaml?))]
   [represent-scalar (string? string? . -> . node?)]
-  [represent-sequence (string? list? . -> . node?)]
-  [represent-mapping (string? hash? . -> . node?)]
+  [represent-sequence (string? (listof yaml?) . -> . node?)]
+  [represent-mapping (string? (hash/c yaml? yaml?) . -> . node?)]
   [read-yaml
    (() (input-port? #:allow-undefined? boolean?) . ->* . yaml?)]
   [read-yaml*

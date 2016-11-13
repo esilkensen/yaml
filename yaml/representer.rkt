@@ -26,8 +26,8 @@
     [sort-mapping-key (any/c . -> . any/c)])
    [represent (yaml? . ->m . void?)]
    [represent-scalar (string? string? . ->m . node?)]
-   [represent-sequence (string? list? . ->m . node?)]
-   [represent-mapping (string? hash? . ->m . node?)]
+   [represent-sequence (string? (listof yaml?) . ->m . node?)]
+   [represent-mapping (string? (hash/c yaml? yaml?) . ->m . node?)]
    [add (yaml-representer? . ->m . void?)]))
 
 (define (representer-error message)
