@@ -402,53 +402,60 @@
         #:sort-mapping-key car)
        (file->string check-file))))
 
-  (test-case "vectors"
-    (define (construct-vector node)
-      (list->vector (construct-sequence node)))
-    (define vector-constructor
-      (yaml-constructor vector? "!vector" construct-vector))
+  (test-case "posn"
+    (struct posn (x y) #:transparent)
+    (define (construct-posn node)
+      (define mapping (construct-mapping node))
+      (posn (hash-ref mapping "x") (hash-ref mapping "y")))
+    (define posn-constructor
+      (yaml-constructor posn? "!posn" construct-posn))
     
-    (define (represent-vector vec)
-      (represent-sequence "!vector" (vector->list vec)))
-    (define vector-representer (yaml-representer vector? represent-vector))
+    (define (represent-posn p)
+      (define mapping (make-hash))
+      (hash-set! mapping "x" (posn-x p))
+      (hash-set! mapping "y" (posn-y p))
+      (represent-mapping "!posn" mapping))
+    (define posn-representer (yaml-representer posn? represent-posn))
     
-    (parameterize ([yaml-constructors (list vector-constructor)]
-                   [yaml-representers (list vector-representer)])
+    (parameterize ([yaml-constructors (list posn-constructor)]
+                   [yaml-representers (list posn-representer)])
       (check-equal?
-       (yaml->string #(1 (2) 3) #:style 'flow)
-       "!vector [1, [2], 3]\n")
+       (yaml->string (posn 3 4)
+                     #:style 'flow
+                     #:sort-mapping string<?
+                     #:sort-mapping-key car)
+       "!posn {x: 3, y: 4}\n")
       (check-equal?
-       (string->yaml "!vector [1, [2], 3]\n")
-       #(1 (2) 3))))
+       (string->yaml "!posn {x: 3, y: 4}\n")
+       (posn 3 4))))
 
   (test-case "multi-constructor"
-    (define tag-prefix "tag:yaml.org,2002:racket/vector:")
-    (define (construct-racket-vector type node)
+    (struct player (name) #:transparent)
+    (struct pitcher player (era) #:transparent)
+    (define tag-prefix "!baseball:")
+    (define (construct-player type node)
+      (define mapping (construct-mapping node))
       (cond
-        [(equal? "mutable" type)
-         (list->vector (construct-sequence node))]
-        [(equal? "immutable" type)
-         (vector->immutable-vector (list->vector (construct-sequence node)))]
+        [(equal? "player" type)
+         (player (hash-ref mapping "name"))]
+        [(equal? "pitcher" type)
+         (pitcher (hash-ref mapping "name") (hash-ref mapping "era"))]
         [else (error (format "unexpected type: ~a" type))]))
-    (define racket-vector-constructor
-      (yaml-multi-constructor vector? tag-prefix construct-racket-vector))
-    (define (represent-racket-vector vec)
-      (define type (if (immutable? vec) "immutable" "mutable"))
+    (define player-constructor
+      (yaml-multi-constructor player? tag-prefix construct-player))
+    (define (represent-player p)
+      (define type (if (pitcher? p) "pitcher" "player"))
       (define tag (string-append tag-prefix type))
-      (represent-sequence tag (vector->list vec)))
-    (define racket-vector-representer
-      (yaml-representer vector? represent-racket-vector))
-    (parameterize ([yaml-constructors (list racket-vector-constructor)]
-                   [yaml-representers (list racket-vector-representer)])
-      (check-equal?
-       (yaml->string (vector 1 2 3) #:style 'flow)
-       "!!racket/vector:mutable [1, 2, 3]\n")
-      (check-equal?
-       (yaml->string (vector-immutable 1 2 3) #:style 'flow)
-       "!!racket/vector:immutable [1, 2, 3]\n")
-      (define vec-mut (string->yaml "!!racket/vector:mutable [1, 2, 3]\n"))
-      (define vec-imm (string->yaml "!!racket/vector:immutable [1, 2, 3]\n"))
-      (check-equal? vec-mut #(1 2 3))
-      (check-equal? vec-imm #(1 2 3))
-      (check-false (immutable? vec-mut))
-      (check-true (immutable? vec-imm)))))
+      (define mapping (make-hash))
+      (hash-set! mapping "name" (player-name p))
+      (when (pitcher? p)
+        (hash-set! mapping "era" (pitcher-era p)))
+      (represent-mapping tag mapping))
+    (define player-representer
+      (yaml-representer player? represent-player))
+    (parameterize ([yaml-constructors (list player-constructor)]
+                   [yaml-representers (list player-representer)])
+      (define p1 (player "Troy Tulowitzki"))
+      (define p2 (pitcher "Jeff Francis" 3.45))
+      (check-equal? (string->yaml (yaml->string p1)) p1)
+      (check-equal? (string->yaml (yaml->string p2)) p2))))

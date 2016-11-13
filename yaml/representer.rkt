@@ -166,10 +166,6 @@
     (define (represent-list data)
       (represent-sequence "tag:yaml.org,2002:seq" data))
 
-    (define (represent-pair data)
-      (let ([value (list (car data) (cdr data))])
-        (represent-sequence "tag:yaml.org,2002:racket/pair" value)))
-    
     (define (represent-hash data)
       (represent-mapping "tag:yaml.org,2002:map" data))
     
@@ -191,6 +187,18 @@
             (let ([microsecond (/ (date*-nanosecond data) 1000)])
               (set! value (format "~a.~a" value microsecond))))
           (represent-scalar "tag:yaml.org,2002:timestamp" value))))
+
+    (define (represent-pair data)
+      (let ([value (list (car data) (cdr data))])
+        (represent-sequence "tag:yaml.org,2002:racket/pair" value)))
+
+    (define (represent-vector data)
+      (let ([value (vector->list data)])
+        (represent-sequence "tag:yaml.org,2002:racket/vector" value)))
+
+    (define (represent-symbol data)
+      (let ([value (symbol->string data)])
+        (represent-scalar "tag:yaml.org,2002:racket/symbol" value)))
     
     (define/public (add representer)
       (append! yaml-representers (list representer)))
@@ -210,4 +218,6 @@
     (add (yaml-representer list? represent-list))
     
     ;; Racket Types
-    (add (yaml-representer pair? represent-pair))))
+    (add (yaml-representer pair? represent-pair))
+    (add (yaml-representer vector? represent-vector))
+    (add (yaml-representer symbol? represent-symbol))))

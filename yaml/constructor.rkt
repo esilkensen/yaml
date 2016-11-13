@@ -420,7 +420,7 @@
     (define (construct-yaml-map node)
       (construct-mapping node))
     
-    (define (construct-yaml-pair node)
+    (define (construct-racket-pair node)
       (let ([value (sequence-node-value node)])
         (unless (= 2 (length value))
           (constructor-error
@@ -429,6 +429,12 @@
            (node-start node)))
         (cons (construct-object (first value))
               (construct-object (second value)))))
+
+    (define (construct-racket-vector node)
+      (list->vector (construct-sequence node)))
+
+    (define (construct-racket-symbol node)
+      (string->symbol (construct-scalar node)))
     
     (define (construct-undefined node)
       (unless allow-undefined?
@@ -473,7 +479,9 @@
     (add-constructor "tag:yaml.org,2002:timestamp" construct-yaml-timestamp)
 
     ;; Racket Types
-    (add-constructor "tag:yaml.org,2002:racket/pair" construct-yaml-pair)))
+    (add-constructor "tag:yaml.org,2002:racket/pair" construct-racket-pair)
+    (add-constructor "tag:yaml.org,2002:racket/vector" construct-racket-vector)
+    (add-constructor "tag:yaml.org,2002:racket/symbol" construct-racket-symbol)))
 
 (define (make-checked-string->number node)
   (λ (s [radix 10])

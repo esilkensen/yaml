@@ -1,0 +1,38 @@
+'<stream start>'
+block-sequence-start-token()
+block-entry-token()
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="pair")
+':'
+tag-token(value=("!!" . "racket/pair"))
+'['
+scalar-token(plain=#t, style=#f, value="kar")
+','
+scalar-token(plain=#t, style=#f, value="kdr")
+']'
+block-end-token()
+block-entry-token()
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="vector")
+':'
+tag-token(value=("!!" . "racket/vector"))
+'['
+scalar-token(plain=#t, style=#f, value="1")
+','
+scalar-token(plain=#t, style=#f, value="2")
+','
+scalar-token(plain=#t, style=#f, value="3")
+']'
+block-end-token()
+block-entry-token()
+block-mapping-start-token()
+'?'
+scalar-token(plain=#t, style=#f, value="symbol")
+':'
+tag-token(value=("!!" . "racket/symbol"))
+scalar-token(plain=#t, style=#f, value="Apple")
+block-end-token()
+block-end-token()
+'<stream end>'

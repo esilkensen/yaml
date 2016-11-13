@@ -23,7 +23,7 @@ data serialization format. The implementation is hosted at
 @link["http://pyyaml.org"]{PyYAML}. See the
 @link["http://yaml.org"]{YAML web site} for more information about YAML.
 
-@section{YAML Expressions}
+@section[#:tag "expressions"]{YAML Expressions}
 
 @defproc[(yaml? [v any/c]) boolean?]{
 Returns @racket[#t] if @racket[v] is a YAML expression, @racket[#f] otherwise.
@@ -31,8 +31,8 @@ Returns @racket[#t] if @racket[v] is a YAML expression, @racket[#f] otherwise.
 This module defines a subset of Racket values that can be represented as or
 constructed from YAML strings, and this predicate checks for such values.
 
-The following table shows how the standard YAML tags correspond to values in
-Racket.
+The following table shows how the standard YAML tags, in addition to a number
+of Racket-specific tags, correspond to values in Racket.
 
 @tabular[#:sep @hspace[2] #:row-properties '(bottom-border ())
 (list
@@ -60,15 +60,15 @@ Racket.
  (list @link["http://yaml.org/type/str.html"]{@tt{!!str}}
        @racket[string?])
  (list @link["http://yaml.org/type/timestamp.html"]{@tt{!!timestamp}}
-       @racket[date?]))
+       @racket[date?])
+ (list @tt{!!racket/pair} @racket[(cons/c yaml? yaml?)])
+ (list @tt{!!racket/vector} @racket[(vector/c yaml?)])
+ (list @tt{!!racket/symbol} @racket[symbol?]))
 ]
 
-The Racket-specific tag @tt{!!racket/pair} corresponds to a
-@racket[(cons/c yaml? yaml?)] value, and is also supported.
-Finally,
-application-specific tags can be implemented with the
-@racket[(yaml-representers)] and @racket[(yaml-constructors)] parameters,
-and this predicate takes those into account.
+This module can be @seclink["extending"]{extended} with support for
+application-specific tags using custom @emph{representers} and
+@emph{constructors}, and this predicate checks for those as well.
 }
 
 @defparam[yaml-null null any/c]{
@@ -85,7 +85,7 @@ otherwise.
 (parameterize ([yaml-null '()])
   (yaml-null? '()))]}
 
-@section{Reading YAML}
+@section[#:tag "reading"]{Reading YAML}
 
 @defproc[(read-yaml
            [in input-port? (current-input-port)]
@@ -167,7 +167,7 @@ Equivalent to
   (thunk (read-yaml* #:allow-undefined? allow-undefined?))
   #:mode mode-flag)]}
 
-@section{Writing YAML}
+@section[#:tag "writing"]{Writing YAML}
 
 @defproc[(write-yaml
            [document yaml?]
@@ -304,7 +304,7 @@ A wrapper around @racket[write-yaml] using @racket[with-output-to-file].
 A wrapper around @racket[write-yaml*] using @racket[with-output-to-file].
 }
 
-@section{Extending YAML}
+@section[#:tag "extending"]{Extending YAML}
 
 TODO
 
