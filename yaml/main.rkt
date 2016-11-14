@@ -12,6 +12,9 @@
 
 (provide
  node?
+ scalar-node?
+ sequence-node?
+ mapping-node?
  yaml-constructor
  yaml-constructor?
  yaml-multi-constructor
@@ -25,12 +28,12 @@
   yaml-constructors
   yaml-representers)
  (contract-out
-  [construct-scalar (node? . -> . string?)]
-  [construct-sequence (node? . -> . (listof yaml?))]
-  [construct-mapping (node? . -> . (hash/c yaml? yaml?))]
-  [represent-scalar (string? string? . -> . node?)]
-  [represent-sequence (string? (listof yaml?) . -> . node?)]
-  [represent-mapping (string? (hash/c yaml? yaml?) . -> . node?)]
+  [construct-scalar (scalar-node? . -> . string?)]
+  [construct-sequence (sequence-node? . -> . (listof yaml?))]
+  [construct-mapping (mapping-node? . -> . (hash/c yaml? yaml?))]
+  [represent-scalar (string? string? . -> . scalar-node?)]
+  [represent-sequence (string? (listof yaml?) . -> . sequence-node?)]
+  [represent-mapping (string? (hash/c yaml? yaml?) . -> . mapping-node?)]
   [read-yaml
    (() (input-port? #:allow-undefined? boolean?) . ->* . yaml?)]
   [read-yaml*

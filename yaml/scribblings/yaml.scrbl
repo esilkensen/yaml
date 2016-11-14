@@ -313,14 +313,46 @@ A parameter that configures user-defined @emph{representers} to use when
 writing YAML. It is @racket['()] by default.
 }
 
+@defproc[(yaml-representer? [v any/c]) boolean?]{
+Returns @racket[#t] if @racket[v] is a YAML representer, @racket[#f] otherwise.
+}
+
+@defproc[(yaml-representer
+           [type? (any/c . -> . boolean?)]
+           [represent (any/c . -> . node?)])
+         yaml-representer?]{
+TODO.
+
+@examples[#:eval yaml-evaluator
+(struct player (name hr avg) #:transparent)
+(define (represent-player p)
+  (define mapping (make-hash))
+  (hash-set! mapping "name" (player-name p))
+  (hash-set! mapping "hr" (player-hr p))
+  (hash-set! mapping "avg" (player-avg p))
+  (represent-mapping "!player" mapping))
+(define player-representer
+  (yaml-representer player? represent-player))
+(parameterize ([yaml-representers (list player-representer)])
+  (write-yaml (player "Mark McGwire" 65 0.278)))
+]
+}
+
+@deftogether[(@defproc[(represent-scalar [tag string?] [str string?])
+                       scalar-node?]
+              @defproc[(represent-sequence [tag string?] [lst (listof yaml?)])
+                       sequence-node?]
+              @defproc[(represent-mapping [tag string?]
+                                          [hash (hash/c yaml? yaml?)])
+                       mapping-node?])]{
+Returns a value as a YAML (scalar, sequence, or mapping) node with a given
+@racket[tag].
+}
+
 @defparam[yaml-constructors constructors
           (listof (or/c yaml-constructor? yaml-multi-constructor?))]{
 A parameter that configures user-defined @emph{constructors} to use when
 reading YAML. It is @racket['()] by default.
-}
-
-@defproc[(node? [v any/c]) boolean?]{
-Returns @racket[#t] if @racket[v] is a YAML node, @racket[#f] otherwise.
 }
 
 @defproc[(yaml-constructor? [v any/c]) boolean?]{
@@ -332,7 +364,19 @@ Returns @racket[#t] if @racket[v] is a YAML constructor, @racket[#f] otherwise.
            [tag string?]
            [construct (node? . -> . yaml?)])
          yaml-constructor?]{
-TODO
+TODO.
+
+@examples[#:eval yaml-evaluator
+(define (construct-player node)
+  (define mapping (construct-mapping node))
+  (player (hash-ref mapping "name")
+          (hash-ref mapping "hr")
+          (hash-ref mapping "avg")))
+(define player-constructor
+  (yaml-constructor player? "!player" construct-player))
+(parameterize ([yaml-constructors (list player-constructor)])
+  (string->yaml "!player {name: Sammy Sosa, hr: 63, avg: 0.288}"))
+]
 }
 
 @defproc[(yaml-multi-constructor? [v any/c]) boolean?]{
@@ -348,64 +392,24 @@ otherwise.
 TODO
 }
 
-@defproc[(construct-scalar [node node?]) string?]{
-TODO
+@deftogether[(@defproc[(construct-scalar [node scalar-node?])
+                       string?]
+              @defproc[(construct-sequence [node sequence-node?])
+                       (listof yaml?)]
+              @defproc[(construct-mapping [node mapping-node?])
+                       (hash/c yaml? yaml?)])]{
+Constructs a (scalar, sequence, or mapping) value from its YAML @racket[node]
+representation.
 }
 
-@defproc[(construct-sequence [node node?]) (listof yaml?)]{
-TODO
+@deftogether[(@defproc[(node? [v any/c]) boolean?]
+              @defproc[(scalar-node? [v any/c]) boolean?]
+              @defproc[(sequence-node? [v any/c]) boolean?]
+              @defproc[(mapping-node? [v any/c]) boolean?])]{
+Returns @racket[#t] if @racket[v] is a YAML
+(@link["http://yaml.org/spec/1.1/#scalar/information model"]{scalar},
+@link["http://yaml.org/spec/1.1/#sequence/information model"]{sequence}, or
+@link["http://yaml.org/spec/1.1/#mapping/information model"]{mapping})
+@link["http://yaml.org/spec/1.1/#node/information model"]{node},
+@racket[#f] otherwise.
 }
-
-@defproc[(construct-mapping [node node?]) (hash/c yaml? yaml?)]{
-TODO
-}
-
-@defproc[(yaml-representer? [v any/c]) boolean?]{
-Returns @racket[#t] if @racket[v] is a YAML representer, @racket[#f] otherwise.
-}
-
-@defproc[(yaml-representer
-           [type? (any/c . -> . boolean?)]
-           [represent (any/c . -> . node?)])
-         yaml-representer?]{
-TODO
-}
-
-@defproc[(represent-scalar [tag string?] [str string?]) node?]{
-TODO
-}
-
-@defproc[(represent-sequence [tag string?] [lst (listof yaml?)]) node?]{
-TODO
-}
-
-@defproc[(represent-mapping [tag string?] [hash (hash/c yaml? yaml?)]) node?]{
-TODO
-}
-
-@interaction[#:eval yaml-evaluator
-(struct player (name hr avg) #:transparent)
-(define (represent-player p)
-  (define mapping (make-hash))
-  (hash-set! mapping "name" (player-name p))
-  (hash-set! mapping "hr" (player-hr p))
-  (hash-set! mapping "avg" (player-avg p))
-  (represent-mapping "!player" mapping))
-(define player-representer
-  (yaml-representer player? represent-player))
-(parameterize ([yaml-representers (list player-representer)])
-  (write-yaml (player "Mark McGwire" 65 0.278)))
-]
-
-@interaction[#:eval yaml-evaluator
-(define (construct-player node)
-  (define mapping (construct-mapping node))
-  (player (hash-ref mapping "name")
-          (hash-ref mapping "hr")
-          (hash-ref mapping "avg")))
-(define player-constructor
-  (yaml-constructor player? "!player" construct-player))
-(parameterize ([yaml-constructors (list player-constructor)])
-  (string->yaml
-   "!player {name: Sammy Sosa, hr: 63, avg: 0.288}"))
-]

@@ -46,9 +46,9 @@
    [check-data? (->m boolean?)]
    [get-data (->m (or/c yaml? void?))]
    [get-single-data (->m (or/c yaml? #f))]
-   [construct-scalar (node? . ->m . string?)]
-   [construct-sequence (node? . ->m . (listof yaml?))]
-   [construct-mapping (node? . ->m . (hash/c yaml? yaml?))]
+   [construct-scalar (scalar-node? . ->m . string?)]
+   [construct-sequence (sequence-node? . ->m . (listof yaml?))]
+   [construct-mapping (mapping-node? . ->m . (hash/c yaml? yaml?))]
    [add (yaml-constructor? . ->m . void?)]
    [add-multi (yaml-multi-constructor? . ->m . void?)]))
 
