@@ -8,7 +8,9 @@
  "representer.rkt"
  "serializer.rkt"
  "utils.rkt"
- "yaml-expr.rkt")
+ (rename-in
+  "yaml-expr.rkt"
+  [yaml-constructor? yaml-single-constructor?]))
 
 (provide
  node?
@@ -16,7 +18,6 @@
  sequence-node?
  mapping-node?
  yaml-constructor
- yaml-constructor?
  yaml-multi-constructor
  yaml-multi-constructor?
  yaml-representer
@@ -28,6 +29,7 @@
   yaml-constructors
   yaml-representers)
  (contract-out
+  [yaml-constructor? (any/c . -> . boolean?)]
   [construct-scalar (scalar-node? . -> . string?)]
   [construct-sequence (sequence-node? . -> . (listof yaml?))]
   [construct-mapping (mapping-node? . -> . (hash/c yaml? yaml?))]
@@ -135,6 +137,10 @@
      #:sort-mapping-key (any/c . -> . any/c))
     . ->* . string?)]))
 
+(define (yaml-constructor? v)
+  (or (yaml-single-constructor? v)
+      (yaml-multi-constructor? v)))
+
 ;; Reading YAML
 
 (define current-constructor (make-parameter (new constructor%)))
@@ -169,9 +175,9 @@
 
 (define (add-constructors! constructor constructors)
   (for ([c constructors])
-    (if (yaml-constructor? c)
-        (send constructor add c)
-        (send constructor add-multi c))))
+    (if (yaml-multi-constructor? c)
+        (send constructor add-multi c)
+        (send constructor add c))))
 
 (define (string->yaml str #:allow-undefined? [allow-undefined? #f])
   (with-input-from-string str

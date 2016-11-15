@@ -7,15 +7,17 @@
 (provide
  node?
  (contract-out
-  (struct yaml-constructor
+  (struct typeable
+    ([type? (any/c . -> . boolean?)]))
+  (struct (yaml-constructor typeable)
     ([type? (any/c . -> . boolean?)]
      [tag string?]
      [construct (node? . -> . yaml?)]))
-  (struct yaml-multi-constructor
+  (struct (yaml-multi-constructor typeable)
     ([type? (any/c . -> . boolean?)]
      [tag-prefix string?]
      [construct (string? node? . -> . yaml?)]))
-  (struct yaml-representer
+  (struct (yaml-representer typeable)
     ([type? (any/c . -> . boolean?)]
      [represent (any/c . -> . node?)]))
   [yaml? (any/c . -> . boolean?)]
@@ -32,21 +34,20 @@
 (define (yaml-null? v)
   (equal? v (yaml-null)))
 
-(struct yaml-constructor (type? tag construct))
-(struct yaml-multi-constructor (type? tag-prefix construct))
+(struct typeable (type?))
+
+(struct yaml-constructor typeable (tag construct))
+(struct yaml-multi-constructor typeable (tag-prefix construct))
 (define yaml-constructors (make-parameter '()))
 
-(struct yaml-representer (type? represent))
+(struct yaml-representer typeable (represent))
 (define yaml-representers (make-parameter '()))
 
 (define (yaml-types)
-  (define (any-constructor-type? c)
-    (if (yaml-constructor? c)
-        (yaml-constructor-type? c)
-        (yaml-multi-constructor-type? c)))
-  (define constructor-types (map any-constructor-type? (yaml-constructors)))
-  (define representer-types (map yaml-representer-type? (yaml-representers)))
-  (remove-duplicates (append constructor-types representer-types)))
+  (remove-duplicates
+   (map typeable-type?
+        (append (yaml-constructors)
+                (yaml-representers)))))
 
 (define (yaml? v)
   (or (yaml-null? v)

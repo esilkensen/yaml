@@ -68,7 +68,7 @@
          (let loop ([rs yaml-representers])
            (if (null? rs)
                (represent-str (format "~s" data))
-               (if ((yaml-representer-type? (car rs)) data)
+               (if ((typeable-type? (car rs)) data)
                    ((yaml-representer-represent (car rs)) data)
                    (loop (cdr rs))))))))
     
