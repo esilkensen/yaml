@@ -14,13 +14,27 @@
  composer+c%
  (contract-out
   [compose-file
-   ((path-string?) ((instanceof/c resolver+c%)) . ->* . (listof node?))]
+   ((path-string?)
+    (#:resolver (instanceof/c resolver+c%))
+    . ->* .
+    (listof node?))]
   [compose-string
-   ((string?) ((instanceof/c resolver+c%)) . ->* . (listof node?))]
+   ((string?)
+    (#:resolver (instanceof/c resolver+c%))
+    . ->* .
+    (listof node?))]
   [compose-all
-   (() (input-port? (instanceof/c resolver+c%)) . ->* . (listof node?))]
+   (()
+    (input-port?
+     #:resolver (instanceof/c resolver+c%))
+    . ->* .
+    (listof node?))]
   [compose
-   (() (input-port? (instanceof/c resolver+c%)) . ->* . (or/c node? #f))]
+   (()
+    (input-port?
+     #:resolver (instanceof/c resolver+c%))
+    . ->* .
+    (or/c node? #f))]
   [composer% composer+c%]))
 
 (define composer+c%
@@ -34,19 +48,21 @@
 
 (define composer-error (make-error 'composer))
 
-(define (compose-file filename [resolver (new resolver%)])
+(define (compose-file filename #:resolver [resolver (new resolver%)])
   (with-input-from-file filename
-    (λ () (compose-all (current-input-port) resolver))))
+    (thunk (compose-all (current-input-port) #:resolver resolver))))
 
-(define (compose-string string [resolver (new resolver%)])
+(define (compose-string string #:resolver [resolver (new resolver%)])
   (with-input-from-string string
-    (λ () (compose-all (current-input-port) resolver))))
+    (thunk (compose-all (current-input-port) #:resolver resolver))))
 
-(define (compose [in (current-input-port)] [resolver (new resolver%)])
+(define (compose [in (current-input-port)]
+                 #:resolver [resolver (new resolver%)])
   (define composer (new composer% [in in] [resolver resolver]))
   (send composer get-single-node))
 
-(define (compose-all [in (current-input-port)] [resolver (new resolver%)])
+(define (compose-all [in (current-input-port)]
+                     #:resolver [resolver (new resolver%)])
   (define composer (new composer% [in in] [resolver resolver]))
   (let loop ([nodes '()])
     (if (send composer check-node?)
