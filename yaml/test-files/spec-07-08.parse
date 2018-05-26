@@ -1,5 +1,5 @@
 stream-start-event()
-document-start-event(explicit=#t, tags=#hash(("!!" . "tag:yaml.org,2002:") ("!" . "!") ("!o!" . "tag:ben-kiki.org,2000:")), version=#f)
+document-start-event(explicit=#t, tags=#hash(("!" . "!") ("!!" . "tag:yaml.org,2002:") ("!o!" . "tag:ben-kiki.org,2000:")), version=#f)
 sequence-start-event(anchor=#f, flow-style=#f, implicit=#t, tag=#f)
 scalar-event(anchor=#f, implicit=(#f . #f), style=#\", tag="!foo", value="bar")
 scalar-event(anchor=#f, implicit=(#f . #f), style=#\", tag="tag:yaml.org,2002:str", value="string")
