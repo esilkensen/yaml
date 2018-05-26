@@ -60,7 +60,22 @@
                           (if (t-s? t)
                               (let* ([attr->string
                                       (λ: ([p : (Pairof String (t-s -> Any))])
-                                        (format "~a=~s" (car p) ((cdr p) t)))]
+                                        (let ([v ((cdr p) t)]
+                                              [sort-hash
+                                               (inst sort
+                                                     (Pairof Any Any)
+                                                     String)]
+                                              [car-string
+                                               (λ: ([a : (Pairof Any Any)])
+                                                 (format "~a" (car a)))])
+                                          (if (hash? v)
+                                              (format "~a=#hash~s"
+                                                      (car p)
+                                                      (sort-hash
+                                                       (hash->list v)
+                                                       #:key car-string
+                                                       string<?))
+                                              (format "~a=~s" (car p) v))))]
                                      [fields (map attr->string (list #,@fs))])
                                 (if (string? in-value)
                                     (format "'~a'" in-value)
