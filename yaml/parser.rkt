@@ -590,4 +590,14 @@
      (λ () (parse-string "%YAML 1.1\n%YAML 1.2\n---\nfoo")))
     (check-exn
      #rx"found duplicate tag handle"
-     (λ () (parse-string "%TAG ! !\n%TAG ! !\n---\nfoo")))))
+     (λ () (parse-string "%TAG ! !\n%TAG ! !\n---\nfoo"))))
+
+  (test-case "event->string"
+    (define tags #hash(("!yaml!" . "tag:yaml.org,2002:") ("!" . "!foo")))
+    (check-equal?
+     (event->string (document-start-event #f #f #f #f tags))
+     (string-append
+      "document-start-event("
+      "explicit=#f, "
+      "tags=#hash((\"!\" . \"!foo\") (\"!yaml!\" . \"tag:yaml.org,2002:\")), "
+      "version=#f)"))))
