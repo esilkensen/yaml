@@ -110,10 +110,9 @@
         (and node (construct-document node))))
     
     (define (construct-document node)
-      (let ([data (construct-object node)])
+      (begin0 (construct-object node)
         (set! constructed-objects (make-hash))
-        (set! recursive-objects (make-hash))
-        data))
+        (set! recursive-objects (make-hash))))
     
     (define (construct-object node)
       (if (hash-has-key? constructed-objects node)
