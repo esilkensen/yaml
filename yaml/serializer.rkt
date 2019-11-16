@@ -134,66 +134,86 @@
            (hash-set! serialized-nodes node #t)
            (cond
              [(scalar-node? node)
-              (let* ([tag (scalar-node-tag node)]
-                     [value (scalar-node-value node)]
-                     [style (scalar-node-style node)]
-                     [detected-tag
-                      (send resolver resolve 'scalar value (cons #t #f))]
-                     [default-tag
-                       (send resolver resolve 'scalar value (cons #f #t))]
-                     [implicit (cons (equal? tag detected-tag)
-                                     (equal? tag default-tag))])
-                (send emitter emit (scalar-event
-                                    #f #f alias tag implicit value style)))]
+              (serialize-scalar-node node alias)]
              [(sequence-node? node)
-              (let* ([tag (sequence-node-tag node)]
-                     [value (sequence-node-value node)]
-                     [implicit
-                      (equal? tag (send resolver resolve 'sequence value #t))]
-                     [flow-style (sequence-node-flow-style node)])
-                (send emitter emit (sequence-start-event
-                                    #f #f alias tag implicit flow-style))
-                (for ([item value])
-                  (serialize-node item))
-                (send emitter emit (sequence-end-event #f #f)))]
+              (serialize-sequence-node node alias)]
              [(mapping-node? node)
-              (let* ([tag (mapping-node-tag node)]
-                     [value (mapping-node-value node)]
-                     [implicit
-                      (equal? tag (send resolver resolve 'mapping value #t))]
-                     [flow-style (mapping-node-flow-style node)])
-                (send emitter emit (mapping-start-event
-                                    #f #f alias tag implicit flow-style))
-                (for ([kv value])
-                  (serialize-node (car kv))
-                  (serialize-node (cdr kv)))
-                (send emitter emit (mapping-end-event #f #f)))])])))))
+              (serialize-mapping-node node alias)])])))
+
+    (define (serialize-scalar-node node alias)
+      (let* ([tag (scalar-node-tag node)]
+             [value (scalar-node-value node)]
+             [style (scalar-node-style node)]
+             [detected-tag
+              (send resolver resolve 'scalar value (cons #t #f))]
+             [default-tag
+               (send resolver resolve 'scalar value (cons #f #t))]
+             [implicit (cons (equal? tag detected-tag)
+                             (equal? tag default-tag))])
+        (send emitter emit (scalar-event
+                            #f #f alias tag implicit value style))))
+    
+    (define (serialize-sequence-node node alias)
+      (let* ([tag (sequence-node-tag node)]
+             [value (sequence-node-value node)]
+             [implicit
+              (equal? tag (send resolver resolve 'sequence value #t))]
+             [flow-style (sequence-node-flow-style node)])
+        (send emitter emit (sequence-start-event
+                            #f #f alias tag implicit flow-style))
+        (for ([item value])
+          (serialize-node item))
+        (send emitter emit (sequence-end-event #f #f))))
+
+    (define (serialize-mapping-node node alias)
+      (let* ([tag (mapping-node-tag node)]
+             [value (mapping-node-value node)]
+             [implicit
+              (equal? tag (send resolver resolve 'mapping value #t))]
+             [flow-style (mapping-node-flow-style node)])
+        (send emitter emit (mapping-start-event
+                            #f #f alias tag implicit flow-style))
+        (for ([kv value])
+          (serialize-node (car kv))
+          (serialize-node (cdr kv)))
+        (send emitter emit (mapping-end-event #f #f))))))
 
 (module+ test
   (require rackunit)
+  
   (test-case "open"
     (define serializer (new serializer%))
+    
     (send serializer open)
+    
     (check-exn
      #rx"serializer is open"
      (λ () (send serializer open)))
+    
     (send serializer close)
+    
     (check-exn
      #rx"serializer is closed"
      (λ () (send serializer open))))
+  
   (test-case "close"
     (define serializer (new serializer%))
+    
     (check-exn
      #rx"serializer has not been opened"
      (λ () (send serializer close)))
+    
     (check-exn
      #rx"serializer has not been opened"
      (λ () (send serializer serialize #f)))
+    
     (send serializer open)
     (send serializer close)
+    
     (check-exn
      #rx"serializer is closed"
      (λ () (send serializer close)))
+    
     (check-exn
      #rx"serializer is closed"
      (λ () (send serializer serialize #f)))))
