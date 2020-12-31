@@ -62,6 +62,7 @@
      #:canonical? boolean?
      #:indent exact-positive-integer?
      #:width exact-positive-integer?
+     #:allow-unicode? boolean?
      #:explicit-start? boolean?
      #:explicit-end? boolean?
      #:scalar-style (or/c #\" #\' #\| #\> 'plain)
@@ -75,6 +76,7 @@
      #:canonical? boolean?
      #:indent exact-positive-integer?
      #:width exact-positive-integer?
+     #:allow-unicode? boolean?
      #:explicit-start? boolean?
      #:explicit-end? boolean?
      #:scalar-style (or/c #\" #\' #\| #\> 'plain)
@@ -87,6 +89,7 @@
     (#:canonical? boolean?
      #:indent exact-positive-integer?
      #:width exact-positive-integer?
+     #:allow-unicode? boolean?
      #:explicit-start? boolean?
      #:explicit-end? boolean?
      #:scalar-style (or/c #\" #\' #\| #\> 'plain)
@@ -99,6 +102,7 @@
     (#:canonical? boolean?
      #:indent exact-positive-integer?
      #:width exact-positive-integer?
+     #:allow-unicode? boolean?
      #:explicit-start? boolean?
      #:explicit-end? boolean?
      #:scalar-style (or/c #\" #\' #\| #\> 'plain)
@@ -114,6 +118,7 @@
      #:canonical? boolean?
      #:indent exact-positive-integer?
      #:width exact-positive-integer?
+     #:allow-unicode? boolean?
      #:explicit-start? boolean?
      #:explicit-end? boolean?
      #:scalar-style (or/c #\" #\' #\| #\> 'plain)
@@ -129,6 +134,7 @@
      #:canonical? boolean?
      #:indent exact-positive-integer?
      #:width exact-positive-integer?
+     #:allow-unicode? boolean?
      #:explicit-start? boolean?
      #:explicit-end? boolean?
      #:scalar-style (or/c #\" #\' #\| #\> 'plain)
@@ -219,6 +225,7 @@
                     #:canonical? [canonical? #f]
                     #:indent [indent 2]
                     #:width [width 80]
+                    #:allow-unicode? [allow-unicode? #f]
                     #:explicit-start? [explicit-start? #f]
                     #:explicit-end? [explicit-end? #f]
                     #:scalar-style [scalar-style 'plain]
@@ -229,6 +236,7 @@
                #:canonical? canonical?
                #:indent indent
                #:width width
+               #:allow-unicode? allow-unicode?
                #:explicit-start? explicit-start?
                #:explicit-end? explicit-end?
                #:scalar-style scalar-style
@@ -240,6 +248,7 @@
                      #:canonical? [canonical? #f]
                      #:indent [indent 2]
                      #:width [width 80]
+                     #:allow-unicode? [allow-unicode? #f]
                      #:explicit-start? [explicit-start? #f]
                      #:explicit-end? [explicit-end? #f]
                      #:scalar-style [scalar-style 'plain]
@@ -252,6 +261,7 @@
          [canonical? canonical?]
          [indent indent]
          [width width]
+         [allow-unicode? allow-unicode?]
          [explicit-start? explicit-start?]
          [explicit-end? explicit-end?]))
   (define representer
@@ -273,6 +283,7 @@
                       #:canonical? [canonical? #f]
                       #:indent [indent 2]
                       #:width [width 80]
+                      #:allow-unicode? [allow-unicode? #f]
                       #:explicit-start? [explicit-start? #f]
                       #:explicit-end? [explicit-end? #f]
                       #:scalar-style [scalar-style 'plain]
@@ -284,6 +295,7 @@
                        #:canonical? canonical?
                        #:indent indent
                        #:width width
+                       #:allow-unicode? allow-unicode?
                        #:explicit-start? explicit-start?
                        #:explicit-end? explicit-end?
                        #:scalar-style scalar-style
@@ -295,6 +307,7 @@
                        #:canonical? [canonical? #f]
                        #:indent [indent 2]
                        #:width [width 80]
+                       #:allow-unicode? [allow-unicode? #f]
                        #:explicit-start? [explicit-start? #f]
                        #:explicit-end? [explicit-end? #f]
                        #:scalar-style [scalar-style 'plain]
@@ -306,6 +319,7 @@
                         #:canonical? canonical?
                         #:indent indent
                         #:width width
+                        #:allow-unicode? allow-unicode?
                         #:explicit-start? explicit-start?
                         #:explicit-end? explicit-end?
                         #:scalar-style scalar-style
@@ -319,6 +333,7 @@
                     #:canonical? [canonical? #f]
                     #:indent [indent 2]
                     #:width [width 80]
+                    #:allow-unicode? [allow-unicode? #f]
                     #:explicit-start? [explicit-start? #f]
                     #:explicit-end? [explicit-end? #f]
                     #:scalar-style [scalar-style 'plain]
@@ -330,6 +345,7 @@
                        #:canonical? canonical?
                        #:indent indent
                        #:width width
+                       #:allow-unicode? allow-unicode?
                        #:explicit-start? explicit-start?
                        #:explicit-end? explicit-end?
                        #:scalar-style scalar-style
@@ -345,6 +361,7 @@
                      #:canonical? [canonical? #f]
                      #:indent [indent 2]
                      #:width [width 80]
+                     #:allow-unicode? [allow-unicode? #f]
                      #:explicit-start? [explicit-start? #f]
                      #:explicit-end? [explicit-end? #f]
                      #:scalar-style [scalar-style 'plain]
@@ -356,6 +373,7 @@
                         #:canonical? canonical?
                         #:indent indent
                         #:width width
+                        #:allow-unicode? allow-unicode?
                         #:explicit-start? explicit-start?
                         #:explicit-end? explicit-end?
                         #:scalar-style scalar-style
@@ -407,6 +425,7 @@
        (yaml*->string
         (file->yaml* yaml-file)
         #:style 'block
+        #:allow-unicode? #t
         #:sort-mapping string<?
         #:sort-mapping-key car)
        (file->string check-file))))
