@@ -156,7 +156,7 @@ These functions accept all keyword arguments accepted by @racket[read-yaml] and
            [#:canonical? canonical? boolean? #f]
            [#:indent indent exact-positive-integer? 2]
            [#:width width exact-positive-integer? 80]
-           [#:allow-unicode? boolean? #f]
+           [#:allow-unicode? allow-unicode? boolean? #f]
            [#:explicit-start? explicit-start? boolean? #f]
            [#:explicit-end? explicit-end? boolean? #f]
            [#:scalar-style scalar-style (or/c #\" #\' #\| #\> 'plain) 'plain]
