@@ -37,6 +37,7 @@
      (write-yaml*
       (file->yaml* test-file)
       #:style 'block
+      #:allow-unicode? #t
       #:sort-mapping string<?
       #:sort-mapping-key car))
     #:exists 'replace))
