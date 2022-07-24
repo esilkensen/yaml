@@ -49,7 +49,7 @@
     
     (super-new)
     
-    (define line 0)
+    (define line 1)
     (define column 0)
     (define index 0)
     (define buffer-length 0)
