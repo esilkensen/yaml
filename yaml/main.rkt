@@ -125,7 +125,7 @@
      #:style (or/c 'block 'flow 'best)
      #:sort-mapping (or/c (any/c any/c . -> . any/c) #f)
      #:sort-mapping-key (any/c . -> . any/c))
-    . ->* . string?)]
+    . ->* . void?)]
   [yaml*->file
    (((listof yaml?) path-string?)
     (#:mode (or/c 'binary 'text)
@@ -141,7 +141,7 @@
      #:style (or/c 'block 'flow 'best)
      #:sort-mapping (or/c (any/c any/c . -> . any/c) #f)
      #:sort-mapping-key (any/c . -> . any/c))
-    . ->* . string?)]))
+    . ->* . void?)]))
 
 (define (yaml-constructor? v)
   (or (yaml-single-constructor? v)
